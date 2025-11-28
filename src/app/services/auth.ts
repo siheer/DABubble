@@ -1,77 +1,158 @@
-import { inject, Injectable, OnDestroy } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Auth,
+  User,
+  UserCredential,
   authState,
-  idToken,
   user,
+  createUserWithEmailAndPassword,
+  idToken,
   signInWithEmailAndPassword,
   signOut,
-  createUserWithEmailAndPassword,
+  AuthErrorCodes,
+  validatePassword,
 } from '@angular/fire/auth';
-import { Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
+import { map, shareReplay } from 'rxjs/operators';
+
+export interface AuthenticationResult<T> {
+  success: boolean;
+  data?: T;
+  errorMessage?: string;
+}
+
+export interface PasswordValidationResult {
+  isValid: boolean;
+  unmetCriteria: {
+    missingLowercase?: string;
+    missingUppercase?: string;
+    missingNumber?: string;
+    missingSpecialChar?: string;
+    tooShort?: string;
+    tooLong?: string;
+  };
+}
 
 @Injectable({
   providedIn: 'root',
 })
-export class AuthService implements OnDestroy {
-  private auth = inject(Auth);
-  user$ = user(this.auth);
-  userSubscription!: Subscription;
-  authState$ = authState(this.auth);
-  authStateSubscription!: Subscription;
-  idToken$ = idToken(this.auth);
-  idTokenSubscription: Subscription;
+export class AuthService {
+  private auth: Auth = inject(Auth);
 
-  constructor() {
-    this.userSubscription = this.user$.subscribe((aUser: any | null) => {
-      //handle user state changes here. Note, that user will be null if there is no currently logged in user.
-      console.log(aUser);
-    });
+  readonly user$: Observable<User | null> = user(this.auth);
+  readonly authState$: Observable<User | null> = authState(this.auth);
+  readonly idToken$: Observable<string | null> = idToken(this.auth);
 
-    this.authStateSubscription = this.authState$.subscribe((aUser: any | null) => {
-      //handle auth state changes here. Note, that user will be null if there is no currently logged in user.
-      console.log(aUser);
-    });
+  readonly isLoggedIn$: Observable<boolean> = this.authState$.pipe(
+    map((currentUser) => currentUser != null),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 
-    this.idTokenSubscription = this.idToken$.subscribe((token: string | null) => {
-      //handle idToken changes here. Note, that user will be null if there is no currently logged in user.
-      console.log(token);
-    });
+  private processError<T>(error: any): never {
+    const mappedErrorMessage = this.mapFirebaseError(error);
+    if (mappedErrorMessage) {
+      const authenticationResult: AuthenticationResult<T> = {
+        success: false,
+        errorMessage: mappedErrorMessage,
+      };
+      throw authenticationResult;
+    }
+    throw error;
   }
 
-  signUp(email: string, password: string) {
-    createUserWithEmailAndPassword(this.auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        console.log(user);
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error('Fail in singup', errorCode);
-        console.error('Fail in singup', errorMessage);
-      });
+  async signUpWithEmailAndPassword(
+    email: string,
+    password: string
+  ): Promise<AuthenticationResult<UserCredential>> {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
+      return {
+        success: true,
+        data: userCredential,
+      };
+    } catch (error: any) {
+      this.processError<UserCredential>(error);
+    }
   }
 
-  login(email: string, password: string) {
-    return signInWithEmailAndPassword(this.auth, email, password)
-      .then((userCredential) => {
-        console.log('User:', userCredential.user);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  async signInWithEmailAndPassword(
+    email: string,
+    password: string
+  ): Promise<AuthenticationResult<UserCredential>> {
+    try {
+      const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+      return {
+        success: true,
+        data: userCredential,
+      };
+    } catch (error: any) {
+      this.processError<UserCredential>(error);
+    }
   }
 
-  logOut() {
-    signOut(this.auth)
-      .then(() => {})
-      .catch((error) => {});
+  async signOut(): Promise<AuthenticationResult<void>> {
+    try {
+      await signOut(this.auth);
+      return {
+        success: true,
+      };
+    } catch (error: any) {
+      this.processError<void>(error);
+    }
   }
 
-  ngOnDestroy() {
-    this.userSubscription.unsubscribe();
-    this.authStateSubscription.unsubscribe();
-    this.idTokenSubscription.unsubscribe();
+  private mapFirebaseError(error: any): string | undefined {
+    const code = error?.code;
+    switch (code) {
+      case AuthErrorCodes.INVALID_EMAIL:
+        return 'Die E-Mail-Adresse ist ungültig.';
+      case AuthErrorCodes.USER_DISABLED:
+        return 'Dieser Benutzer wurde deaktiviert.';
+      case AuthErrorCodes.USER_DELETED:
+        return 'Es existiert kein Benutzer mit diesen Daten.';
+      case AuthErrorCodes.INVALID_PASSWORD:
+        return 'Das Passwort ist falsch.';
+      case AuthErrorCodes.EMAIL_EXISTS:
+        return 'Diese E-Mail-Adresse wird bereits verwendet.';
+      case AuthErrorCodes.WEAK_PASSWORD:
+        return 'Das Passwort ist zu schwach.';
+      default:
+        return undefined;
+    }
+  }
+
+  async validateUserPassword(password: string): Promise<PasswordValidationResult> {
+    const status = await validatePassword(this.auth, password);
+    const unmetCriteria: PasswordValidationResult['unmetCriteria'] = {};
+    const isValid = status.isValid;
+
+    if (!isValid) {
+      if (status.containsLowercaseLetter !== true) {
+        unmetCriteria.missingLowercase = 'Mindestens ein Kleinbuchstabe wird benötigt.';
+      }
+      if (status.containsUppercaseLetter !== true) {
+        unmetCriteria.missingUppercase = 'Mindestens ein Großbuchstabe wird benötigt.';
+      }
+      if (status.containsNumericCharacter !== true) {
+        unmetCriteria.missingNumber = 'Mindestens eine Zahl wird benötigt.';
+      }
+      if (status.containsNonAlphanumericCharacter !== true) {
+        unmetCriteria.missingSpecialChar = 'Mindestens ein Sonderzeichen wird benötigt.';
+      }
+      if (status.meetsMinPasswordLength !== true) {
+        unmetCriteria.tooShort = 'Das Passwort muss mindestens 8 Zeichen lang sein.';
+      }
+      if (status.meetsMaxPasswordLength !== true) {
+        unmetCriteria.tooLong = 'Das Passwort darf höchstens 50 Zeichen lang sein.';
+      }
+    }
+
+    return { isValid, unmetCriteria };
+  }
+
+  buildPasswordErrorMessages(passwordValidationResult: PasswordValidationResult): string[] {
+    return Object.values(passwordValidationResult.unmetCriteria).filter(
+      (criteriaMessage) => typeof criteriaMessage === 'string'
+    );
   }
 }
