@@ -1,10 +1,17 @@
-<section class="flex justify-between items-center">
-  <div><img src="/imgs/logo_bubble.png"/></div>
-  <div>
-    <mat-form-field class="bg-white" appearance="fill">
-      <input matInput placeholder="Devspace durchsuchen" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
+<section class="flex justify-between items-center p-4 max-w-[1440px] mx-auto px-4">
+  <div><img src="/imgs/logo_bubble.png" /></div>
+  <div class="relative w-full">
+    <input
+      matInput
+      type="text"
+      placeholder="Devspace durchsuchen"
+      class="w-full rounded-full bg-white py-2 pl-12 pr-10 focus:outline-none text-gray-500 h-12"
+    />
+
+    <mat-icon class="absolute right-12 top-1/2 -translate-y-1/2"> search </mat-icon>
   </div>
-  <div>Profil</div>
+  <div class="flex items-center gap-4">
+    <p class="font-nunito">Max Mustermann</p>
+    <img class="size-16 rounded-full" src="/imgs/m1.png" />
+  </div>
 </section>
