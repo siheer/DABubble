@@ -12,6 +12,10 @@
       <div><img src="imgs/workspace/channellist img.png" alt="" /><span>Channels</span></div>
       <span>+</span>
     </div>
-    <p>HIER KOMMT DIE CHANNELLISTE</p>
+    <ul>
+        <li *ngFor="let channel of channels$ | async">
+            <span># {{channel.title || 'Unbenannter Channel'}}</span>
+        </li>
+    </ul>
   </div>
 </section>
