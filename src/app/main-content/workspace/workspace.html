@@ -13,9 +13,14 @@
       <span>+</span>
     </div>
     <ul>
-        <li *ngFor="let channel of channels$ | async">
-            <span># {{channel.title || 'Unbenannter Channel'}}</span>
-        </li>
+      <li *ngFor="let channel of channels$ | async">
+        <span># {{ channel.title || 'Unbenannter Channel' }}</span>
+      </li>
     </ul>
+    <div>
+      <button>
+        <img src="imgs/workspace/add new channel.png" alt="" />
+      </button>
+    </div>
   </div>
 </section>
