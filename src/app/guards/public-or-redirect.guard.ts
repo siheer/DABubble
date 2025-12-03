@@ -1,4 +1,3 @@
-// src/app/guards/public-or-redirect.guard.ts
 import { inject } from '@angular/core';
 import { CanMatchFn, Router, Route, UrlSegment } from '@angular/router';
 import { combineLatest } from 'rxjs';

@@ -2,9 +2,9 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../services/auth';
-import { NOTIFICATIONS } from '../notifications';
-import { AuthenticationResult } from '../types';
+import { AuthService } from '../../services/auth';
+import { NOTIFICATIONS } from '../../notifications';
+import { AuthenticationResult } from '../../types';
 import { UserCredential } from 'firebase/auth';
 
 @Component({

@@ -1,10 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../services/auth';
-import { NOTIFICATIONS } from '../notifications';
-import { RegistrationStateService } from '../services/registration-state';
+import { AuthService } from '../../services/auth';
+import { NOTIFICATIONS } from '../../notifications';
+import { RegistrationStateService } from '../../services/registration-state';
 import { Router } from '@angular/router';
-import { AuthenticationResult, ProfilePicture, ProfilePictureKey } from '../types';
+import { AuthenticationResult, ProfilePicture, ProfilePictureKey } from '../../types';
 
 export const PROFILE_PICTURE_URLS = {
   default: 'imgs/default-profile-picture.png',

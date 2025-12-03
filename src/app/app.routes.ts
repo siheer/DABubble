@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
-import { Signup } from './signup/signup';
+import { Signup } from './auth/signup/signup';
 import { MainContent } from './main-content/main-content';
-import { SetProfilePicture } from './set-profile-picture/set-profile-picture';
-import { Login } from './login/login';
-import { VerifyEmail } from './verify-email/verify-email';
-import { EmailConfirmed } from './email-confirmed/email-confirmed';
+import { SetProfilePicture } from './auth/set-profile-picture/set-profile-picture';
+import { Login } from './auth/login/login';
+import { VerifyEmail } from './auth/verify-email/verify-email';
+import { EmailConfirmed } from './auth/email-confirmed/email-confirmed';
 import { publicOrRedirectGuard } from './guards/public-or-redirect.guard';
 import { onlyUnverifiedGuard } from './guards/only-unverified.guard';
 import { onlyVerifiedGuard } from './guards/only-verified.guard';
@@ -37,7 +37,7 @@ export const routes: Routes = [
   {
     path: 'email-confirmed',
     component: EmailConfirmed,
-    canMatch: [publicOrRedirectGuard],
+    canMatch: [onlyVerifiedGuard],
   },
 
   {

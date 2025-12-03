@@ -2,9 +2,9 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth';
-import { NOTIFICATIONS } from '../notifications';
-import { RegistrationStateService } from '../services/registration-state';
+import { AuthService } from '../../services/auth';
+import { NOTIFICATIONS } from '../../notifications';
+import { RegistrationStateService } from '../../services/registration-state';
 import { PROFILE_PICTURE_URLS } from '../set-profile-picture/set-profile-picture';
 
 @Component({

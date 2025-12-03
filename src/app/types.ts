@@ -1,4 +1,4 @@
-import { PROFILE_PICTURE_URLS } from './set-profile-picture/set-profile-picture';
+import { PROFILE_PICTURE_URLS } from './auth/set-profile-picture/set-profile-picture';
 
 export interface AuthenticationResult<T> {
   success: boolean;
