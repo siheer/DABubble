@@ -19,8 +19,6 @@ export class Workspace {
   private readonly firestore = inject(Firestore);
   protected readonly channels$: Observable<Channel[]> = this.loadChannels();
 
-
-
   protected isCreateChannelOpen = false;
   protected openCreateChannel(): void {
     this.isCreateChannelOpen = true;
