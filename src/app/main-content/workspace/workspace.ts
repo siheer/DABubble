@@ -1,12 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Firestore, collection, collectionData } from '@angular/fire/firestore';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { CreateChannel } from './create-channel/create-channel';
 
-type Channel = { id: string; title?: string };
-type DirectMessage = { name: string; };
-
+import { Channel, DirectMessage, FirestoreService } from '../../services/firestore.service';
 @Component({
   selector: 'app-workspace',
   standalone: true,
@@ -15,9 +12,10 @@ type DirectMessage = { name: string; };
   styleUrl: './workspace.scss',
 })
 export class Workspace {
-  private readonly firestore = inject(Firestore);
-  protected readonly channels$: Observable<Channel[]> = this.loadChannels();
-  protected readonly directMessages$: Observable<DirectMessage[]> = this.loadDirectMessages();
+  private readonly firestoreService = inject(FirestoreService);
+  protected readonly channels$: Observable<Channel[]> = this.firestoreService.getChannels();
+  protected readonly directMessages$: Observable<DirectMessage[]> =
+    this.firestoreService.getDirectMessages();
   protected areChannelsCollapsed = false;
   protected areDirectMessagesCollapsed = false;
   protected isCreateChannelOpen = false;
@@ -34,23 +32,6 @@ export class Workspace {
   protected toggleDirectMessages(): void {
     this.areDirectMessagesCollapsed = !this.areDirectMessagesCollapsed;
   }
-  private loadChannels(): Observable<Channel[]> {
-    const channelsLocation = collection(this.firestore, 'channels');
-    return collectionData(channelsLocation, { idField: 'id' }).pipe(map((channels) => channels as Channel[])
-    );
-  }
 
-  private loadDirectMessages(): Observable<DirectMessage[]> {
-    let usersLocation = collection(this.firestore, 'users');
-
-    return collectionData(usersLocation, { idField: 'id' }).pipe(
-      map((users) =>
-        (users as Array<{ name?: string; }>).map(
-          (user) => ({
-            name: user.name ?? 'Unbenannter Nutzer',
-          })
-        )
-      )
-    );
-  }
 }
+
