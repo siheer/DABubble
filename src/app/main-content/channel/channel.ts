@@ -39,10 +39,8 @@ export class ChannelComponent {
 
   protected readonly channelDefaults = {
     name: 'Entwicklerteam',
-    category: 'Allgemeines',
     summary:
       'Gruppe zum Austausch über technische Fragen und das laufende Redesign des Devspace.',
-    stats: '15 Mitglieder, 5 online',
   };
 
 

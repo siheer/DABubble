@@ -3,17 +3,12 @@
     <div class="channel__titles">
       <div class="channel__title-row">
         <h1># {{ (channelTitle$ | async) ?? channelDefaults.name }}</h1>
-                <span class="channel__divider">|</span>
-         <span class="channel__category">{{ channelDefaults.category }}</span>
-        <span class="channel__badge channel__badge--status">{{ channelDefaults.stats }}</span>
-        <span class="channel__badge channel__badge--private">
-          <mat-icon>lock</mat-icon>
-          Privat
-        </span>
+       
       </div>
      <p class="channel__summary">
         {{ (channelDescription$ | async) ?? channelDefaults.summary }}
-      </p>    </div>
+      </p>    
+    </div>
 
     <div class="channel__actions">
       <div class="channel__member-stack" aria-label="Teilnehmerliste">
@@ -23,17 +18,7 @@
         <button type="button" class="channel__icon-button" aria-label="Benutzer stummschalten">
           <mat-icon>notifications_off</mat-icon>
         </button>
-        <div class="channel__avatars">
-          <img
-            *ngFor="let avatar of memberAvatars"
-            class="channel__avatar"
-            [src]="avatar"
-            alt="Profilbild"
-          />
-          <button type="button" class="channel__add-user" aria-label="Nutzer hinzufügen">
-            <mat-icon>add</mat-icon>
-          </button>
-        </div>
+   
       </div>
 
       <label class="channel__search" aria-label="Suche im Channel">

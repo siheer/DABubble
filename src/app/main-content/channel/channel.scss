@@ -43,13 +43,6 @@
   font-weight: 700;
 }
 
-.channel__divider {
-  color: #cbd5e1;
-}
-
-.channel__category {
-  color: #475569;
-}
 
 .channel__summary {
   margin: 0;
@@ -57,27 +50,6 @@
   line-height: 1.4;
 }
 
-.channel__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid transparent;
-}
-
-.channel__badge--status {
-  background: #eef2ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
-}
-
-.channel__badge--private {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #e2e8f0;
-}
 
 .channel__actions {
   display: flex;
@@ -113,34 +85,6 @@
 
 .channel__icon-button:active {
   transform: translateY(1px);
-}
-
-.channel__avatars {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.channel__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 2px solid #ffffff;
-  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.12);
-  object-fit: cover;
-}
-
-.channel__add-user {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px dashed #cbd5e1;
-  background: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #4338ca;
 }
 
 .channel__search {
