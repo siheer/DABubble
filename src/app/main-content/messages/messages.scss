@@ -1,0 +1,239 @@
+.message-board {
+  background: #f3f6ff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(16, 24, 40, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.message-board__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.message-board__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.message-board h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.message-board p {
+  margin: 0;
+  color: #475569;
+}
+
+.message-board__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.message-board__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ebf1ff;
+  color: #27418b;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.message-board__hint {
+  font-size: 14px;
+  color: #475569;
+}
+
+.message-board__subtitle {
+  font-size: 14px;
+}
+
+.message-board__card {
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.message-board__card-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.message-board__recipient-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.message-board__recipient-role {
+  color: #475569;
+}
+
+.message-board__card-text {
+  line-height: 1.5;
+}
+
+.message-board__stream {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  flex: 1;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.message-board__bubble {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(148, 163, 184, 0.2);
+  border: 1px solid #e2e8f0;
+}
+
+.message-board__bubble--own {
+  background: #f0f4ff;
+  border-color: #cbd5e1;
+}
+
+.message-board__bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.message-board__bubble-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
+}
+
+.message-board__bubble-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.message-board__bubble-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.message-board__bubble-text {
+  color: #1f2937;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.message-board__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.message-board__composer textarea {
+  min-height: 96px;
+  border: none;
+  resize: vertical;
+  background: transparent;
+  font-size: 15px;
+  color: #0f172a;
+  padding: 8px;
+  outline: none;
+}
+
+.message-board__composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.message-board__composer-start,
+.message-board__composer-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-board__composer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #0f172a;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.message-board__composer button:hover {
+  background: #eef2ff;
+  border-color: #cbd5e1;
+}
+
+.message-board__composer button:active {
+  transform: translateY(1px);
+}
+
+.message-board__composer button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.message-board__composer .mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.message-board__composer button[type='submit'] {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+}
+
+.message-board__composer button[type='submit']:hover {
+  background: linear-gradient(135deg, #4338ca, #6d28d9);
+}

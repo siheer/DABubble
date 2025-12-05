@@ -1,17 +1,84 @@
-<!-- channelname, button to open channel description, members, add members -->
-<div class="upperPart">
-  <div>
-    <span>#</span>
-    <!-- switch with channel name link -->
-    <h1>{{ channelTitle$ | async }}</h1>
-    <button type="button" (click)="openChannelDescription()">▾</button>
-  </div>
+<!-- Overall wrapper so the content sits comfortably between both sidenavs. -->
+<section class="message-board">
+  <!-- Recipient header with avatar and quick context. -->
+  <header class="message-board__header">
+    <div class="message-board__identity">
+      <img class="message-board__avatar" [src]="recipient.avatar" [alt]="recipient.name" />
+      <div>
+        <h1>{{ recipient.name }}</h1>
+        <p>{{ recipient.role }}</p>
+      </div>
+    </div>
+     <div class="message-board__meta">
+      <span class="message-board__badge">Neue Nachricht</span>
+      <span class="message-board__hint">Direktnachricht an {{ recipient.name }}</span>
+    </div>
+  </header>
+ <p class="message-board__subtitle">
+    Diese Unterhaltung findet nur zwischen dir und {{ recipient.name }} statt.
+  </p>
 
-  <!-- whats next -->
-  <!-- avatarlist , avatar sum, add member,  -->
-</div>
+  <!-- Intro card that mirrors the helper text from the mockup. -->
+  <article class="message-board__card">
+    <div class="message-board__card-header">
+      <img class="message-board__avatar" [src]="recipient.avatar" [alt]="recipient.name" />
+      <div>
+        <p class="message-board__recipient-name">{{ recipient.name }}</p>
+        <p class="message-board__recipient-role">Software Developer</p>
+      </div>
+    </div>
+    <p class="message-board__card-text">{{ helperText }}</p>
+  </article>
 
-<app-channel-description
-  *ngIf="isChannelDescriptionOpen"
-  (close)="closeChannelDescription()"
-></app-channel-description>
+  <!-- Scrollable conversation stream. -->
+  <section class="message-board__stream" aria-live="polite">
+    <article
+      *ngFor="let message of messages"
+      class="message-board__bubble"
+      [class.message-board__bubble--own]="message.isOwn"
+    >
+      <div class="message-board__bubble-header">
+        <div class="message-board__bubble-author">
+          <img class="message-board__bubble-avatar" [src]="message.avatar" [alt]="message.author" />
+          <strong>{{ message.author }}</strong>
+        </div>
+        <time class="message-board__bubble-time">{{ message.timestamp }}</time>
+      </div>
+      <p class="message-board__bubble-text">{{ message.content }}</p>
+    </article>
+  </section>
+
+  <!-- Message composer with icon-only helper buttons. -->
+  <form class="message-board__composer" (ngSubmit)="sendMessage()" #messageForm="ngForm">
+    <textarea
+      name="message"
+      required
+      [(ngModel)]="draftMessage"
+      placeholder="Nachricht an {{ recipient.name }}"
+      aria-label="Neue Nachricht verfassen"
+    ></textarea>
+
+    <div class="message-board__composer-actions">
+      <div class="message-board__composer-start">
+        <button type="button" aria-label="Datei hinzufügen">
+          <mat-icon>attach_file</mat-icon>
+        </button>
+        <button type="button" aria-label="Emoji einfügen">
+          <mat-icon>sentiment_satisfied</mat-icon>
+        </button>
+      </div>
+      <div class="message-board__composer-end">
+        <button type="button" aria-label="Benutzer und Mentions">
+          <mat-icon>alternate_email</mat-icon>
+        </button>
+        <button type="button" aria-label="Sofortnachricht aufklappen">
+          <mat-icon>expand_more</mat-icon>
+        </button>
+        <button type="submit" [disabled]="messageForm.invalid">
+          <mat-icon>send</mat-icon>
+          Senden
+        </button>
+      </div>
+    </div>
+  </form>
+</section>
