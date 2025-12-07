@@ -4,11 +4,9 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NOTIFICATIONS } from '../../notifications';
-import {
-  SetProfilePicture,
-  PROFILE_PICTURE_URLS,
-} from '../set-profile-picture/set-profile-picture';
+import { SetProfilePicture, PROFILE_PICTURE_URLS } from '../set-profile-picture/set-profile-picture';
 import { ProfilePictureKey } from '../../types';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-signup',
@@ -18,6 +16,7 @@ import { ProfilePictureKey } from '../../types';
 })
 export class Signup {
   private authenticationService = inject(AuthService);
+  private userService = inject(UserService);
   private router = inject(Router);
 
   name = '';
@@ -42,13 +41,10 @@ export class Signup {
     this.passwordValidationErrors = [];
 
     try {
-      const passwordValidationResult = await this.authenticationService.validateUserPassword(
-        this.password
-      );
+      const passwordValidationResult = await this.authenticationService.validateUserPassword(this.password);
 
       if (!passwordValidationResult.isValid) {
-        this.passwordValidationErrors =
-          this.authenticationService.buildPasswordErrorMessages(passwordValidationResult);
+        this.passwordValidationErrors = this.authenticationService.buildPasswordErrorMessages(passwordValidationResult);
         return;
       }
 
@@ -80,6 +76,12 @@ export class Signup {
 
       const photoUrl = PROFILE_PICTURE_URLS[this.selectedProfilePictureKey];
       await this.authenticationService.updateUserProfile(this.name, photoUrl);
+
+      await this.userService.createUserDocument(userCredential.user, {
+        name: this.name,
+        photoUrl: photoUrl,
+        onlineStatus: true,
+      });
 
       await this.authenticationService.sendEmailVerificationLink(userCredential.user);
       this.router.navigate(['/verify-email']);

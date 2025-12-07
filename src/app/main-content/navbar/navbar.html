@@ -10,8 +10,8 @@
     <mat-icon class="absolute right-12 top-1/2 -translate-y-1/2"> search </mat-icon>
   </div>
   <div class="flex items-center gap-4">
-    <p class="font-nunito">Max Mustermann</p>
-    <img class="size-16 rounded-full" src="/imgs/m1.png" />
+    <p class="font-nunito">{{ currentUser()?.name || 'Guest' }}</p>
+    <img class="size-16 rounded-full" [src]="currentUser()?.photoUrl || 'imgs/default-profile-picture.png'" />
     <button #menuBtn class="size-12" matIconButton (click)="openUserMenu($event)">
       <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
