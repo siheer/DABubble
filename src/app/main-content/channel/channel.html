@@ -85,35 +85,17 @@
     </div>
 
     <form class="channel__composer" aria-label="Neue Nachricht verfassen" (ngSubmit)="sendMessage()">
-      <div class="channel__composer-icons">
-        <button type="button" class="channel__composer-button" aria-label="Datei hochladen">
-          <mat-icon>note_add</mat-icon>
-        </button>
-        <button type="button" class="channel__composer-button" aria-label="Emoji einfügen">
-          <mat-icon>sentiment_satisfied</mat-icon>
-        </button>
-      </div>
       <textarea
         rows="3"
         name="message"
         [(ngModel)]="messageText"
         [placeholder]="'Nachricht an #' + ((channelTitle$ | async) ?? channelDefaults.name)"></textarea>
       <div class="channel__composer-actions">
-        <div class="channel__composer-icons">
-          <button type="button" class="channel__composer-button" aria-label="Bild anhängen">
-            <mat-icon>add_photo_alternate</mat-icon>
-          </button>
-          <button type="button" class="channel__composer-button" aria-label="Kalender öffnen">
-            <mat-icon>event</mat-icon>
-          </button>
-        </div>
         <button
           type="submit"
-          class="channel__send"
           aria-label="Nachricht senden"
           [disabled]="!messageText.trim() || isSending">
-          <span>Senden</span>
-          <mat-icon>send</mat-icon>
+         <img src="imgs/channels/send.svg" alt="">
         </button>
       </div>
     </form>

@@ -308,12 +308,6 @@
   height: 100%;
 }
 
-.channel__composer-icons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .channel__composer-button {
   width: 32px;
   height: 32px;
@@ -332,19 +326,6 @@
   gap: 12px;
 }
 
-.channel__send {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  border: none;
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 700;
-  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
-}
 
 .channel__send mat-icon {
   font-size: 18px;

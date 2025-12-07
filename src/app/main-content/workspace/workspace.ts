@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { CreateChannel } from './create-channel/create-channel';
 
 import { Channel, FirestoreService } from '../../services/firestore.service';
-import { AuthService } from '../../services/auth.service'; @Component({
+import { AuthService } from '../../services/auth.service';
+import { User } from '@angular/fire/auth';
+
+@Component({
   selector: 'app-workspace',
   standalone: true,
   imports: [CommonModule, CreateChannel],
@@ -15,8 +18,7 @@ export class Workspace {
   private readonly firestoreService = inject(FirestoreService);
   private readonly authService = inject(AuthService);
   protected readonly channels$: Observable<Channel[]> = this.firestoreService.getChannels();
-   protected readonly currentUser$ = this.authService.user$;
- 
+  protected readonly currentUser$: Observable<User | null> = this.authService.user$;
   protected areChannelsCollapsed = false;
   protected areDirectMessagesCollapsed = false;
   protected isCreateChannelOpen = false;

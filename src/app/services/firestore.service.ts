@@ -72,6 +72,22 @@ export class FirestoreService {
       )
     );
   }
+  async addChannelMessage(
+    channelId: string,
+    message: Partial<ChannelMessage> &
+      Pick<ChannelMessage, 'text' | 'author' | 'avatar'>
+  ): Promise<void> {
+    const messagesCollection = collection(
+      this.firestore,
+      `channels/${channelId}/messages`
+    );
+
+    await addDoc(messagesCollection, {
+      ...message,
+      createdAt: serverTimestamp(),
+      replies: message.replies ?? 0,
+    });
+  }
 
   getFirstChannelTitle(): Observable<string> {
     return this.getChannels().pipe(
