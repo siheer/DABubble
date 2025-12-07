@@ -62,7 +62,7 @@ export class OverlayService {
     this.backdrop.style.display = 'none';
   }
 
-    getLastOverlay(): OverlayRef | undefined {
+  getLastOverlay(): OverlayRef | undefined {
     return this.overlays[this.overlays.length - 1];
   }
 }

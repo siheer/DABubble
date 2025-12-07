@@ -13,11 +13,11 @@ import { CommonModule } from '@angular/common';
   styleUrl: './navbar-dialog.scss',
   animations: [
     trigger('slideFromRight', [
-      transition(':enter', [
+      transition('enter => leave', [animate('500ms ease-in', style({ transform: 'translateX(100%)', opacity: 0 }))]),
+      transition('void => enter', [
         style({ transform: 'translateX(100%)', opacity: 0 }),
         animate('300ms ease-out', style({ transform: 'translateX(0)', opacity: 1 })),
       ]),
-      transition(':leave', [animate('500ms ease-in', style({ transform: 'translateX(100%)', opacity: 0 }))]),
     ]),
   ],
 })

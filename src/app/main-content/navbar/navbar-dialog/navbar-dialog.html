@@ -1,6 +1,5 @@
 <section
-  *ngIf="visible"
-  @slideFromRight
+  [@slideFromRight]="visible ? 'enter' : 'leave'"
   (@slideFromRight.done)="onAnimationDone($event)"
   class="flex h-40 w-60 flex-col items-center justify-center gap-4 rounded-tl-2xl rounded-br-2xl rounded-bl-2xl bg-white shadow-xl">
   <button class="h-10 w-48 rounded-full text-xl" (click)="openProfileDialog($event)">Profil</button>

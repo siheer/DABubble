@@ -126,26 +126,26 @@ export class OverlayRef<T extends object = any> {
   /**
    * Initiates the close animation for the overlay/waits for animation event to complete before destroying.
    */
-  startCloseAnimation() {
-    this.visible = false;
-    const instance = this.componentRef.instance as any;
-    if ('visible' in instance) {
-      instance.visible = false;
-    }
+startCloseAnimation() {
+  this.visible = false;
 
-    const domElem = this.overlayContainer.firstChild as HTMLElement;
-    const doneListener = (event: any) => {
+  const instance = this.componentRef.instance as any;
+
+  if ('visible' in instance) {
+    instance.visible = false;
+  }
+
+  if ('closed' in instance) {
+    instance.closed.subscribe(() => {
       if (!this.visible) {
-        domElem.removeEventListener('@*.*', doneListener);
         this.destroy();
       }
-    };
-    domElem.addEventListener('@done', doneListener as any);
-
-    setTimeout(() => {
-      if (!this.visible) this.destroy();
-    }, 500);
+    });
+  } else {
+    // Fallback if component has no closed event
+    this.destroy();
   }
+}
 
   /**
    * Destroys the overlay and the attached component.
