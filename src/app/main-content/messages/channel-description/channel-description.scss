@@ -1,60 +1,27 @@
 :host {
   display: block;
-  width: 360px;
+  width: 520px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
-  padding: 16px;
+  padding: 24px;
   box-sizing: border-box;
+  position: relative;
 }
 
 .channel-description {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   color: #0f172a;
-}
-
-.channel-description__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.channel-description__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.channel-description__hash {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #eef2ff;
-  color: #4338ca;
-  font-weight: 700;
-}
-
-.channel-description__label {
-  margin: 0;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.channel-description h2 {
-  margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 800;
 }
 
 .channel-description__close {
   border: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
   background: #f8fafc;
   width: 36px;
   height: 36px;
@@ -72,43 +39,115 @@
   background: #e2e8f0;
 }
 
-.channel-description__summary {
-  margin: 0;
-  line-height: 1.5;
-  color: #475569;
+.channel-description__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.channel-description__meta {
+.channel-description__field-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-description__label {
+  font-weight: 700;
+  color: #111827;
+  font-size: 14px;
+}
+
+.channel-description__input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.channel-description__prefix {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.channel-description__input-group input {
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  font-size: 16px;
+  color: #111827;
+  outline: none;
+  width: 100%;
+}
+
+.channel-description__input-group input:focus {
+  outline: none;
+}
+.channel-description__hint {
+  margin: 0;
+  line-height: 1.5;
+  color: #6b7280;
+  font-size: 14px;
+}
+.channel-description__meta-hint {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.channel-description__textarea {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  font-size: 15px;
+  color: #111827;
+  resize: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.channel-description__meta-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.channel-description__meta-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
   gap: 12px;
+  align-items: center;
 }
 
 .channel-description__meta-label {
-  margin: 0 0 4px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: #94a3b8;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .channel-description__meta-value {
-  margin: 0;
   font-weight: 700;
-  color: #0f172a;
+  color: #374151;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
 }
 
 .channel-description__actions {
+  margin-top: 4px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.channel-description__primary {
+.channel-description__secondary,
+.channel-description__danger {
   border: none;
-  background: #4338ca;
-  color: #fff;
+  padding: 12px 16px;
   border-radius: 10px;
-  padding: 10px 16px;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -116,10 +155,30 @@
     transform 0.1s ease;
 }
 
-.channel-description__primary:hover {
-  background: #3730a3;
+.channel-description__secondary {
+  background: #f3f4f6;
+  color: #111827;
 }
 
-.channel-description__primary:active {
+.channel-description__secondary:hover {
+  background: #e5e7eb;
+}
+
+.channel-description__secondary:active {
+  transform: translateY(1px);
+}
+
+.channel-description__danger {
+  margin-left: auto;
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.25);
+}
+
+.channel-description__danger:hover {
+  background: #b91c1c;
+}
+
+.channel-description__danger:active {
   transform: translateY(1px);
 }

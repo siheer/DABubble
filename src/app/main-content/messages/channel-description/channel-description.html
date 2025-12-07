@@ -1,32 +1,48 @@
 <section class="channel-description">
-  <header class="channel-description__header">
-    <div class="channel-description__title">
-      <span class="channel-description__hash">#</span>
-      <div>
-        <p class="channel-description__label">Channel</p>
-        <h2>{{ title }}</h2>
-      </div>
+  <button type="button" class="channel-description__close" aria-label="Overlay schließen" (click)="closeOverlay()">
+    ×
+  </button>
+  <div class="channel-description__field">
+    <label class="channel-description__label">Channel-Name</label>
+    <div class="channel-description__input-group">
+      <span class="channel-description__prefix">#</span>
+      <input type="text" [value]="title" readonly aria-label="Channel-Name" />
     </div>
+    <p class="channel-description__hint">
+      Es ist nur eine Channel-Beschreibung: Hier kannst du eintragen, um was es in diesem Channel geht. So weiß jeder,
+      wofür er gedacht ist und was dort besprochen werden sollte.
+    </p>
+  </div>
 
-    <button type="button" class="channel-description__close" aria-label="Overlay schließen" (click)="closeOverlay()">
-      ×
-    </button>
-  </header>
-
-  <p class="channel-description__summary">{{ description }}</p>
-
-  <div class="channel-description__meta">
-    <div>
-      <p class="channel-description__meta-label">Erstellt von</p>
-      <p class="channel-description__meta-value">{{ createdBy }}</p>
+  <div class="channel-description__field">
+    <div class="channel-description__field-header">
+      <label for="channel-description-input" class="channel-description__label">Channel-Beschreibung</label>
+      <span class="channel-description__meta-hint"
+        >Du kannst eine kurze Beschreibung für deinen Channel hinzufügen</span
+      >
     </div>
-    <div>
-      <p class="channel-description__meta-label">Erstellt am</p>
-      <p class="channel-description__meta-value">{{ createdAt }}</p>
+    <textarea
+      id="channel-description-input"
+      class="channel-description__textarea"
+      rows="3"
+      readonly
+      aria-label="Channel-Beschreibung"
+      >{{ description }}</textarea
+    >
+  </div>
+  <div class="channel-description__meta-grid">
+    <div class="channel-description__meta-row">
+      <span class="channel-description__meta-label">Erstellt von</span>
+      <span class="channel-description__meta-value">{{ createdBy }}</span>
+    </div>
+    <div class="channel-description__meta-row">
+      <span class="channel-description__meta-label">Erstellt am</span>
+      <span class="channel-description__meta-value">{{ createdAt }}</span>
     </div>
   </div>
 
   <div class="channel-description__actions">
-    <button type="button" class="channel-description__primary" (click)="closeOverlay()">Schließen</button>
+    <button type="button" class="channel-description__secondary" (click)="closeOverlay()">Channel verlassen</button>
+    <button type="button" class="channel-description__danger">Channel löschen</button>
   </div>
 </section>
