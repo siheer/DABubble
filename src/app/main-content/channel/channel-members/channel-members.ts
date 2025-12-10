@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { OverlayService } from '../../../services/overlay.service';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { AddToChannel } from '../add-to-channel/add-to-channel';
 
 type ChannelMember = {
   name: string;
@@ -43,5 +44,14 @@ export class ChannelMembers {
     if (!this.visible) {
       this.overlayService.closeLast();
     }
+  }
+  protected openAddToChannel(event: Event): void {
+    const target = event.currentTarget as HTMLElement | null;
+
+    this.overlayService.open(AddToChannel, {
+      target: target ?? undefined,
+      offsetY: 8,
+      data: { channelTitle: this.title },
+    });
   }
 }

@@ -1,0 +1,67 @@
+<section
+  *ngIf="visible"
+  class="add-to-channel"
+  [@fadeScale]="visible ? 'enter' : 'leave'"
+  (@fadeScale.done)="onAnimationDone()"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'Mitglieder zu ' + channelTitle + ' hinzufügen'"
+>
+  <header class="add-to-channel__header">
+    <div class="add-to-channel__title-group">
+      <h3>Leute hinzufügen</h3>
+      <div class="add-to-channel__channel-tag">
+        <div class="add-to-channel__channel-icon">
+          <mat-icon>tag</mat-icon>
+        </div>
+        <span># {{ channelTitle }}</span>
+      </div>
+    </div>
+
+    <button type="button" class="add-to-channel__close" aria-label="Overlay schließen" (click)="closeOverlay()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <section class="add-to-channel__search">
+    <label for="add-to-channel-search">Personen finden</label>
+    <div class="add-to-channel__search-field">
+      <mat-icon>search</mat-icon>
+      <input
+        id="add-to-channel-search"
+        type="text"
+        placeholder="Name eingeben"
+        aria-label="Mitglied suchen"
+      />
+    </div>
+  </section>
+
+  <div class="add-to-channel__list" aria-label="Vorgeschlagene Mitglieder">
+    <article *ngFor="let member of suggestedMembers; let first = first" class="add-to-channel__card" [class.add-to-channel__card--active]="first">
+      <div class="add-to-channel__avatar-wrapper">
+        <img [src]="member.avatar" [alt]="member.name" />
+        <span *ngIf="member.status === 'online'" class="add-to-channel__presence" aria-label="Online"></span>
+      </div>
+
+      <div class="add-to-channel__meta">
+        <div class="add-to-channel__name-row">
+          <div class="add-to-channel__name-stack">
+            <h4>{{ member.name }}</h4>
+            <span class="add-to-channel__role">{{ member.role }}</span>
+          </div>
+          <span class="add-to-channel__pill" *ngIf="member.status === 'online'">Online</span>
+        </div>
+        <p *ngIf="member.description" class="add-to-channel__description">{{ member.description }}</p>
+      </div>
+
+      <button
+        type="button"
+        class="add-to-channel__action"
+        [class.add-to-channel__action--primary]="first"
+        aria-label="{{ member.name }} zum Channel hinzufügen"
+      >
+        Hinzufügen
+      </button>
+    </article>
+  </div>
+</section>
