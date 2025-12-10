@@ -1,5 +1,13 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Firestore, doc, setDoc, getDoc, updateDoc, onSnapshot, DocumentSnapshot } from '@angular/fire/firestore';
+import {
+  Firestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  onSnapshot,
+  DocumentSnapshot,
+} from '@angular/fire/firestore';
 import { Auth, onAuthStateChanged } from '@angular/fire/auth';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -31,6 +39,7 @@ export class UserService {
         return;
       }
 
+      await this.upsertUserFromAuth(user);
       // Monitor the Firestore user document.
       this.listenToUserDocument(user.uid);
     });
@@ -65,6 +74,29 @@ export class UserService {
 
     return snap.data() as AppUser;
   }
+
+  /**
+  * Ensures a Firestore user document mirrors the authenticated Firebase user.
+  */
+  private async upsertUserFromAuth(firebaseUser: FirebaseUser): Promise<void> {
+    const userRef = doc(this.firestore, `users/${firebaseUser.uid}`);
+    const snap = await getDoc(userRef);
+
+    const mirroredUser: AppUser = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      name: firebaseUser.displayName || firebaseUser.email || 'Gast',
+      photoUrl: firebaseUser.photoURL || 'imgs/default-profile-picture.png',
+      onlineStatus: true,
+    };
+
+    await setDoc(userRef, mirroredUser, { merge: true });
+
+    if (!snap.exists()) {
+      this.currentUser.set(mirroredUser);
+    }
+  }
+
 
   /**
    * The Firestore listener automatically updates `currentUser`.
