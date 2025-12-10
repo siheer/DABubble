@@ -18,7 +18,7 @@
     <span># {{ channelTitle }}</span>
   </div>
 
-  <form class="add-to-channel__search" (focusin)="onSearchFocus()" (ngSubmit)="addSelectedMembers()">
+  <form class="add-to-channel__search" (ngSubmit)="onSubmit()">
     <label class="add-to-channel__label" for="add-to-channel-search">Mitglieder hinzufügen</label>
     <div class="add-to-channel__field">
       <mat-icon>add_circle</mat-icon>
@@ -67,13 +67,8 @@
 
     <footer class="add-to-channel__actions">
       <button type="button" class="add-to-channel__cancel" (click)="closeOverlay()">Abbrechen</button>
-      <button
-        type="submit"
-        class="add-to-channel__confirm"
-        [disabled]="!selectedMembers.length || isSaving">
-        <ng-container *ngIf="!isSaving; else saving">
-          Hinzufügen
-        </ng-container>
+      <button type="submit" class="add-to-channel__confirm" [disabled]="!selectedMembers.length || isSaving">
+        <ng-container *ngIf="!isSaving; else saving"> Hinzufügen </ng-container>
         <ng-template #saving>Wird hinzugefügt...</ng-template>
       </button>
     </footer>

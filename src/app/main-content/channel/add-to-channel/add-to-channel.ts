@@ -118,8 +118,18 @@ export class AddToChannel implements OnInit {
     this.filteredMembers = this.filterMembers(this.searchTerm);
   }
 
+
+  protected onSubmit(event?: Event): void {
+    event?.preventDefault();
+    void this.addSelectedMembers();
+  }
+
   protected async addSelectedMembers(): Promise<void> {
-    if (!this.channelId || !this.selectedMembers.length) return;
+    if (!this.selectedMembers.length) return;
+    if (!this.channelId) {
+      this.saveError = 'Channel konnte nicht geladen werden.';
+      return;
+    }
 
     this.isSaving = true;
     this.saveError = undefined;
