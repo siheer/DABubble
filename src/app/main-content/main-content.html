@@ -2,32 +2,39 @@
   <app-navbar></app-navbar>
 
   <mat-sidenav-container class="relative h-[calc(100vh-124px)]">
-    <mat-sidenav #leftSidenav opened mode="side"><app-workspace></app-workspace></mat-sidenav>
-    <mat-sidenav opened mode="side" position="end"><app-thread></app-thread></mat-sidenav>
-
+    <mat-sidenav #leftSidenav opened mode="side"
+      ><app-workspace (newMessage)="openNewMessagePanel()"></app-workspace
+    ></mat-sidenav>
+    <mat-sidenav opened mode="side" position="end">
+      <ng-container *ngIf="showNewMessage; else threadView">
+        <div class="new-message-panel">
+          <app-new-message (close)="closeNewMessagePanel()"></app-new-message>
+          <app-messages></app-messages>
+        </div>
+      </ng-container>
+      <ng-template #threadView>
+        <app-thread></app-thread>
+      </ng-template>
+    </mat-sidenav>
     <!-- <app-workspace></app-workspace> -->
     <!-- <app-messages></app-messages>  -->
     <app-channel></app-channel>
   </mat-sidenav-container>
-  <div 
-  class="absolute"
-  *ngIf="leftSidenav.opened"
->
-  <button class="workspace_button open absolute bottom-64 drop-shadow-lg rounded-b-xl z-10 flex items-center gap-3"
-          (click)="leftSidenav.close()">
-    Workspace-Menü schließen
-    <mat-icon class="close_workspace">slideshow</mat-icon>
-  </button>
-</div>
+  <div class="absolute" *ngIf="leftSidenav.opened">
+    <button
+      class="workspace_button open absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
+      (click)="leftSidenav.close()">
+      Workspace-Menü schließen
+      <mat-icon class="close_workspace">slideshow</mat-icon>
+    </button>
+  </div>
 
-<div 
-  class="absolute"
-  *ngIf="!leftSidenav.opened"
->
-  <button class="workspace_button close absolute bottom-64 drop-shadow-lg rounded-b-xl z-10 flex items-center gap-3"
-          (click)="leftSidenav.open()">
-    Workspace-Menü öffnen
-    <mat-icon class="open_workspace">slideshow</mat-icon>
-  </button>
-</div>
+  <div class="absolute" *ngIf="!leftSidenav.opened">
+    <button
+      class="workspace_button close absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
+      (click)="leftSidenav.open()">
+      Workspace-Menü öffnen
+      <mat-icon class="open_workspace">slideshow</mat-icon>
+    </button>
+  </div>
 </section>

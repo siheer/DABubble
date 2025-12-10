@@ -1,26 +1,37 @@
-.workspace_button{
-    transform: rotate(270deg);
-    width: max-content;
-    padding: 12px 20px;
-    background-color: white;
-    &:hover{
-        color: #535AF1;
-        cursor: pointer;
-    }
+.workspace_button {
+  transform: rotate(270deg);
+  width: max-content;
+  padding: 12px 20px;
+  background-color: white;
+  &:hover {
+    color: #535af1;
+    cursor: pointer;
+  }
 }
 
-.open_workspace{
-    transform: rotate(90deg);
+.open_workspace {
+  transform: rotate(90deg);
 }
 
-.close_workspace{
-    transform: rotate(270deg);
+.close_workspace {
+  transform: rotate(270deg);
 }
 
-.open{
-    left: -115px;
+.open {
+  left: -115px;
 }
 
-.close{
-    left: -103px;
+.close {
+  left: -103px;
+}
+
+.new-message-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #eef2ff;
+  overflow-y: auto;
 }

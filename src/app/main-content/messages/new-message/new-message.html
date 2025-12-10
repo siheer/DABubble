@@ -1,4 +1,13 @@
-<header>
-  <h2>Neue Nachricht</h2>
-  <input id="to" type="text" placeholder="An: #channel, oder @jemand oder E-Mail Adresse" />
-</header>
+<section class="new-message">
+  <header class="new-message__header">
+    <div>
+      <p class="new-message__eyebrow">Nachricht</p>
+      <h2>Neue Nachricht</h2>
+    </div>
+    <button type="button" class="new-message__close" aria-label="Ansicht schließen" (click)="close.emit()">×</button>
+  </header>
+  <label class="new-message__field" for="to">
+    <span>An:</span>
+    <input id="to" type="text" placeholder="#channel, oder @jemand oder E-Mail Adresse" />
+  </label>
+</section>

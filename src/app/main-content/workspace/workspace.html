@@ -7,7 +7,7 @@
         <p>Organisiere deine Channels</p>
       </div>
     </div>
-    <button class="workspace__icon-btn" type="button" aria-label="Neue Nachricht">
+    <button class="workspace__icon-btn" type="button" aria-label="Neue Nachricht" (click)="startNewMessage()">
       <img src="imgs/workspace/new message.png" alt="Neue Nachricht" />
     </button>
   </header>
@@ -79,12 +79,9 @@
             <span>{{ user.displayName || user.email || 'Aktueller Nutzer' }}</span>
           </li>
         </ng-container>
-          <ng-container *ngIf="directMessages$ | async as directMessages">
+        <ng-container *ngIf="directMessages$ | async as directMessages">
           <li *ngFor="let directMessage of directMessages" class="workspace__list-item">
-            <img
-              class="workspace__avatar"
-              src="imgs/default-profile-picture.png"
-              [alt]="directMessage.name" />
+            <img class="workspace__avatar" src="imgs/default-profile-picture.png" [alt]="directMessage.name" />
             <span>{{ directMessage.name }}</span>
           </li>
         </ng-container>

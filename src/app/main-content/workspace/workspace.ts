@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { CreateChannel } from './create-channel/create-channel';
@@ -7,7 +7,7 @@ import {
   Channel,
   DirectMessage,
   FirestoreService,
-} from '../../services/firestore.service';import { AuthService } from '../../services/auth.service';
+} from '../../services/firestore.service'; import { AuthService } from '../../services/auth.service';
 import { User } from '@angular/fire/auth';
 import { ChannelSelectionService } from '../../services/channel-selection.service';
 
@@ -21,17 +21,21 @@ import { ChannelSelectionService } from '../../services/channel-selection.servic
 export class Workspace {
   private readonly firestoreService = inject(FirestoreService);
   private readonly authService = inject(AuthService);
-    private readonly channelSelectionService = inject(ChannelSelectionService);
+  private readonly channelSelectionService = inject(ChannelSelectionService);
+  @Output() readonly newMessage = new EventEmitter<void>();
   protected readonly channels$: Observable<Channel[]> =
     this.firestoreService.getChannels();
   protected readonly directMessages$: Observable<DirectMessage[]> =
     this.firestoreService.getDirectMessages();
   protected readonly currentUser$: Observable<User | null> = this.authService.user$;
-    protected readonly selectedChannelId$ =
+  protected readonly selectedChannelId$ =
     this.channelSelectionService.selectedChannelId$;
   protected areChannelsCollapsed = false;
   protected areDirectMessagesCollapsed = false;
   protected isCreateChannelOpen = false;
+  protected startNewMessage(): void {
+    this.newMessage.emit();
+  }
   protected openCreateChannel(): void {
     this.isCreateChannelOpen = true;
   }
@@ -42,7 +46,7 @@ export class Workspace {
     this.areChannelsCollapsed = !this.areChannelsCollapsed;
   }
 
-    protected selectChannel(channelId?: string | null): void {
+  protected selectChannel(channelId?: string | null): void {
     this.channelSelectionService.selectChannel(channelId);
   }
 
