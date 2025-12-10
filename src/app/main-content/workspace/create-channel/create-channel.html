@@ -1,16 +1,25 @@
-<div class="overlay" (click)="closeOverlay()">
+<div class="overlay" role="dialog" aria-modal="true" aria-label="Channel erstellen" (click)="closeOverlay()">
   <form
+    class="create-channel"
     (ngSubmit)="createChannel(createChannelForm)"
     (click)="$event.stopPropagation()"
-    #createChannelForm="ngForm"
-  >
-    <header>
-      <h1>Channel erstellen</h1>
-      <button (click)="closeOverlay()">x</button>
+    #createChannelForm="ngForm">
+    <header class="create-channel__header">
+      <div class="create-channel__titles">
+        <p>
+          Channels dienen deinem Team zur Kommunikation. Am besten sollten sie themenbezogen sein - hier ein Beispiel.
+        </p>
+        <h1>Channel erstellen</h1>
+      </div>
+      <button type="button" class="create-channel__close" aria-label="Overlay schließen" (click)="closeOverlay()">
+        ×
+      </button>
     </header>
-    <label>
-      <div>
+
+    <label class="create-channel__field">
+      <div class="create-channel__label-row">
         <h2>Channel-Name</h2>
+        <span>Channel-Name</span>
       </div>
       <input
         name="title"
@@ -18,24 +27,22 @@
         placeholder="# z.B. Kooperationsprojekte"
         required
         maxlength="120"
-        [(ngModel)]="title"
-      />
+        [(ngModel)]="title" />
     </label>
-    <label>
-      <div class="label-row">
+    <label class="create-channel__field">
+      <div class="create-channel__label-row">
         <h2>Beschreibung</h2>
         <span>(optional)</span>
       </div>
-      <textarea
-        name="description"
-        placeholder="Dein Text hier"
-        maxlength="200"
-        [(ngModel)]="description"
-      ></textarea>
+      <textarea name="description" placeholder="Dein Text hier" maxlength="200" [(ngModel)]="description"></textarea>
     </label>
-    <div>
-        <button (click)="closeOverlay()" [disabled]="isSubmitting">Abbrechen</button>
-        <button type="submit" [disabled] ="createChannelForm.invalid || isSubmitting">{{isSubmitting? 'Erstellen...':'Erstellen'}}</button>
+    <div class="create-channel__actions">
+      <button type="button" class="create-channel__secondary" (click)="closeOverlay()" [disabled]="isSubmitting">
+        Abbrechen
+      </button>
+      <button type="submit" class="create-channel__primary" [disabled]="createChannelForm.invalid || isSubmitting">
+        {{ isSubmitting ? 'Erstellen...' : 'Erstellen' }}
+      </button>
     </div>
   </form>
 </div>
