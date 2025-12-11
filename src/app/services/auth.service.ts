@@ -86,6 +86,9 @@ export class AuthService {
   async signInWithGoogle(): Promise<UserCredential> {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account',
+      });
       return await signInWithPopup(this.auth, provider);
     } catch (error: any) {
       this.throwMappedError(error);
