@@ -11,13 +11,12 @@ import {
   getDoc,
   onSnapshot,
 } from '@angular/fire/firestore';
-import { Auth, onAuthStateChanged } from '@angular/fire/auth';
 import { User as FirebaseUser, UserCredential } from 'firebase/auth';
 import { Observable, map } from 'rxjs';
 import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
 import { AuthService } from './auth.service';
+import { TEXTS } from '../texts';
 
-// Own User-Interface
 export interface AppUser {
   uid: string;
   email: string | null;
@@ -34,29 +33,51 @@ export interface AppUser {
 export class UserService {
   private authService = inject(AuthService);
   private firestore = inject(Firestore);
-  private auth = inject(Auth);
   private userSnapshotUnsubscribe?: () => void;
-  /**
-   * Signal for the currently logged-in user (AppUser).
-   */
+
   currentUser = signal<AppUser | null>(null);
 
-  // Listen to auth state changes
   constructor() {
-    onAuthStateChanged(this.auth, async (user) => {
-      if (!user) {
-        await this.handleSignOutState();
-        return;
-      }
+    this.authService.authState$.subscribe((firebaseUser) => {
+      this.handleAuthStateChange(firebaseUser);
+    });
+  }
 
-      await this.upsertUserFromAuth(user);
-      // Monitor the Firestore user document.
-      this.listenToUserDocument(user.uid);
+  private async handleAuthStateChange(firebaseUser: FirebaseUser | null): Promise<void> {
+    if (!firebaseUser) {
+      await this.handleSignOutState();
+      return;
+    }
+
+    await this.handleSignInState(firebaseUser);
+    this.listenToUserDocument(firebaseUser.uid);
+  }
+
+  /**
+   * Called on login / auth state change when an existing user is present.
+   * Updates only online status and timestamps, without mirroring profile fields
+   * from Auth to Firestore.
+   */
+  private async handleSignInState(firebaseUser: FirebaseUser): Promise<void> {
+    const userRef = doc(this.firestore, `users/${firebaseUser.uid}`);
+    const snap = await getDoc(userRef);
+
+    // If no user document exists, do NOT create one automatically.
+    // Creation occurs explicitly in signup / Google login via
+    // ensureUserDocumentForCurrentUser / createUserDocument.
+    if (!snap.exists()) {
+      return;
+    }
+
+    await updateDoc(userRef, {
+      onlineStatus: true,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   }
 
   /**
-   * Creates a new user document in Firestore.
+   * Creates a new user document in Firestore (only on first registration/login).
    */
   async createUserDocument(firebaseUser: FirebaseUser, data: Partial<AppUser>): Promise<void> {
     const userRef = doc(this.firestore, `users/${firebaseUser.uid}`);
@@ -64,17 +85,15 @@ export class UserService {
     const newUser: AppUser = {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
-      name: data.name || 'Neuer User',
-      photoUrl: data.photoUrl || '',
+      name: data.name || TEXTS.NEW_USER,
+      photoUrl: data.photoUrl || PROFILE_PICTURE_URLS.default,
       onlineStatus: true,
-    };
-
-    return setDoc(userRef, {
-      ...newUser,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
-    });
+    };
+
+    return setDoc(userRef, newUser);
   }
 
   /**
@@ -91,40 +110,8 @@ export class UserService {
   }
 
   /**
-   * Ensures a Firestore user document mirrors the authenticated Firebase user.
-   */
-  private async upsertUserFromAuth(firebaseUser: FirebaseUser): Promise<void> {
-    const userRef = doc(this.firestore, `users/${firebaseUser.uid}`);
-    const snap = await getDoc(userRef);
-
-    const mirroredUser: AppUser = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      name: firebaseUser.displayName || firebaseUser.email || 'Gast',
-      photoUrl: firebaseUser.photoURL || 'imgs/default-profile-picture.png',
-      onlineStatus: true,
-    };
-
-    if (!snap.exists()) {
-      await setDoc(userRef, {
-        ...mirroredUser,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastSeen: serverTimestamp(),
-      });
-      this.currentUser.set(mirroredUser);
-      return;
-    }
-    await updateDoc(userRef, {
-      onlineStatus: true,
-      lastSeen: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      ...(firebaseUser.photoURL ? { photoUrl: firebaseUser.photoURL } : {}),
-    });
-  }
-
-  /**
-   * The Firestore listener automatically updates `currentUser`.
+   * Listener on the Firestore-User-Document.
+   * Updates `currentUser` automatically on changes in firestore
    */
   private listenToUserDocument(uid: string): void {
     this.unsubscribeFromUserDocument();
@@ -212,9 +199,9 @@ export class UserService {
       return;
     }
 
-    const fallbackNameFromEmail = firebaseUser.email?.split('@')[0] ?? 'Neuer User';
+    const fallbackNameFromEmail = firebaseUser.email?.split('@')[0] ?? TEXTS.NEW_USER;
     const name = firebaseUser.displayName || fallbackNameFromEmail;
-    const photoUrl = firebaseUser.photoURL ?? PROFILE_PICTURE_URLS.default;
+    const photoUrl = PROFILE_PICTURE_URLS.default;
 
     await this.authService.updateUserProfile(name, photoUrl);
     await this.createUserDocument(firebaseUser, {
