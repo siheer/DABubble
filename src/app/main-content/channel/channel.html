@@ -51,6 +51,24 @@
               <img class="channel__message-avatar" [src]="message.avatar" [alt]="message.author" />
 
               <div class="channel__message-body">
+                <div class="channel__message-actions" aria-label="Nachrichtenaktionen">
+                  <button type="button" class="channel__icon-button" aria-label="Emoji hinzufügen">
+                    <mat-icon>sentiment_satisfied</mat-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="channel__icon-button channel__icon-button--primary"
+                    aria-label="Thread öffnen"
+                    (click)="openThread(message)">
+                    <mat-icon>reply</mat-icon>
+                  </button>
+                  <button type="button" class="channel__icon-button" aria-label="Link teilen">
+                    <mat-icon>link</mat-icon>
+                  </button>
+                  <button type="button" class="channel__icon-button" aria-label="Weitere Aktionen">
+                    <mat-icon>more_horiz</mat-icon>
+                  </button>
+                </div>
                 <header class="channel__message-header">
                   <div class="channel__message-meta">
                     <div class="channel__author-line">
@@ -90,9 +108,11 @@
                   <button type="button" class="channel__reaction" aria-label="Smiley hinzufügen">
                     <mat-icon>sentiment_satisfied</mat-icon>
                   </button>
-                  <button type="button" class="channel__reaction" aria-label="Antwort schreiben">
-                    <mat-icon>reply</mat-icon>
-                  </button>
+                  <button
+                    type="button"
+                    class="channel__reaction"
+                    aria-label="Antwort schreiben"
+                    (click)="openThread(message)"></button>
                   <button type="button" class="channel__reaction" aria-label="Link teilen">
                     <mat-icon>link</mat-icon>
                   </button>

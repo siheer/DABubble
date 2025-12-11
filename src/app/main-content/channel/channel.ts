@@ -26,6 +26,7 @@ import { ChannelSelectionService } from '../../services/channel-selection.servic
 import { UserService } from '../../services/user.service';
 import { ChannelMembers } from './channel-members/channel-members';
 import { AddToChannel } from './add-to-channel/add-to-channel';
+import { ThreadService } from '../../services/thread.service';
 
 type ChannelDay = {
   label: string;
@@ -33,7 +34,8 @@ type ChannelDay = {
   messages: ChannelMessageView[];
 };
 
-type ChannelMessageView = {
+export type ChannelMessageView = {
+  id?: string;
   author: string;
   avatar: string;
   createdAt: Date;
@@ -58,6 +60,7 @@ export class ChannelComponent {
   private readonly overlayService = inject(OverlayService);
   private readonly channelSelectionService = inject(ChannelSelectionService);
   private readonly userService = inject(UserService);
+  private readonly threadService = inject(ThreadService);
   protected readonly channelDefaults = {
     name: 'Entwicklerteam',
     summary:
@@ -212,6 +215,7 @@ export class ChannelComponent {
     const createdAt = this.resolveTimestamp(message);
 
     return {
+      id: message.id,
       author: message.author ?? 'Unbekannter Nutzer',
       avatar:
         message.avatar ?? this.memberAvatars[0] ?? 'imgs/users/placeholder.svg',
@@ -278,6 +282,15 @@ export class ChannelComponent {
           description: resolvedChannel.description ?? this.channelDefaults.summary,
         },
       });
+    });
+  }
+  protected openThread(message: ChannelMessageView): void {
+    this.threadService.openThread({
+      id: message.id,
+      author: message.author,
+      avatar: message.avatar,
+      time: message.time,
+      text: message.text,
     });
   }
 

@@ -1,1 +1,60 @@
-<p>thread works!</p>
+<section class="thread" *ngIf="thread$ | async as thread; else idleThread">
+  <header class="thread__header">
+    <div>
+      <p class="thread__eyebrow">Thread</p>
+      <h2 class="thread__title">{{ activeChannelTitle }}</h2>
+    </div>
+    <span class="thread__badge">{{ thread.replies.length }} Antworten</span>
+  </header>
+
+  <article class="thread__root">
+    <img class="thread__avatar" [src]="thread.root.avatar" [alt]="thread.root.author" />
+    <div class="thread__body">
+      <div class="thread__meta">
+        <strong>{{ thread.root.author }}</strong>
+        <time>{{ thread.root.timestamp }}</time>
+      </div>
+      <p class="thread__text">{{ thread.root.text }}</p>
+      <div class="thread__chip">Thread</div>
+    </div>
+  </article>
+
+  <div class="thread__divider">
+    <span>{{ thread.replies.length }} Antworten</span>
+  </div>
+
+  <div class="thread__replies">
+    <article *ngFor="let reply of thread.replies" class="thread__reply" [class.thread__reply--own]="reply.isOwn">
+      <img class="thread__avatar" [src]="reply.avatar" [alt]="reply.author" />
+      <div class="thread__body">
+        <div class="thread__meta">
+          <strong>{{ reply.author }}</strong>
+          <time>{{ reply.timestamp }}</time>
+        </div>
+        <p class="thread__text">{{ reply.text }}</p>
+      </div>
+    </article>
+  </div>
+
+  <form class="thread__composer" (ngSubmit)="sendReply()" #replyForm="ngForm">
+    <img class="thread__avatar" [src]="currentUser.avatar" [alt]="currentUser.name" />
+    <textarea
+      name="reply"
+      required
+      [(ngModel)]="draftReply"
+      placeholder="Antworten"
+      aria-label="Antwort zum Thread schreiben"></textarea>
+    <button type="submit" [disabled]="replyForm.invalid">
+      <mat-icon>send</mat-icon>
+    </button>
+  </form>
+</section>
+
+<ng-template #idleThread>
+  <section class="thread thread--empty">
+    <div class="thread__empty-card">
+      <h3>Wähle eine Nachricht aus</h3>
+      <p>Fahre mit der Maus über eine Nachricht und klicke auf „Antworten“, um den Thread zu öffnen.</p>
+    </div>
+  </section>
+</ng-template>

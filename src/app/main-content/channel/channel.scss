@@ -216,10 +216,38 @@
   padding: 10px 8px;
   border-radius: 12px;
   transition: background-color 0.2s ease;
+  position: relative;
 }
 
 .channel__message:hover {
   background: #f8fafc;
+}
+
+.channel__message-actions {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.channel__message:hover .channel__message-actions,
+.channel__message:focus-within .channel__message-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .channel__message-avatar {
@@ -351,6 +379,15 @@
 
 .channel__icon-button:active {
   transform: translateY(1px);
+}
+.channel__icon-button--primary {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.channel__icon-button--primary:hover {
+  background: #e0e7ff;
 }
 
 .channel__reaction {
