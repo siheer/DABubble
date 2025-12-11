@@ -28,9 +28,12 @@
         </button>
       </ng-container>
 
-      <button type="button" class="channel__members" (click)="openChannelMembers($event)">
-        <mat-icon>group</mat-icon>
-        Mitglieder
+      <button
+        type="button"
+        class="channel__add-member"
+        aria-label="Mitglied zum Channel hinzufügen"
+        (click)="openAddToChannel($event)">
+        <img src="imgs/channels/person_add.svg" alt="Mitglied hinzufügen" />
       </button>
     </div>
   </header>
