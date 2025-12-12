@@ -1,0 +1,12 @@
+<div class="absolute right-0 left-0 z-50 max-h-80 overflow-y-auto bg-white shadow-xl">
+  <ng-container *ngIf="results.length; else noResults">
+    <div *ngFor="let item of results" (click)="choose(item)" class="flex items-center cursor-pointer px-4 py-3 hover:bg-gray-100">
+      <img [src]="item.photoUrl" alt="" />
+      {{ item.name }}
+    </div>
+  </ng-container>
+
+  <ng-template #noResults>
+    <div class="px-4 py-3 text-gray-400">Keine Ergebnisse</div>
+  </ng-template>
+</div>

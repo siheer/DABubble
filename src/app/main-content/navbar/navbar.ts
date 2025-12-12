@@ -6,19 +6,39 @@ import { OverlayService } from '../../services/overlay.service';
 import { NavbarDialog } from './navbar-dialog/navbar-dialog';
 import { UserService } from '../../services/user.service';
 import { CommonModule } from '@angular/common';
+import { FilterBox } from '../filter-box/filter-box';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-navbar',
-  imports: [MatFormFieldModule, MatInputModule, MatIconModule, CommonModule],
+  imports: [MatFormFieldModule, MatInputModule, MatIconModule, CommonModule, FilterBox, FormsModule],
   templateUrl: './navbar.html',
-  styleUrl: './navbar.scss',
+  styleUrls: ['./navbar.scss'],
 })
 export class Navbar {
   private overlayService = inject(OverlayService);
   private userService = inject(UserService);
 
+  dropdownOpen = false;
+  searchTerm: string = '';
+
   currentUser = this.userService.currentUser;
 
+  onSearchInput(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchTerm = value;
+
+    this.dropdownOpen = value.trim().length > 0;
+  }
+
+  onSelect(item: any) {
+    console.log('Ausgewählt:', item);
+
+    this.dropdownOpen = false;
+
+    // this.searchTerm = '';
+
+  }
 
   openUserMenu(event: Event) {
     const target = event.currentTarget as HTMLElement;
@@ -29,5 +49,9 @@ export class Navbar {
       offsetY: 10,
       data: { originTarget: target },
     });
+  }
+
+  closeDropdown() {
+    this.dropdownOpen = false;
   }
 }
