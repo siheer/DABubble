@@ -16,15 +16,16 @@ export class SearchService {
    * @pure - result without starting char
    */
   async smartSearch(term: string): Promise<SearchResult[]> {
+    term = term.trim().replace(/\s+/g, ' ');
     if (!term.trim()) return [];
 
     if (term.startsWith('@')) {
-      const pure = term.substring(1);
+      const pure = term.substring(1).replace(/^\s+/, '');
       return pure.length === 0 ? this.getAllFromCollection('users') : this.searchCollection('users', pure);
     }
 
     if (term.startsWith('#')) {
-      const pure = term.substring(1);
+      const pure = term.substring(1).replace(/^\s+/, '');
       return pure.length === 0 ? this.getAllFromCollection('channels') : this.searchCollection('channels', pure);
     }
 
