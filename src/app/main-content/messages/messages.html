@@ -86,6 +86,9 @@
         <time class="message-board__bubble-time">{{ formatTimestamp(message.timestamp) }}</time>
       </div>
       <p class="message-board__bubble-text">{{ message.content }}</p>
+      <div class="message-board__bubble-reaction" *ngIf="message.id && messageReactions[message.id]">
+        {{ messageReactions[message.id] }}
+      </div>
     </article>
   </section>
 
@@ -104,9 +107,7 @@
         <button type="button" aria-label="Datei hinzufügen">
           <mat-icon>attach_file</mat-icon>
         </button>
-        <div class="message-board__bubble-reaction" *ngIf="message.id && messageReactions[message.id]">
-          {{ messageReactions[message.id] }}
-        </div>
+
         <button type="button" aria-label="Emoji einfügen">
           <mat-icon>sentiment_satisfied</mat-icon>
         </button>

@@ -123,7 +123,7 @@ export class Messages {
     };
   }
 
-  protected react(messageId: string | undefined, reaction: string): void {
+  react(messageId: string | undefined, reaction: string): void {
     if (!messageId) return;
 
     this.messageReactions = {
@@ -133,7 +133,7 @@ export class Messages {
     this.openEmojiPickerFor = null;
   }
 
-  protected toggleEmojiPicker(messageId: string | undefined): void {
+  toggleEmojiPicker(messageId: string | undefined): void {
     if (!messageId) return;
 
     this.openEmojiPickerFor =
