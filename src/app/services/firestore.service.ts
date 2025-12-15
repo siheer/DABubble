@@ -65,6 +65,14 @@ export interface DirectMessage {
   photoUrl?: string | null;
 }
 
+export interface DirectMessageEntry {
+  id?: string;
+  authorId?: string;
+  authorName?: string;
+  authorAvatar?: string;
+  text?: string;
+  createdAt?: Timestamp;
+}
 export interface ChannelMember {
   id: string;
   name: string;
@@ -160,6 +168,59 @@ export class FirestoreService {
       )
     );
   }
+
+   getDirectConversationMessages(
+    currentUserId: string,
+    otherUserId: string
+  ): Observable<DirectMessageEntry[]> {
+    const conversationId = this.buildConversationId(currentUserId, otherUserId);
+    const messagesCollection = collection(
+      this.firestore,
+      `directMessages/${conversationId}/messages`
+    );
+    const messagesQuery = query(messagesCollection, orderBy('createdAt', 'asc'));
+
+    return collectionData(messagesQuery, { idField: 'id' }).pipe(
+      map((messages) =>
+        (messages as Array<Record<string, unknown>>).map((message) => ({
+          id: message['id'] as string,
+          authorId: message['authorId'] as string,
+          authorName: (message['authorName'] as string) ?? 'Unbekannter Nutzer',
+          authorAvatar:
+            (message['authorAvatar'] as string) ?? 'imgs/default-profile-picture.png',
+          text: (message['text'] as string) ?? '',
+          createdAt: message['createdAt'] as Timestamp,
+        }))
+      ),
+      catchError(() => of([]))
+    );
+  }
+
+  async sendDirectMessage(
+    currentUser: Pick<DirectMessageEntry, 'authorId' | 'authorName' | 'authorAvatar'> &
+      { text: string },
+    recipientId: string
+  ): Promise<void> {
+    const conversationId = this.buildConversationId(
+      currentUser.authorId ?? '',
+      recipientId
+    );
+    const messagesCollection = collection(
+      this.firestore,
+      `directMessages/${conversationId}/messages`
+    );
+
+    await addDoc(messagesCollection, {
+      ...currentUser,
+      text: currentUser.text,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  private buildConversationId(userA: string, userB: string): string {
+    return [userA, userB].sort((a, b) => a.localeCompare(b)).join('__');
+  }
+
 
   async createChannel(title: string, description?: string): Promise<void> {
     const trimmedTitle = title.trim();

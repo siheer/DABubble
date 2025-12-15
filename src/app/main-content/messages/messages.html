@@ -1,12 +1,14 @@
-<!-- Overall wrapper so the content sits comfortably between both sidenavs. -->
-<section class="message-board">
+<section class="message-board" *ngIf="selectedRecipient$ | async as recipient; else chooseRecipient">
   <!-- Recipient header with avatar and quick context. -->
   <header class="message-board__header">
     <div class="message-board__identity">
-      <img class="message-board__avatar" [src]="recipient.avatar" [alt]="recipient.name" />
+      <img
+        class="message-board__avatar"
+        [src]="recipient.photoUrl || 'imgs/default-profile-picture.png'"
+        [alt]="recipient.name" />
       <div>
         <h1>{{ recipient.name }}</h1>
-        <p>{{ recipient.role }}</p>
+        <p>{{ recipient.email || 'Direktnachricht' }}</p>
       </div>
     </div>
      <div class="message-board__meta">
@@ -21,10 +23,13 @@
   <!-- Intro card that mirrors the helper text from the mockup. -->
   <article class="message-board__card">
     <div class="message-board__card-header">
-      <img class="message-board__avatar" [src]="recipient.avatar" [alt]="recipient.name" />
+      <img
+        class="message-board__avatar"
+        [src]="recipient.photoUrl || 'imgs/default-profile-picture.png'"
+        [alt]="recipient.name" />
       <div>
         <p class="message-board__recipient-name">{{ recipient.name }}</p>
-        <p class="message-board__recipient-role">Software Developer</p>
+        <p class="message-board__recipient-role">{{ recipient.email || 'Direktnachricht' }}</p>
       </div>
     </div>
     <p class="message-board__card-text">{{ helperText }}</p>
@@ -33,7 +38,7 @@
   <!-- Scrollable conversation stream. -->
   <section class="message-board__stream" aria-live="polite">
     <article
-      *ngFor="let message of messages"
+      *ngFor="let message of messages$ | async"
       class="message-board__bubble"
       [class.message-board__bubble--own]="message.isOwn"
     >
@@ -42,7 +47,7 @@
           <img class="message-board__bubble-avatar" [src]="message.avatar" [alt]="message.author" />
           <strong>{{ message.author }}</strong>
         </div>
-        <time class="message-board__bubble-time">{{ message.timestamp }}</time>
+        <time class="message-board__bubble-time">{{ formatTimestamp(message.timestamp) }}</time>
       </div>
       <p class="message-board__bubble-text">{{ message.content }}</p>
     </article>
@@ -55,6 +60,7 @@
       required
       [(ngModel)]="draftMessage"
       placeholder="Nachricht an {{ recipient.name }}"
+      [disabled]="isSending"
       aria-label="Neue Nachricht verfassen"
     ></textarea>
 
@@ -74,7 +80,7 @@
         <button type="button" aria-label="Sofortnachricht aufklappen">
           <mat-icon>expand_more</mat-icon>
         </button>
-        <button type="submit" [disabled]="messageForm.invalid">
+        <button type="submit" [disabled]="messageForm.invalid || isSending">
           <mat-icon>send</mat-icon>
           Senden
         </button>
@@ -82,3 +88,21 @@
     </div>
   </form>
 </section>
+
+<ng-template #chooseRecipient>
+  <section class="message-board message-board__empty">
+    <header class="message-board__header">
+      <div class="message-board__identity">
+        <div class="message-board__avatar placeholder"></div>
+        <div>
+          <h1>Direktnachricht starten</h1>
+          <p>Wähle links eine Person aus, um den Chat zu öffnen.</p>
+        </div>
+      </div>
+    </header>
+    <p class="message-board__subtitle">
+      Du hast noch keine Direktnachricht ausgewählt. Tippe im Workspace auf einen Kontakt,
+      um hier die Unterhaltung zu sehen.
+    </p>
+  </section>
+</ng-template>

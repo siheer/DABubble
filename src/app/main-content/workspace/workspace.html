@@ -73,14 +73,20 @@
         id="workspace-direct-messages">
         <ng-container *ngIf="users$ | async as users">
           <li *ngFor="let user of users" class="workspace__list-item">
-            <img
-              class="workspace__avatar"
-              [src]="user.photoUrl || 'imgs/default-profile-picture.png'"
-              [alt]="user.name" />
-            <div class="workspace__user-details">
-              <span class="workspace__user-name">{{ user.name }}</span>
-              <span class="workspace__user-email">{{ user.email || 'Keine E-Mail hinterlegt' }}</span>
-            </div>
+           <button
+              type="button"
+              class="workspace__list-item workspace__list-item--direct"
+              [class.workspace__list-item--active]="(selectedDirectMessageUser$ | async)?.uid === user.uid"
+              (click)="openDirectMessage(user)">
+              <img
+                class="workspace__avatar"
+                [src]="user.photoUrl || 'imgs/default-profile-picture.png'"
+                [alt]="user.name" />
+              <div class="workspace__user-details">
+                <span class="workspace__user-name">{{ user.name }}</span>
+                <span class="workspace__user-email">{{ user.email || 'Keine E-Mail hinterlegt' }}</span>
+              </div>
+            </button>
           </li>
         </ng-container>
       </ul>

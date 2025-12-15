@@ -1,65 +1,123 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable } from 'rxjs';
-import { ChannelDescription } from './channel-description/channel-description';
+import { Observable, combineLatest, map, of, switchMap } from 'rxjs';
 import { FirestoreService } from '../../services/firestore.service';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { AppUser, UserService } from '../../services/user.service';
+import { DirectMessageSelectionService } from '../../services/direct-message-selection.service';
+import { DirectMessageEntry } from '../../services/firestore.service';
+import { Timestamp } from '@angular/fire/firestore';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 
-type Message = {
+type MessageBubble = {
+  id?: string;
   author: string;
   avatar: string;
   content: string;
-  timestamp: string;
+  timestamp: Timestamp | undefined;
   isOwn?: boolean;
 };
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule], templateUrl: './messages.html',
+  imports: [CommonModule, FormsModule, MatIconModule],
+  templateUrl: './messages.html',
   styleUrl: './messages.scss',
 })
 export class Messages {
-  // Static recipient information to mirror the "Neue Nachricht" mockup.
-  protected readonly recipient = {
-    name: 'Sofia Müller',
-    role: 'Software Developer',
-    avatar: 'imgs/users/Property 1=Sofia Müller.svg',
-  };
+  private readonly firestoreService = inject(FirestoreService);
+  private readonly userService = inject(UserService);
+  private readonly directMessageSelectionService = inject(
+    DirectMessageSelectionService
+  );
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Initial conversation starter shown above the chat box.
+  protected readonly selectedRecipient$ =
+    this.directMessageSelectionService.selectedUser$;
+  private readonly currentUser$ = toObservable(this.userService.currentUser);
+
+  protected readonly messages$: Observable<MessageBubble[]> = combineLatest([
+    this.currentUser$,
+    this.selectedRecipient$,
+  ]).pipe(
+    switchMap(([currentUser, recipient]) => {
+      if (!currentUser || !recipient) {
+        return of([]);
+      }
+
+      return this.firestoreService
+        .getDirectConversationMessages(currentUser.uid, recipient.uid)
+        .pipe(
+          map((messages) =>
+            messages.map((message) => this.mapMessage(message, currentUser))
+          )
+        );
+    })
+  );
+
+  protected selectedRecipient: AppUser | null = null;
+  protected currentUser: AppUser | null = null;
+
   protected readonly helperText =
     'Beginne damit, jemanden zu einem oder mehreren deiner Channels hinzuzufügen. ' +
     'Du kannst hier, in einer Nachricht, @erwähnungen nutzen, um Personen zu benachrichtigen.';
-  // Pre-populated messages to give the view some life.
-  protected messages: Message[] = [
-    {
-      author: 'Zoe Day',
-      avatar: 'imgs/f2.png',
-      content:
-        'Willkommen im neuen Devspace! Hier kannst du direkt mit Sofia chatten oder sie zu Channels einladen.',
-      timestamp: '08:22 Uhr',
-    },
-  ];
-  // Model bound to the composer textarea.
   protected draftMessage = '';
+  protected isSending = false;
 
-  // Adds a new message bubble to the conversation.
+  constructor() {
+    this.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => (this.currentUser = user));
+
+    this.selectedRecipient$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((recipient) => (this.selectedRecipient = recipient));
+  }
+
   protected sendMessage(): void {
     const trimmed = this.draftMessage.trim();
-    if (!trimmed) {
-      return;
-    }
+    if (!trimmed || !this.currentUser || !this.selectedRecipient) return;
 
-    this.messages.push({
-      author: 'Frederik Beck',
-      avatar: 'imgs/users/Property 1=Frederik Beck.svg',
-      content: trimmed,
-      timestamp: 'Jetzt',
-      isOwn: true,
-    });
+    this.isSending = true;
+    this.firestoreService
+      .sendDirectMessage(
+        {
+          authorId: this.currentUser.uid,
+          authorName: this.currentUser.name,
+          authorAvatar: this.currentUser.photoUrl,
+          text: trimmed,
+        },
+        this.selectedRecipient.uid
+      )
+      .finally(() => {
+        this.isSending = false;
+        this.draftMessage = '';
+      });
+  }
 
-    this.draftMessage = '';
+  protected formatTimestamp(timestamp?: Timestamp): string {
+    if (!timestamp) return '';
+
+    const date = timestamp.toDate();
+    return new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  private mapMessage(
+    message: DirectMessageEntry,
+    currentUser: AppUser
+  ): MessageBubble {
+    return {
+      id: message.id,
+      author: message.authorName ?? 'Unbekannter Nutzer',
+      avatar: message.authorAvatar ?? 'imgs/default-profile-picture.png',
+      content: message.text ?? '',
+      timestamp: message.createdAt,
+      isOwn: message.authorId === currentUser.uid,
+    };
   }
 
 }
