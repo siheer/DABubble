@@ -64,6 +64,9 @@ export class Messages {
     'Du kannst hier, in einer Nachricht, @erwähnungen nutzen, um Personen zu benachrichtigen.';
   protected draftMessage = '';
   protected isSending = false;
+  protected messageReactions: Record<string, string> = {};
+  protected openEmojiPickerFor: string | null = null;
+  protected readonly emojiChoices = ['😀', '😄', '😍', '🎉', '🤔', '👏'];
 
   constructor() {
     this.currentUser$
@@ -119,5 +122,23 @@ export class Messages {
       isOwn: message.authorId === currentUser.uid,
     };
   }
+
+  protected react(messageId: string | undefined, reaction: string): void {
+    if (!messageId) return;
+
+    this.messageReactions = {
+      ...this.messageReactions,
+      [messageId]: reaction,
+    };
+    this.openEmojiPickerFor = null;
+  }
+
+  protected toggleEmojiPicker(messageId: string | undefined): void {
+    if (!messageId) return;
+
+    this.openEmojiPickerFor =
+      this.openEmojiPickerFor === messageId ? null : messageId;
+  }
+
 
 }

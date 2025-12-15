@@ -19,7 +19,7 @@ import { ThreadService } from '../services/thread.service';
 })
 export class MainContent {
   private readonly threadService = inject(ThreadService);
-  protected readonly thread$ = this.threadService.thread$;
+  protected readonly thread$ = this.threadService.thread$; 
   protected showNewMessage = false;
 
   protected openNewMessagePanel(): void {

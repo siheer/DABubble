@@ -11,14 +11,12 @@
         <p>{{ recipient.email || 'Direktnachricht' }}</p>
       </div>
     </div>
-     <div class="message-board__meta">
+    <div class="message-board__meta">
       <span class="message-board__badge">Neue Nachricht</span>
       <span class="message-board__hint">Direktnachricht an {{ recipient.name }}</span>
     </div>
   </header>
- <p class="message-board__subtitle">
-    Diese Unterhaltung findet nur zwischen dir und {{ recipient.name }} statt.
-  </p>
+  <p class="message-board__subtitle">Diese Unterhaltung findet nur zwischen dir und {{ recipient.name }} statt.</p>
 
   <!-- Intro card that mirrors the helper text from the mockup. -->
   <article class="message-board__card">
@@ -40,8 +38,46 @@
     <article
       *ngFor="let message of messages$ | async"
       class="message-board__bubble"
-      [class.message-board__bubble--own]="message.isOwn"
-    >
+      [class.message-board__bubble--own]="message.isOwn">
+      <div
+        class="message-board__bubble-actions"
+        [class.message-board__bubble-actions--visible]="openEmojiPickerFor === message.id">
+        <button
+          type="button"
+          class="message-board__bubble-action"
+          aria-label="Daumen hoch geben"
+          (click)="react(message.id, '👍')">
+          <mat-icon>thump_up</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="message-board__bubble-action"
+          aria-label="Grünen Haken setzen"
+          (click)="react(message.id, '✅')">
+          <mat-icon>check_circle</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="message-board__bubble-action"
+          aria-label="Emoji-Auswahl öffnen"
+          (click)="toggleEmojiPicker(message.id)">
+          <mat-icon>add_reaction</mat-icon>
+        </button>
+        <button type="button" class="message-board__bubble-action" aria-label="Weitere Optionen">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+
+        <div class="message-board__emoji-picker" *ngIf="openEmojiPickerFor === message.id">
+          <button
+            type="button"
+            *ngFor="let emoji of emojiChoices"
+            (click)="react(message.id, emoji)"
+            aria-label="Emoji auswählen">
+            {{ emoji }}
+          </button>
+        </div>
+      </div>
+
       <div class="message-board__bubble-header">
         <div class="message-board__bubble-author">
           <img class="message-board__bubble-avatar" [src]="message.avatar" [alt]="message.author" />
@@ -61,14 +97,16 @@
       [(ngModel)]="draftMessage"
       placeholder="Nachricht an {{ recipient.name }}"
       [disabled]="isSending"
-      aria-label="Neue Nachricht verfassen"
-    ></textarea>
+      aria-label="Neue Nachricht verfassen"></textarea>
 
     <div class="message-board__composer-actions">
       <div class="message-board__composer-start">
         <button type="button" aria-label="Datei hinzufügen">
           <mat-icon>attach_file</mat-icon>
         </button>
+        <div class="message-board__bubble-reaction" *ngIf="message.id && messageReactions[message.id]">
+          {{ messageReactions[message.id] }}
+        </div>
         <button type="button" aria-label="Emoji einfügen">
           <mat-icon>sentiment_satisfied</mat-icon>
         </button>
@@ -101,8 +139,8 @@
       </div>
     </header>
     <p class="message-board__subtitle">
-      Du hast noch keine Direktnachricht ausgewählt. Tippe im Workspace auf einen Kontakt,
-      um hier die Unterhaltung zu sehen.
+      Du hast noch keine Direktnachricht ausgewählt. Tippe im Workspace auf einen Kontakt, um hier die Unterhaltung zu
+      sehen.
     </p>
   </section>
 </ng-template>
