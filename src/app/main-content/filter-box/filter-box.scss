@@ -2,3 +2,11 @@
   background-color: #ECEEFE;
   border-radius: 50px;
 }
+
+.box-border{
+  border: 3px solid #ECEEFE;
+  border-bottom-left-radius: 25px;
+  border-bottom-right-radius: 25px;
+  border-top-right-radius: 25px;
+  overflow: hidden;
+}
