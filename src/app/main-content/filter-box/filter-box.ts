@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { SearchService } from '../../services/search.service';
 import { CommonModule } from '@angular/common';
+import { SearchResult } from '../../classes/search-result.class';
 
 @Component({
   selector: 'app-filter-box',
@@ -15,14 +16,17 @@ export class FilterBox implements OnChanges {
 
   constructor(private searchService: SearchService) {}
 
-  results: any[] = [];
-  collections = ['channels', 'users'];
+  results: SearchResult[] = [];
 
   async ngOnChanges(changes: SimpleChanges) {
     if (changes['searchTerm']) {
       const term = this.searchTerm.trim();
 
-      this.results = await this.searchService.smartSearch(term);
+      if (term.startsWith('@') || term.startsWith('#')) {
+        this.results = await this.searchService.smartSearch(term);
+      } else {
+        this.results = await this.searchService.smartSearch(term);
+      }
     }
   }
 
@@ -37,6 +41,10 @@ export class FilterBox implements OnChanges {
 
   get channels() {
     return this.results.filter((r) => r.collection === 'channels');
+  }
+
+  get messages() {
+    return this.results.filter((r) => r.collection === 'messages');
   }
 
   get isUserSearch(): boolean {

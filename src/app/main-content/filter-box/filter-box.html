@@ -61,7 +61,28 @@
       </div>
     </ng-container>
 
-    <ng-container *ngIf="!users.length && !channels.length">
+    <ng-container *ngIf="messages.length">
+      <div class="px-10 py-2">
+        <div class="px-4 text-xs font-semibold">Messages</div>
+
+        <div
+          *ngFor="let message of messages"
+          (click)="choose(message)"
+          class="filter-bg flex cursor-pointer items-start gap-3 px-4 py-3">
+          <div class="flex flex-col">
+            <div class="line-clamp-2">
+              <span class="bg-yellow-100 text-sm text-gray-700"> {{ message.data.text }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-semibold">von {{ message.data.authorName }}</span>
+              <span class="text-gray-400"> in #{{ message.channelTitle }} </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!users.length && !channels.length && !messages.length">
       <div class="px-4 py-3">Keine Ergebnisse</div>
     </ng-container>
   </ng-container>
