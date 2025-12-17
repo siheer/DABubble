@@ -108,27 +108,32 @@
         class="workspace__list workspace__list--direct"
         id="workspace-direct-messages">
         <ng-container *ngIf="users$ | async as users">
-          <li *ngFor="let user of users" class="workspace__list-item">
-            <button
-              type="button"
-              class="workspace__list-item workspace__list-item--direct"
-              [class.workspace__list-item--active]="(selectedDirectMessageUser$ | async)?.uid === user.uid"
-              (click)="openDirectMessage(user)">
-              <div class="relative">
-                <img
-                  class="workspace__avatar"
-                  [src]="user.photoUrl || 'imgs/default-profile-picture.png'"
-                  [alt]="user.name" />
-                <span
-                  class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white"
-                  [ngClass]="user.onlineStatus ? 'bg-green-500' : 'bg-gray-400'">
-                </span>
-              </div>
-              <div class="workspace__user-details">
-                <span class="workspace__user-name">{{ user.name }}</span>
-              </div>
-            </button>
-          </li>
+          <ng-container *ngIf="currentUser$ | async as currentUser">
+            <li *ngFor="let user of users" class="workspace__list-item">
+              <button
+                type="button"
+                class="workspace__list-item workspace__list-item--direct"
+                [class.workspace__list-item--active]="(selectedDirectMessageUser$ | async)?.uid === user.uid"
+                (click)="openDirectMessage(user)">
+                <div class="relative">
+                  <img
+                    class="workspace__avatar"
+                    [src]="user.photoUrl || 'imgs/default-profile-picture.png'"
+                    [alt]="user.name" />
+                  <span
+                    class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white"
+                    [ngClass]="user.onlineStatus ? 'bg-green-500' : 'bg-gray-400'">
+                  </span>
+                </div>
+                <div class="workspace__user-details">
+                  <span class="workspace__user-name">
+                    {{ user.name }}
+                    <span *ngIf="user.uid === currentUser.uid"> (Du)</span>
+                  </span>
+                </div>
+              </button>
+            </li>
+          </ng-container>
         </ng-container>
       </ul>
     </div>

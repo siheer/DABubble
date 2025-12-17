@@ -41,3 +41,14 @@
   background: #eef2ff;
   overflow-y: auto;
 }
+
+.new-message-surface {
+  display: flex;
+  align-items: stretch;
+  background: #eef2ff;
+  padding: 0;
+}
+
+.new-message-surface app-new-message-panel {
+  width: 100%;
+}

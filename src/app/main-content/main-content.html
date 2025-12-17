@@ -5,16 +5,29 @@
     <mat-sidenav #leftSidenav opened mode="side"
       ><app-workspace (newMessage)="openNewMessagePanel()" (channelSelected)="closeNewMessagePanel()"></app-workspace
     ></mat-sidenav>
-    <mat-sidenav opened mode="side" position="end" *ngIf="showNewMessage">
-      <app-new-message-panel (close)="closeNewMessagePanel()"></app-new-message-panel>
-    </mat-sidenav>
-    <mat-sidenav opened mode="side" position="end" *ngIf="!showNewMessage && (thread$ | async)">
-      <app-thread></app-thread>
-    </mat-sidenav>
+    <ng-container *ngIf="showNewMessage; else chatArea">
+      <mat-sidenav-content class="new-message-surface">
+        <app-new-message-panel (close)="closeNewMessagePanel()"></app-new-message-panel>
+      </mat-sidenav-content>
+    </ng-container>
 
-    <mat-sidenav-content>
-      <app-channel></app-channel>
-    </mat-sidenav-content>
+    <ng-template #chatArea>
+      <ng-container *ngIf="selectedDirectMessageUser$ | async; else channelArea">
+        <mat-sidenav-content>
+          <app-messages></app-messages>
+        </mat-sidenav-content>
+      </ng-container>
+
+      <ng-template #channelArea>
+        <mat-sidenav opened mode="side" position="end" *ngIf="thread$ | async">
+          <app-thread></app-thread>
+        </mat-sidenav>
+
+        <mat-sidenav-content>
+          <app-channel></app-channel>
+        </mat-sidenav-content>
+      </ng-template>
+    </ng-template>
   </mat-sidenav-container>
   <div class="absolute" *ngIf="leftSidenav.opened">
     <button
