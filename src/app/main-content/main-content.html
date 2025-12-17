@@ -5,7 +5,12 @@
     <mat-sidenav #leftSidenav opened mode="side"
       ><app-workspace (newMessage)="openNewMessagePanel()" (channelSelected)="closeNewMessagePanel()"></app-workspace
     ></mat-sidenav>
-    <mat-sidenav opened mode="side" position="end" *ngIf="showNewMessage">
+    <mat-sidenav
+      opened
+      mode="side"
+      position="end"
+      *ngIf="showNewMessage"
+      class="main-content__overlay main-content__overlay--new-message">
       <app-new-message-panel (close)="closeNewMessagePanel()"></app-new-message-panel>
     </mat-sidenav>
     <mat-sidenav opened mode="side" position="end" *ngIf="!showNewMessage && (thread$ | async)">
@@ -13,7 +18,12 @@
     </mat-sidenav>
 
     <mat-sidenav-content>
-      <app-channel></app-channel>
+      <ng-container *ngIf="selectedDirectMessageUser$ | async; else channelView">
+        <app-messages></app-messages>
+      </ng-container>
+      <ng-template #channelView>
+        <app-channel></app-channel>
+      </ng-template>
     </mat-sidenav-content>
   </mat-sidenav-container>
   <div class="absolute" *ngIf="leftSidenav.opened">

@@ -15,12 +15,56 @@
       id="new-message-search"
       type="search"
       placeholder="Nach Personen, Channels oder E-Mail suchen"
-      autocomplete="off" />
+      autocomplete="off"
+      [(ngModel)]="searchTerm"
+      (ngModelChange)="updateSearch($event)" />
   </label>
 
-  <div class="new-message-drawer__empty">
-    <div class="new-message-drawer__placeholder"></div>
-    <h3>Starte eine neue Unterhaltung</h3>
-    <p>Wähle links einen Kontakt oder suche hier, um eine Nachricht zu verfassen.</p>
-  </div>
+  <ng-container *ngIf="searchResults$ | async as results">
+    <section class="new-message-drawer__group" *ngIf="results.channels.length">
+      <header class="new-message-drawer__group-header">
+        <p>Channels</p>
+      </header>
+      <ul class="new-message-drawer__list">
+        <li *ngFor="let channel of results.channels">
+          <button type="button" class="new-message-drawer__item" (click)="selectChannel(channel)">
+            <span class="new-message-drawer__pill">#</span>
+            <div class="new-message-drawer__item-details">
+              <span class="new-message-drawer__item-title">{{ channel.title || 'Unbenannter Channel' }}</span>
+              <span class="new-message-drawer__item-meta">Channel öffnen</span>
+            </div>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <section class="new-message-drawer__group" *ngIf="results.users.length">
+      <header class="new-message-drawer__group-header">
+        <p>Direktnachrichten</p>
+      </header>
+      <ul class="new-message-drawer__list">
+        <li *ngFor="let user of results.users">
+          <button type="button" class="new-message-drawer__item" (click)="startDirectMessage(user)">
+            <img
+              class="new-message-drawer__avatar"
+              [src]="user.photoUrl || 'imgs/default-profile-picture.png'"
+              [alt]="user.name" />
+            <div class="new-message-drawer__item-details">
+              <span class="new-message-drawer__item-title">{{ user.displayName }}</span>
+              <span class="new-message-drawer__item-meta">{{ user.email || 'Direktnachricht' }}</span>
+            </div>
+            <span class="new-message-drawer__chip" *ngIf="user.isCurrentUser">Du</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <div class="new-message-drawer__empty" *ngIf="!results.channels.length && !results.users.length">
+      <div class="new-message-drawer__placeholder"></div>
+      <h3 *ngIf="results.hasQuery">Keine Treffer gefunden</h3>
+      <h3 *ngIf="!results.hasQuery">Starte eine neue Unterhaltung</h3>
+      <p *ngIf="results.hasQuery">Passe deine Suche an oder probiere einen anderen Namen oder Channel.</p>
+      <p *ngIf="!results.hasQuery">Suche nach einem Channel, einem Namen oder einer E-Mail-Adresse, um loszulegen.</p>
+    </div>
+  </ng-container>
 </section>

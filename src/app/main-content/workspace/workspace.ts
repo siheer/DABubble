@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, of, switchMap } from 'rxjs';
+import { Observable, combineLatest, map, of, switchMap } from 'rxjs';
 import { CreateChannel } from './create-channel/create-channel';
 
 import { Channel, FirestoreService } from '../../services/firestore.service';
@@ -8,6 +8,8 @@ import { ChannelSelectionService } from '../../services/channel-selection.servic
 import { AppUser, UserService } from '../../services/user.service';
 import { DirectMessageSelectionService } from '../../services/direct-message-selection.service';
 import { toObservable } from '@angular/core/rxjs-interop';
+
+type DirectMessageUser = AppUser & { displayName: string };
 
 @Component({
   selector: 'app-workspace',
@@ -31,8 +33,29 @@ export class Workspace {
       user ? this.firestoreService.getChannelsForUser(user.uid) : of([])
     )
   );
-  protected readonly users$: Observable<AppUser[]> =
-    this.userService.getAllUsers();
+  protected readonly directMessageUsers$: Observable<DirectMessageUser[]> =
+    combineLatest([this.userService.getAllUsers(), this.currentUser$]).pipe(
+      map(([users, currentUser]) => {
+        const enhancedUsers = users.map((user) => ({
+          ...user,
+          displayName:
+            currentUser && user.uid === currentUser.uid
+              ? `${user.name} (Du)`
+              : user.name,
+        }));
+
+        enhancedUsers.sort((a, b) => {
+          if (currentUser) {
+            if (a.uid === currentUser.uid) return -1;
+            if (b.uid === currentUser.uid) return 1;
+          }
+
+          return a.name.localeCompare(b.name);
+        });
+
+        return enhancedUsers;
+      })
+    );
   protected readonly selectedChannelId$ =
     this.channelSelectionService.selectedChannelId$;
   protected readonly selectedDirectMessageUser$ =
@@ -69,9 +92,7 @@ export class Workspace {
 
   protected openDirectMessage(user: AppUser): void {
     this.directMessageSelectionService.selectUser(user);
-    this.startNewMessage();
   }
 
 
 }
-

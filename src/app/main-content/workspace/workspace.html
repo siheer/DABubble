@@ -107,7 +107,7 @@
         *ngIf="!areDirectMessagesCollapsed"
         class="workspace__list workspace__list--direct"
         id="workspace-direct-messages">
-        <ng-container *ngIf="users$ | async as users">
+        <ng-container *ngIf="directMessageUsers$ | async as users">
           <li *ngFor="let user of users" class="workspace__list-item">
             <button
               type="button"
@@ -125,7 +125,7 @@
                 </span>
               </div>
               <div class="workspace__user-details">
-                <span class="workspace__user-name">{{ user.name }}</span>
+                <span class="workspace__user-name">{{ user.displayName }}</span>
               </div>
             </button>
           </li>

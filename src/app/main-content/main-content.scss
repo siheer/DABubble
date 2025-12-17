@@ -41,3 +41,13 @@
   background: #eef2ff;
   overflow-y: auto;
 }
+
+.main-content__overlay {
+  box-shadow: -8px 0 30px rgba(15, 23, 42, 0.08);
+  border-left: 1px solid #e2e8f0;
+}
+
+.main-content__overlay--new-message {
+  width: 100%;
+  max-width: none;
+}
