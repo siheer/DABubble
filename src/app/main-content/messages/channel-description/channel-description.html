@@ -2,82 +2,80 @@
   <button type="button" class="channel-description__close" aria-label="Overlay schließen" (click)="closeOverlay()">
     ×
   </button>
-  <div class="channel-description__field">
-    <div class="channel-description__field-header">
-      <label class="channel-description__label">Channel-Name</label>
-      <div class="channel-description__actions-inline">
-        <button type="button" class="channel-description__action" *ngIf="!isEditingTitle" (click)="startEditTitle()">
-          Bearbeiten
-        </button>
-        <button
-          type="button"
-          class="channel-description__action channel-description__action--primary"
-          *ngIf="isEditingTitle"
-          [disabled]="isSavingTitle || !channelId"
-          (click)="saveTitle()">
-          Speichern
-        </button>
-      </div>
+
+  <h1 class="channel-description__heading"># {{ title }}</h1>
+
+  <div class="channel-description__card" [class.channel-description__card--editing]="isEditingTitle">
+    <div class="channel-description__card-header">
+      <span class="channel-description__label">Channel-Name</span>
+      <button type="button" class="channel-description__action" *ngIf="!isEditingTitle" (click)="startEditTitle()">
+        Bearbeiten
+      </button>
+      <button
+        type="button"
+        class="channel-description__action channel-description__action--primary"
+        *ngIf="isEditingTitle"
+        [disabled]="isSavingTitle || !channelId"
+        (click)="saveTitle()">
+        Speichern
+      </button>
     </div>
-    <div class="channel-description__input-group" [class.channel-description__input-group--editable]="isEditingTitle">
-      <span class="channel-description__prefix">#</span>
-      <input type="text" [(ngModel)]="editableTitle" [readonly]="!isEditingTitle" aria-label="Channel-Name" />
+
+    <div class="channel-description__content" *ngIf="!isEditingTitle">
+      <span class="channel-description__hash">#</span>
+      <span class="channel-description__value">{{ title }}</span>
     </div>
-    <p class="channel-description__hint">
-      Es ist nur eine Channel-Beschreibung: Hier kannst du eintragen, um was es in diesem Channel geht. So weiß jeder,
-      wofür er gedacht ist und was dort besprochen werden sollte.
-    </p>
+
+    <div class="channel-description__content channel-description__content--edit" *ngIf="isEditingTitle">
+      <span class="channel-description__hash">#</span>
+      <input
+        type="text"
+        [(ngModel)]="editableTitle"
+        aria-label="Channel-Name"
+        class="channel-description__input"
+        [readonly]="!isEditingTitle" />
+    </div>
   </div>
 
-  <div class="channel-description__field">
-    <div class="channel-description__field-header channel-description__field-header--row">
-      <div class="channel-description__field-labels">
-        <label for="channel-description-input" class="channel-description__label">Beschreibung</label>
-        <span class="channel-description__meta-hint"
-          >Du kannst eine kurze Beschreibung für deinen Channel hinzufügen</span
-        >
-      </div>
-      <div class="channel-description__actions-inline">
-        <button
-          type="button"
-          class="channel-description__action"
-          *ngIf="!isEditingDescription"
-          (click)="startEditDescription()">
-          Bearbeiten
-        </button>
-        <button
-          type="button"
-          class="channel-description__action channel-description__action--primary"
-          *ngIf="isEditingDescription"
-          [disabled]="isSavingDescription || !channelId"
-          (click)="saveDescription()">
-          Speichern
-        </button>
-      </div>
+  <div class="channel-description__card" [class.channel-description__card--editing]="isEditingDescription">
+    <div class="channel-description__card-header">
+      <span class="channel-description__label">Beschreibung</span>
+      <button
+        type="button"
+        class="channel-description__action"
+        *ngIf="!isEditingDescription"
+        (click)="startEditDescription()">
+        Bearbeiten
+      </button>
+      <button
+        type="button"
+        class="channel-description__action channel-description__action--primary"
+        *ngIf="isEditingDescription"
+        [disabled]="isSavingDescription || !channelId"
+        (click)="saveDescription()">
+        Speichern
+      </button>
     </div>
+
+    <p class="channel-description__text" *ngIf="!isEditingDescription">{{ description }}</p>
     <textarea
       id="channel-description-input"
       class="channel-description__textarea"
       rows="3"
       [readonly]="!isEditingDescription"
-      [class.channel-description__textarea--editable]="isEditingDescription"
       aria-label="Channel-Beschreibung"
-      [(ngModel)]="editableDescription"></textarea>
+      [(ngModel)]="editableDescription"
+      *ngIf="isEditingDescription"></textarea>
   </div>
   <p class="channel-description__error" *ngIf="errorMessage">{{ errorMessage }}</p>
-  <div class="channel-description__meta-grid">
-    <div class="channel-description__meta-row">
-      <span class="channel-description__meta-label">Erstellt von</span>
-      <span class="channel-description__meta-value">{{ createdBy }}</span>
-    </div>
-    <div class="channel-description__meta-row">
-      <span class="channel-description__meta-label">Erstellt am</span>
-      <span class="channel-description__meta-value">{{ createdAt }}</span>
-    </div>
+  <div class="channel-description__divider"></div>
+
+  <div class="channel-description__creator">
+    <span class="channel-description__creator-label">Erstellt von</span>
+    <span class="channel-description__creator-name">{{ createdBy }}</span>
   </div>
 
   <div class="channel-description__actions">
     <button type="button" class="channel-description__secondary" (click)="closeOverlay()">Channel verlassen</button>
-    <button type="button" class="channel-description__danger">Channel löschen</button>
   </div>
 </section>
