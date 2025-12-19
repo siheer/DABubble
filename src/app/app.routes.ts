@@ -8,8 +8,10 @@ import { publicOrRedirectGuard } from './guards/public-or-redirect.guard';
 import { onlyVerifiedGuard } from './guards/only-verified.guard';
 import { emailConfirmedGuard } from './guards/email-confirmed.guard';
 import { ResetPassword } from './auth/reset-password/reset-password';
-import { AuthActionComponent } from './auth/auth-action/auth-action';
+import { AuthAction } from './auth/auth-action/auth-action';
 import { unverifiedGuard } from './guards/unverified.guard';
+import { LegalNotice } from './aside-content/legal-notice/legal-notice';
+import { PrivacyPolicy } from './aside-content/privacy-policy/privacy-policy';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -25,7 +27,7 @@ export const routes: Routes = [
   },
   {
     path: 'auth-action',
-    component: AuthActionComponent,
+    component: AuthAction,
   },
   {
     path: 'reset-password',
@@ -45,5 +47,13 @@ export const routes: Routes = [
     path: 'main',
     component: MainContent,
     canActivate: [onlyVerifiedGuard],
+  },
+  {
+    path: 'legal-notice',
+    component: LegalNotice,
+  },
+  {
+    path: 'privacy-policy',
+    component: PrivacyPolicy,
   },
 ];

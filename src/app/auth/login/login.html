@@ -1,209 +1,193 @@
-<section class="min-h-screen flex items-center justify-center px-4">
-  <div
-    class="relative w-full max-w-xl rounded-[32px] bg-white shadow-lg px-8 py-10 sm:px-12 sm:py-12"
-  >
+<app-aside-content-wrapper [showCardSurroundings]="mode() === 'login'">
+  @if (mode() === 'login') {
+    <div topLeft><app-logo></app-logo></div>
+  }
+
+  @if (mode() === 'login') {
+    <div topRight class="flex flex-col items-end gap-2">
+      <p>Neu bei DABubble?</p>
+      <a routerLink="/signup" class="dab-anchor-on-bg -mr-4">Konto erstellen</a>
+    </div>
+  }
+
+  @if (mode() === 'login') {
+    <div footer class="flex justify-between gap-4">
+      <a routerLink="/legal-notice" class="dab-anchor-on-bg">Impressum</a>
+      <a routerLink="/privacy-policy" class="dab-anchor-on-bg">Datenschutz</a>
+    </div>
+  }
+
+  <div card>
     @if (!isResetMode) {
-    <header class="mb-8">
-      @if (mode() === 'login') {
-      <div class="mb-4 flex justify-end text-xs sm:text-sm text-slate-500">
-        <span>Neu bei DABubble?</span>
-        <a routerLink="/signup" class="ml-1 font-semibold text-[#4A5CF6] hover:underline">
-          Konto erstellen
-        </a>
-      </div>
-      }
+      <header class="mb-10">
+        <h1>
+          @if (mode() === 'login') {
+            Anmeldung
+          } @else if (mode() === 'reauth') {
+            Erneut anmelden
+          }
+        </h1>
 
-      <h1 class="text-center text-[32px] font-extrabold leading-tight text-[#4A5CF6]">
-        @if (mode() === 'login') { Anmeldung } @else { Erneut anmelden }
-      </h1>
+        <p class="text-center text-base sm:text-lg">
+          @if (mode() === 'login') {
+            Wir empfehlen dir, die E-Mail-Adresse zu nutzen, die du bei der Arbeit verwendest.
+          } @else if (mode() === 'reauth') {
+            Bitte melde dich erneut an, um mit der Aktion fortzufahren.
+          }
+        </p>
+      </header>
 
-      <p class="mt-3 text-center text-sm sm:text-base text-slate-500">
-        @if (mode() === 'login') { Wir empfehlen dir, die E-Mail-Adresse zu nutzen, die du bei der
-        Arbeit verwendest. } @else { Bitte bestätige deine Anmeldung, um mit einer sensiblen Aktion
-        fortzufahren. }
-      </p>
-    </header>
+      <form #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)" novalidate class="dab-form">
+        <!-- @if (errorMessage) {
+          <p class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {{ errorMessage }}
+          </p>
+        }
+        @if (infoMessage) {
+          <p class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {{ infoMessage }}
+          </p>
+        } -->
 
-    <form #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)" novalidate class="space-y-5">
-      @if (errorMessage) {
-      <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
-        {{ errorMessage }}
-      </p>
-      } @if (infoMessage) {
-      <p class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
-        {{ infoMessage }}
-      </p>
-      }
-
-      <div class="space-y-2">
-        <label for="email" class="sr-only">E-Mail</label>
-        <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-          <span class="material-icons text-slate-500 text-xl">mail</span>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            placeholder="beispielname@email.com"
-            [(ngModel)]="email"
-            class="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400"
-          />
+        <div>
+          <div class="dab-input-field">
+            <label for="email" class="sr-only">E-Mail</label>
+            <span class="material-icons icon">mail_outlined</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              pattern="^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
+              autocomplete="email"
+              required
+              placeholder="beispielname@email.com"
+              [(ngModel)]="email"
+              #emailModel="ngModel" />
+          </div>
+          @if (emailModel.invalid && emailModel.touched) {
+            <p class="dab-field-error">Bitte gib deine E-Mail-Adresse ein.</p>
+          }
         </div>
-      </div>
 
-      <div class="space-y-2">
-        <label for="password" class="sr-only">Passwort</label>
-        <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-          <span class="material-icons text-slate-500 text-xl">lock</span>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            placeholder="Passwort"
-            [(ngModel)]="password"
-            class="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400"
-          />
+        <div>
+          <div class="dab-input-field">
+            <label for="password" class="sr-only">Passwort</label>
+            <span class="material-icons icon">lock_outlined</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              placeholder="Passwort"
+              [(ngModel)]="password"
+              #passwordModel="ngModel" />
+          </div>
+          @if (passwordModel.invalid && passwordModel.touched) {
+            <p class="dab-field-error">Bitte gib dein Passwort ein.</p>
+          }
         </div>
-      </div>
 
-      @if (mode() === 'login') {
-      <div class="flex justify-center">
+        @if (mode() === 'login') {
+          <button
+            type="button"
+            (click)="onStartPasswordReset()"
+            [disabled]="isSubmitting"
+            class="dab-anchor-on-white mx-auto block">
+            Passwort vergessen?
+          </button>
+        }
+
+        <div class="gap- flex items-center gap-2 text-base">
+          <span class="h-px flex-1 bg-dab-light-purple-lines"></span>
+          <span class="font-medium">ODER</span>
+          <span class="h-px flex-1 bg-dab-light-purple-lines"></span>
+        </div>
+
         <button
-          type="button"
-          (click)="onStartPasswordReset()"
-          [disabled]="isSubmitting"
-          class="text-xs sm:text-sm font-medium text-[#4A5CF6] hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          Passwort vergessen?
-        </button>
-      </div>
-      }
-
-      <div class="flex items-center gap-4 text-xs sm:text-sm text-slate-400">
-        <span class="h-px flex-1 bg-slate-200"></span>
-        <span>ODER</span>
-        <span class="h-px flex-1 bg-slate-200"></span>
-      </div>
-
-      <div>
-        <button
-          type="button"
           (click)="onLoginWithGoogle()"
           [disabled]="isSubmitting"
-          class="flex w-full items-center justify-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3 text-sm font-medium text-[#4A5CF6] hover:bg-[#e0e4ff] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <span
-            class="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-[#4285F4] shadow-sm"
-          >
-            G
-          </span>
-          <span>
-            @if (mode() === 'login') { Anmelden mit Google } @else { Erneut anmelden mit Google }
-          </span>
-        </button>
-      </div>
-
-      @if (mode() === 'login') {
-      <div class="mt-4 flex justify-center gap-4">
-        <button
-          type="submit"
-          [disabled]="isSubmitting || loginForm.invalid"
-          class="rounded-full bg-[#4A5CF6] px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#3c4ad1] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {{ isSubmitting ? 'Anmelden …' : 'Anmelden' }}
-        </button>
-
-        <button
           type="button"
-          (click)="onGuestLogin()"
-          [disabled]="isSubmitting"
-          class="rounded-full border border-[#4A5CF6] px-8 py-3 text-sm font-semibold text-[#4A5CF6] hover:bg-[#f5f6ff] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          Gäste-Login
+          class="gap- flex w-full items-center justify-center gap-2 rounded-full border border-transparent bg-dab-bg px-4 py-2 text-dab-purple-1 hover:border-dab-purple-1 hover:font-bold active:border-dab-gray active:font-medium sm:px-8">
+          <img src="imgs/google.svg" alt="" class="size-7" />
+          <span>
+            @if (mode() === 'login') {
+              Anmelden mit Google
+            } @else {
+              Erneut anmelden mit Google
+            }
+          </span>
         </button>
-      </div>
-      } @else {
-      <div class="mt-4 flex justify-center">
-        <button
-          type="submit"
-          [disabled]="isSubmitting || loginForm.invalid"
-          class="rounded-full bg-[#4A5CF6] px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#3c4ad1] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {{ isSubmitting ? 'Bestätigen …' : 'Bestätigen' }}
-        </button>
-      </div>
-      }
-    </form>
-    } @else {
-    <header class="mb-8">
+
+        @if (mode() === 'login') {
+          <div class="mt-4 flex justify-center gap-4">
+            <button type="submit" [disabled]="isSubmitting || loginForm.invalid" class="dab-btn-primary">
+              Anmelden
+            </button>
+
+            <button type="button" (click)="onGuestLogin()" [disabled]="isSubmitting" class="dab-btn-secondary">
+              Gäste-Login
+            </button>
+          </div>
+        } @else if (mode() === 'reauth') {
+          <div class="mt-4 flex justify-center">
+            <button type="submit" [disabled]="isSubmitting || loginForm.invalid" class="dab-btn-primary">
+              {{ isSubmitting ? 'Bestätigen …' : 'Bestätigen' }}
+            </button>
+          </div>
+        }
+      </form>
+    } @else if (isResetMode) {
       <button
         type="button"
         aria-label="Zurück zur Anmeldung"
-        class="mb-6 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
-        (click)="onBackToLoginView()"
-      >
-        ←
+        class="dab-ui-item back-btn leading-0"
+        (click)="onBackToLoginView()">
+        <span class="material-icons">arrow_back</span>
       </button>
 
-      <h1 class="text-center text-[32px] font-extrabold leading-tight text-[#4A5CF6]">
-        Passwort zurücksetzen
-      </h1>
+      <header class="mb-10">
+        <h1>Passwort zurücksetzen</h1>
+        <p class="text-center text-base sm:text-lg">Bitte gib deine E-Mail-Adresse ein.</p>
+      </header>
 
-      <p class="mt-3 text-center text-sm sm:text-base text-slate-500">
-        Bitte gib deine E-Mail-Adresse ein.
-      </p>
-    </header>
+      <form #resetForm="ngForm" (ngSubmit)="onSendPasswordReset(resetForm)" novalidate class="dab-form">
+        <!-- @if (errorMessage) {
+          <p class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {{ errorMessage }}
+          </p>
+        }
+        @if (infoMessage) {
+          <p class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {{ infoMessage }}
+          </p>
+        } -->
 
-    <form
-      #resetForm="ngForm"
-      (ngSubmit)="onSendPasswordReset(resetForm)"
-      novalidate
-      class="space-y-5"
-    >
-      @if (errorMessage) {
-      <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
-        {{ errorMessage }}
-      </p>
-      } @if (infoMessage) {
-      <p class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
-        {{ infoMessage }}
-      </p>
-      }
-
-      <div class="space-y-2">
-        <label for="resetEmail" class="sr-only">E-Mail</label>
-        <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-          <span class="material-icons text-slate-500 text-xl">mail</span>
-          <input
-            id="resetEmail"
-            name="resetEmail"
-            type="email"
-            autocomplete="email"
-            required
-            placeholder="beispielname@email.com"
-            [(ngModel)]="email"
-            class="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400"
-          />
+        <div>
+          <div class="dab-input-field">
+            <label for="email" class="sr-only">E-Mail</label>
+            <span class="material-icons icon">mail_outlined</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              pattern="^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
+              autocomplete="email"
+              required
+              placeholder="beispielname@email.com"
+              [(ngModel)]="email"
+              #emailModel="ngModel" />
+          </div>
+          @if (emailModel.invalid && emailModel.touched) {
+            <p class="dab-field-error">Bitte gib deine E-Mail-Adresse ein.</p>
+          }
         </div>
-      </div>
+        <p class="text-center">Wir senden dir eine E-Mail, über die du dein Passwort ändern kannst.</p>
 
-      <p class="mt-1 text-xs sm:text-sm text-slate-500 text-center">
-        Wir senden dir eine E-Mail, über die du dein Passwort ändern kannst.
-      </p>
-
-      <footer class="mt-6 flex justify-end">
-        <button
-          type="submit"
-          [disabled]="isSubmitting || resetForm.invalid"
-          class="rounded-full bg-[#4A5CF6] px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#3c4ad1] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
+        <button type="submit" [disabled]="isSubmitting || resetForm.invalid" class="dab-btn-primary ml-auto block">
           {{ isSubmitting ? 'E-Mail wird gesendet …' : 'E-Mail senden' }}
         </button>
-      </footer>
-    </form>
+      </form>
     }
   </div>
-</section>
+</app-aside-content-wrapper>

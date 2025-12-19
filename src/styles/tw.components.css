@@ -1,0 +1,111 @@
+@layer components {
+  .dab-card {
+    @apply mx-auto w-full bg-white px-4 py-8 shadow-md sm:rounded-3xl sm:p-10 lg:p-12;
+  }
+
+  .dab-page-card {
+    @apply relative mx-auto w-full max-w-136 rounded-3xl bg-white px-4 py-8 shadow-md sm:p-10 lg:p-12;
+    --tw-shadow-color: rgb(0 0 0 / 5%);
+
+    h1 {
+      @apply mb-6 text-center text-4xl font-bold text-dab-purple-1;
+    }
+
+    &:has(.back-btn) {
+      h1 {
+        @apply px-12;
+      }
+    }
+
+    .back-btn {
+      @apply absolute top-8 left-4 sm:top-10 sm:left-10 lg:top-12 lg:left-12;
+    }
+
+    p,
+    span:not(.material-icons) {
+      @apply px-2;
+    }
+  }
+
+  .dab-form {
+    @apply space-y-6;
+  }
+
+  .dab-input-field {
+    @apply relative block;
+
+    .icon {
+      @apply pointer-events-none absolute top-1/2 left-6 -translate-y-1/2 text-dab-gray transition;
+    }
+
+    &:has(.icon) input {
+      @apply pl-15;
+    }
+
+    input {
+      @apply w-full rounded-full border border-transparent bg-dab-bg px-6 py-3 text-base caret-dab-gray transition outline-none placeholder:text-dab-gray hover:not-focus:border-dab-gray focus:border-dab-purple-1;
+
+      &.ng-touched.ng-invalid:not(:focus, :hover) {
+        border-color: var(--dab-rosa-error);
+      }
+    }
+
+    &:has(input.ng-touched.ng-invalid):not(:focus-within, :hover) .icon {
+      color: var(--dab-rosa-error);
+    }
+
+    &:focus-within .icon {
+      color: black;
+    }
+  }
+
+  .dab-field-error {
+    @apply -mb-1 px-2 text-sm text-dab-rosa-error;
+  }
+
+  .dab-anchor-on-white {
+    @apply rounded-full border border-transparent px-4 py-0.5 text-dab-purple-2 transition;
+
+    &:hover {
+      @apply bg-dab-bg font-semibold text-dab-purple-1 no-underline;
+    }
+  }
+
+  .dab-anchor-on-bg {
+    @apply rounded-full border border-transparent px-4 py-1.5 text-dab-purple-2 transition;
+
+    &:hover {
+      @apply border-dab-gray font-semibold text-dab-purple-1 no-underline;
+    }
+  }
+
+  .dab-btn-primary {
+    @apply rounded-full border border-transparent px-4 py-2 font-medium text-white transition sm:px-8;
+    @apply bg-dab-purple-1 hover:not-disabled:bg-dab-purple-2 active:bg-dab-purple-1 disabled:bg-dab-gray;
+  }
+
+  .dab-btn-secondary {
+    @apply rounded-full border border-transparent px-4 py-2 font-medium text-white transition sm:px-8;
+    @apply border-dab-purple-1 text-dab-purple-1;
+
+    &:hover:not(:disabled) {
+      @apply bg-dab-purple-3 text-white;
+    }
+
+    &:active {
+      @apply bg-dab-purple-1 text-white;
+    }
+
+    &:disabled {
+      @apply border border-dab-gray bg-white text-dab-gray;
+    }
+  }
+
+  .dab-ui-item {
+    @apply rounded-full p-2 hover:bg-dab-bg hover:text-dab-purple-3;
+
+    &:hover .material-icons {
+      font-weight: bold !important;
+    }
+  }
+}

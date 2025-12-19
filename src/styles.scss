@@ -33,10 +33,23 @@ body {
 button,
 a {
   cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
 }
 
 body {
   color-scheme: light;
-  background-color: #edefff;
+  background-color: var(--dab-bg);
   margin: 0;
+}
+
+.max-width {
+  max-width: 1440px;
+}
+
+input:is(:-webkit-autofill, :autofill) {
+  box-shadow: 0 0 0 calc(1px * infinity) inset var(--dab-bg);
+  -webkit-text-fill-color: black;
 }
