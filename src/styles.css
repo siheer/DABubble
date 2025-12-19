@@ -1,12 +1,19 @@
 @import 'tailwindcss';
+@import './styles/tw.components.css';
 
 @theme inline {
   --color-dab-bg: var(--dab-bg);
   --color-dab-light-purple-lines: var(--dab-light-purple-lines);
-  --color-dab-text-gray: var(--dab-text-gray);
+  --color-dab-gray: var(--dab-gray);
   --color-dab-purple-2: var(--dab-purple-2);
   --color-dab-purple-3: var(--dab-purple-3);
   --color-dab-purple-1: var(--dab-purple-1);
   --color-dab-online-green: var(--dab-online-green);
   --color-dab-rosa-error: var(--dab-rosa-error);
+}
+
+@layer base {
+  body {
+    @apply text-base;
+  }
 }

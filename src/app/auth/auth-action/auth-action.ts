@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: ``,
 })
-export class AuthActionComponent implements OnInit {
+export class AuthAction implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
