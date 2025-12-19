@@ -1,32 +1,44 @@
-<section class="flex min-h-screen items-center justify-center px-4">
-  <div class="relative w-full max-w-xl rounded-[32px] bg-white px-8 py-10 shadow-lg sm:px-12 sm:py-12">
-    @if (!isAvatarStep) {
-      <header class="mb-8">
-        <button
-          type="button"
-          aria-label="Zurück"
-          class="mb-6 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
-          (click)="onBackToLogin()">
-          ←
-        </button>
+<app-aside-content-wrapper>
+  <div topLeft><app-logo></app-logo></div>
 
-        <h1 class="text-center text-[32px] leading-tight font-extrabold text-[#4A5CF6]">Konto erstellen</h1>
-        <p class="mt-3 text-center text-sm text-slate-500 sm:text-base">
-          Mit deinem Namen und deiner E-Mail-Adresse hast du dein neues DABubble-Konto.
+  <div topRight class="flex flex-col items-end gap-2">
+    <p>Schon registriert?</p>
+    <a routerLink="/login" class="dab-anchor-on-bg -mr-4">Anmelden</a>
+  </div>
+
+  <div footer class="flex justify-between gap-4">
+    <a routerLink="/legal-notice" class="dab-anchor-on-bg">Impressum</a>
+    <a routerLink="/privacy-policy" class="dab-anchor-on-bg">Datenschutz</a>
+  </div>
+
+  <div card>
+    @if (!isAvatarStep) {
+      <button
+        type="button"
+        aria-label="Zurück zur Anmeldung"
+        class="dab-ui-item back-btn leading-0"
+        (click)="onBackToLogin()">
+        <span class="material-icons">arrow_back</span>
+      </button>
+
+      <header class="mb-10">
+        <h1>Konto erstellen</h1>
+        <p class="text-center text-base sm:text-lg">
+          Registriere dich mit Namen und E-Mail-Adresse oder nutze den <a routerLink="/login">Google Login</a>.
         </p>
       </header>
 
-      <form #signupForm="ngForm" (ngSubmit)="onSubmit(signupForm)" novalidate class="space-y-5">
-        @if (errorMessage) {
+      <form #signupForm="ngForm" (ngSubmit)="onSubmit(signupForm)" novalidate class="dab-form">
+        <!-- @if (false && errorMessage) {
           <p class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {{ errorMessage }}
           </p>
-        }
+        } -->
 
-        <div class="space-y-2">
-          <label for="fullName" class="sr-only">Name und Nachname</label>
-          <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-            <span class="text-lg text-slate-500">👤</span>
+        <div>
+          <div class="dab-input-field">
+            <label for="fullName" class="sr-only">Name und Nachname</label>
+            <span class="material-icons icon">person_outlined</span>
             <input
               id="fullName"
               name="fullName"
@@ -35,31 +47,37 @@
               required
               placeholder="Name und Nachname"
               [(ngModel)]="name"
-              class="w-full border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+              #nameModel="ngModel" />
           </div>
+          @if (nameModel.invalid && nameModel.touched) {
+            <p class="dab-field-error">Bitte gib deinen Namen ein.</p>
+          }
         </div>
 
-        <div class="space-y-2">
-          <label for="email" class="sr-only">E-Mail</label>
-          <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-            <span class="text-lg text-slate-500">✉️</span>
+        <div>
+          <div class="dab-input-field">
+            <label for="email" class="sr-only">E-Mail</label>
+            <span class="material-icons icon">mail_outlined</span>
             <input
               id="email"
               name="email"
               type="email"
-              autocomplete="email"
               pattern="^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
+              autocomplete="email"
               required
               placeholder="beispielname@email.com"
               [(ngModel)]="emailAddress"
-              class="w-full border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+              #emailModel="ngModel" />
           </div>
+          @if (emailModel.invalid && emailModel.touched) {
+            <p class="dab-field-error">Bitte gib deine E-Mail-Adresse ein.</p>
+          }
         </div>
 
-        <div class="space-y-2">
-          <label for="password" class="sr-only">Passwort</label>
-          <div class="flex items-center gap-3 rounded-full bg-[#ECEEFF] px-5 py-3">
-            <span class="text-lg text-slate-500">🔒</span>
+        <div>
+          <div class="dab-input-field">
+            <label for="password" class="sr-only">Passwort</label>
+            <span class="material-icons icon">lock_outlined</span>
             <input
               id="password"
               name="password"
@@ -68,11 +86,14 @@
               required
               placeholder="Passwort"
               [(ngModel)]="password"
-              class="w-full border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+              #passwordModel="ngModel" />
           </div>
+          @if (passwordModel.invalid && passwordModel.touched) {
+            <p class="dab-field-error">Bitte gib dein Passwort ein.</p>
+          }
 
-          @if (passwordValidationErrors.length > 0) {
-            <ul class="mt-2 space-y-1 text-xs text-red-600">
+          <!-- @if (false && passwordValidationErrors.length > 0) {
+            <ul class="mt-2 space-y-1 px-2 text-xs text-dab-rosa-error">
               @for (message of passwordValidationErrors; track $index) {
                 <li class="flex gap-2">
                   <span>•</span>
@@ -80,32 +101,23 @@
                 </li>
               }
             </ul>
+          } -->
+        </div>
+
+        <div>
+          <mat-checkbox required [(ngModel)]="privacyAccepted" #privacyModel="ngModel" class="custom-checkbox">
+            Ich stimme der
+            <a routerLink="/privacy-policy" class="dab-anchor-on-white-inline">Datenschutzerklärung</a>
+            zu.
+          </mat-checkbox>
+          @if (privacyModel.invalid && privacyModel.touched) {
+            <p class="dab-field-error">Bitte akzeptiere die Datenschutzerklärung.</p>
           }
         </div>
 
-        <div class="mt-2 flex items-center gap-3 text-sm text-slate-600">
-          <input
-            id="privacy"
-            name="privacy"
-            type="checkbox"
-            required
-            [(ngModel)]="acceptedPrivacy"
-            class="size-4 rounded border-slate-300 text-[#4A5CF6] accent-[#4A5CF6]" />
-          <label for="privacy" class="select-none">
-            Ich stimme der
-            <a href="#" class="text-[#4A5CF6] hover:underline">Datenschutzerklärung</a>
-            zu.
-          </label>
+        <div class="flex justify-end">
+          <button type="submit" [disabled]="isSubmitting || signupForm.invalid" class="dab-btn-primary">Weiter</button>
         </div>
-
-        <footer class="mt-6 flex justify-end">
-          <button
-            type="submit"
-            [disabled]="isSubmitting || signupForm.invalid"
-            class="rounded-full bg-[#4A5CF6] px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#3c4ad1] disabled:cursor-not-allowed disabled:opacity-60">
-            Weiter
-          </button>
-        </footer>
       </form>
     } @else {
       <app-set-profile-picture
@@ -118,11 +130,11 @@
         (action)="onCompleteSignup()">
       </app-set-profile-picture>
 
-      @if (errorMessage) {
+      <!-- @if (false && errorMessage) {
         <p class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {{ errorMessage }}
         </p>
-      }
+      } -->
     }
   </div>
-</section>
+</app-aside-content-wrapper>

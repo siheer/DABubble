@@ -1,7 +1,28 @@
+@use '@angular/material' as mat;
 
-
-input {
-  border-color: black;
-  border: 1px solid black;
+:host {
+  .custom-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        // --- Icon ---
+        unselected-icon-color: var(--dab-purple-1),
+        selected-icon-color: var(--dab-purple-1),
+        selected-checkmark-color: #fff,
+        // --- Hover ---
+        unselected-hover-icon-color: var(--dab-purple-1),
+        selected-hover-icon-color: var(--dab-purple-1),
+        unselected-hover-state-layer-color: var(--dab-purple-3),
+        selected-hover-state-layer-color: var(--dab-purple-3),
+        // --- Focus ---
+        unselected-focus-icon-color: var(--dab-purple-1),
+        selected-focus-icon-color: var(--dab-purple-1),
+        unselected-focus-state-layer-color: var(--dab-purple-3),
+        selected-focus-state-layer-color: var(--dab-purple-3),
+        // --- Pressed ---
+        selected-pressed-icon-color: var(--dab-purple-1),
+        selected-pressed-state-layer-color: var(--dab-purple-3),
+        unselected-pressed-state-layer-color: var(--dab-purple-3)
+      )
+    );
+  }
 }
-

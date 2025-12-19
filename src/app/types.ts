@@ -16,7 +16,7 @@ export interface PendingRegistrationData {
   fullName: string;
   emailAddress: string;
   password: string;
-  acceptedPrivacy: boolean;
+  privacyAccepted: boolean;
   profilePicture: ProfilePicture;
 }
 

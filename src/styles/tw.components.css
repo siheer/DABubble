@@ -63,48 +63,68 @@
     @apply -mb-1 px-2 text-sm text-dab-rosa-error;
   }
 
-  .dab-anchor-on-white {
+  .dab-anchor-on-white,
+  .dab-anchor-on-white-inline {
     @apply rounded-full border border-transparent px-4 py-0.5 text-dab-purple-2 transition;
 
-    &:hover {
-      @apply bg-dab-bg font-semibold text-dab-purple-1 no-underline;
+    &:is(:hover, :focus-visible) {
+      @apply bg-dab-bg font-semibold text-dab-purple-1 no-underline outline-none;
+    }
+  }
+
+  .dab-anchor-on-white-inline {
+    @apply p-0;
+
+    &:is(:hover, :focus-visible) {
+      @apply bg-inherit;
     }
   }
 
   .dab-anchor-on-bg {
     @apply rounded-full border border-transparent px-4 py-1.5 text-dab-purple-2 transition;
 
-    &:hover {
-      @apply border-dab-gray font-semibold text-dab-purple-1 no-underline;
+    &:is(:hover, :focus-visible) {
+      @apply border-dab-gray font-semibold text-dab-purple-1 no-underline outline-none;
     }
   }
 
   .dab-btn-primary {
     @apply rounded-full border border-transparent px-4 py-2 font-medium text-white transition sm:px-8;
-    @apply bg-dab-purple-1 hover:not-disabled:bg-dab-purple-2 active:bg-dab-purple-1 disabled:bg-dab-gray;
+    @apply bg-dab-purple-1 disabled:bg-dab-gray;
+
+    &:is(:hover, :focus-visible):not(:disabled) {
+      @apply bg-dab-purple-2 outline-none;
+    }
+
+    &:active:not(:disabled) {
+      @apply bg-dab-purple-1;
+    }
   }
 
   .dab-btn-secondary {
-    @apply rounded-full border border-transparent px-4 py-2 font-medium text-white transition sm:px-8;
-    @apply border-dab-purple-1 text-dab-purple-1;
+    @apply rounded-full border border-dab-purple-1 px-4 py-2 font-medium text-dab-purple-1 transition sm:px-8;
 
-    &:hover:not(:disabled) {
-      @apply bg-dab-purple-3 text-white;
+    &:is(:hover, :focus-visible):not(:disabled) {
+      @apply bg-dab-purple-3 text-white outline-none;
     }
 
-    &:active {
+    &:active:not(:disabled) {
       @apply bg-dab-purple-1 text-white;
     }
 
     &:disabled {
-      @apply border border-dab-gray bg-white text-dab-gray;
+      @apply border-dab-gray bg-white text-dab-gray;
     }
   }
 
   .dab-ui-item {
-    @apply rounded-full p-2 hover:bg-dab-bg hover:text-dab-purple-3;
+    @apply rounded-full p-2 transition;
 
-    &:hover .material-icons {
+    &:is(:hover, :focus-visible) {
+      @apply bg-dab-bg text-dab-purple-3 outline-none;
+    }
+
+    &:is(:hover, :focus-visible) .material-icons {
       font-weight: bold !important;
     }
   }

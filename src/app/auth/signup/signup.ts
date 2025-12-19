@@ -1,16 +1,27 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NOTIFICATIONS } from '../../notifications';
 import { SetProfilePicture, PROFILE_PICTURE_URLS } from '../set-profile-picture/set-profile-picture';
 import { ProfilePictureKey } from '../../types';
 import { UserService } from '../../services/user.service';
+import { AsideContentWrapperComponent } from '../../aside-content/aside-content-wrapper';
+import { Logo } from '../../aside-content/logo';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-signup',
-  imports: [CommonModule, FormsModule, SetProfilePicture],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    SetProfilePicture,
+    AsideContentWrapperComponent,
+    Logo,
+    MatCheckboxModule,
+  ],
   templateUrl: './signup.html',
   styleUrl: './signup.scss',
 })
@@ -22,7 +33,7 @@ export class Signup {
   name = '';
   emailAddress = '';
   password = '';
-  acceptedPrivacy = false;
+  privacyAccepted = false;
 
   isSubmitting = false;
   errorMessage: string | null = null;
@@ -80,7 +91,6 @@ export class Signup {
       await this.userService.createUserDocument(userCredential.user, {
         name: this.name,
         photoUrl: photoUrl,
-        // onlineStatus: true,
       });
 
       await this.authenticationService.sendEmailVerificationLink(userCredential.user);
