@@ -5,6 +5,7 @@ import { SearchResult } from '../../classes/search-result.class';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { AppUser, UserService } from '../../services/user.service';
+import { ChannelSelectionService } from '../../services/channel-selection.service';
 
 @Component({
   selector: 'app-filter-box',
@@ -20,7 +21,8 @@ export class FilterBox implements OnChanges {
   constructor(
     private searchService: SearchService,
     private dialog: MatDialog,
-    private userService: UserService
+    private userService: UserService,
+    private channelSelectionService: ChannelSelectionService
   ) {}
 
   get currentUserUid(): string | null {
@@ -82,7 +84,12 @@ export class FilterBox implements OnChanges {
       });
 
       this.close.emit();
-    } else {
+    } else if (item.collection === 'channels') {
+      this.channelSelectionService.selectChannel(item.id);
+      this.selectItem.emit(item);
+      this.close.emit();
+    } else if (item.collection === 'messages') {
+      this.channelSelectionService.selectChannel(item.channelId);
       this.selectItem.emit(item);
       this.close.emit();
     }
@@ -113,12 +120,12 @@ export class FilterBox implements OnChanges {
   }
 
   get shouldShowResults(): boolean {
-  const term = this.searchTerm.trim();
+    const term = this.searchTerm.trim();
 
-  if (term.startsWith('@') || term.startsWith('#')) {
-    return term.length >= 1;
+    if (term.startsWith('@') || term.startsWith('#')) {
+      return term.length >= 1;
+    }
+
+    return term.length >= 3;
   }
-
-  return term.length >= 3;
-}
 }
