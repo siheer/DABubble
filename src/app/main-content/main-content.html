@@ -1,7 +1,7 @@
 <section class="relative pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
   <app-navbar></app-navbar>
 
-  <mat-sidenav-container class="relative h-[calc(100vh-124px)]">
+  <mat-sidenav-container class="relative h-[calc(100vh-124px)] box-aside">
     <mat-sidenav #leftSidenav opened mode="side"
       ><app-workspace (newMessage)="openNewMessagePanel()" (channelSelected)="closeNewMessagePanel()"></app-workspace
     ></mat-sidenav>
