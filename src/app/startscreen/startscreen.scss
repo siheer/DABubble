@@ -5,10 +5,10 @@
   align-items: center;
   justify-content: center;
 
-    .bg-layer {
+  .bg-layer {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, #5a63f6 0%, #444df2 60%, #3c45e0 100%);
+    background: var(--dab-purple-transition);
     z-index: 0; // hinter Logo
     will-change: opacity;
   }
