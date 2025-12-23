@@ -12,7 +12,7 @@
     --tw-shadow-color: rgb(0 0 0 / 5%);
 
     h1 {
-      @apply mb-6 text-center text-3xl font-bold text-dab-purple-1 sm:text-4xl;
+      @apply mb-6 text-center text-3xl font-bold text-dab-purple-1 sm:text-5xl;
     }
 
     &:has(.back-btn, .top-right-btn) {
@@ -60,7 +60,7 @@
     }
 
     input {
-      @apply w-full rounded-full border border-transparent bg-dab-bg px-6 py-3 text-base caret-dab-gray transition outline-none placeholder:text-dab-gray hover:not-focus:border-dab-gray focus:border-dab-purple-1;
+      @apply w-full rounded-full border border-transparent bg-dab-bg px-6 py-3 caret-dab-gray transition outline-none placeholder:text-dab-gray hover:not-focus:border-dab-gray focus:border-dab-purple-1;
 
       &.ng-touched.ng-invalid:not(:focus, :hover) {
         border-color: var(--dab-rosa-error);
@@ -155,7 +155,7 @@
   }
 
   .paragraph-20 {
-    @apply text-center text-base sm:text-lg;
+    @apply text-center text-lg sm:text-xl;
   }
 
   .dab-inline-info,

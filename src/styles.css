@@ -13,7 +13,16 @@
 }
 
 @layer base {
-  body {
-    @apply text-base;
+  body,
+  input {
+    @apply text-base sm:text-lg;
   }
+}
+
+@utility normal-text {
+  @apply text-base sm:text-lg;
+}
+
+@utility small-text {
+  @apply text-sm sm:text-base;
 }
