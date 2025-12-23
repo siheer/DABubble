@@ -1,0 +1,18 @@
+<section class="startscreen" [@fadeOut]="fadeState">
+  <div
+    #splashWrapper
+    class="logo-wrapper"
+    [@logoMove]="{ value: logoState, params: { transform: logoTransform } }"
+    style="position: relative; display: inline-block">
+    <app-logo [withText]="false"></app-logo>
+    <span
+      *ngIf="showText"
+      @textSlide
+      class="absolute top-1/2 left-full -z-10 ml-3 -translate-y-1/2 transform text-4xl font-bold sm:text-3xl">
+      DABubble
+    </span>
+  </div>
+
+  <!-- Hidden target logo -->
+  <app-logo #targetLogo class="target-logo" [withText]="true"></app-logo>
+</section>

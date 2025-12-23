@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { Signup } from './auth/signup/signup';
 import { MainContent } from './main-content/main-content';
 import { Login } from './auth/login/login';
+import { Startscreen } from './startscreen/startscreen';
 import { VerifyEmail } from './auth/verify-email/verify-email';
 import { EmailConfirmed } from './auth/email-confirmed/email-confirmed';
 import { publicOrRedirectGuard } from './guards/public-or-redirect.guard';
@@ -14,7 +15,7 @@ import { LegalNotice } from './aside-content/legal-notice/legal-notice';
 import { PrivacyPolicy } from './aside-content/privacy-policy/privacy-policy';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', component: Startscreen },
   {
     path: 'login',
     component: Login,
