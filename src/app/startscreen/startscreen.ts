@@ -77,16 +77,16 @@ export class Startscreen implements AfterViewInit {
 
       this.logoTransform = `translate(${translateX}px, ${translateY}px) scale(1)`;
       this.logoState = 'move';
-    }, 2200);
+    }, 2000);
 
     // fade before end
     setTimeout(() => {
       this.fadeState = 'hidden';
-    }, 2400);
+    }, 2200);
 
     // routing while fading out
     setTimeout(() => {
       this.router.navigate(['/login']);
-    }, 2600);
+    }, 2000);
   }
 }
