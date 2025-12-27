@@ -119,13 +119,13 @@ export class Startscreen implements AfterViewInit {
       const targetCenterX = targetRect.left + targetRect.width / 2;
       const targetCenterY = targetRect.top + targetRect.height / 2;
 
-      const translateX = targetCenterX - splashCenterX;
-      const translateY = targetCenterY - splashCenterY;
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      const snapToDevicePixel = (value: number) => Math.round(value * devicePixelRatio) / devicePixelRatio;
 
-      this.logoTransform = `
-      translate(${translateX}px, ${translateY}px)
-      scale(1)
-    `;
+      const translateX = snapToDevicePixel(targetCenterX - splashCenterX);
+      const translateY = snapToDevicePixel(targetCenterY - splashCenterY);
+
+      this.logoTransform = `translate(${translateX}px, ${translateY}px) scale(1)`;
 
       this.logoState = 'move';
     }, 1000);

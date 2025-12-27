@@ -90,7 +90,7 @@ export class AsideContentWrapperComponent implements OnDestroy {
   matchQuery: () => void;
 
   constructor(public brandState: BrandStateService) {
-    this.mediaQueryListener = matchMedia('(max-width: 40rem)');
+    this.mediaQueryListener = matchMedia('(width < 40rem)');
     this.matchQuery = () => this.isSmallScreen.set(this.mediaQueryListener.matches);
 
     this.matchQuery();
