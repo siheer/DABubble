@@ -1,37 +1,118 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionGroup, getDocs, QuerySnapshot, DocumentData } from '@angular/fire/firestore';
 import { SearchCollection, SearchResult, MessageDoc } from '../classes/search-result.class';
+import { ChannelMembershipService } from './membership.service';
+import { from, Observable, of, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-  constructor(private firestore: Firestore) {}
+  constructor(
+    private firestore: Firestore,
+    private channelMembershipService: ChannelMembershipService
+  ) {}
 
-  /**
-   * Performs a context-aware (with or without prefix) search based on the given search term.
-   * 
-   * @param term The search term (can be a user or channel name, or a plain text search)
-   * @returns A list of SearchResult objects matching the search criteria
-   */
-  async smartSearch(term: string): Promise<SearchResult[]> {
-    term = this.normalizeTerm(term);
-    if (!term) return [];
+smartSearch$(term: string): Observable<SearchResult[]> {
+  term = this.normalizeTerm(term);
+  if (!term) return of([]);
 
-    if (this.isUserSearch(term)) {
-      return this.searchByText('users', term.substring(1).trim(), (r) => r.data.name);
+  if (this.isUserSearch(term)) {
+    const query = term.substring(1).trim();
+
+    if (query === '') {
+      return from(this.getAllFromCollection('users'));
     }
 
-    if (this.isChannelSearch(term)) {
-      return this.searchByText('channels', term.substring(1).trim(), (r) => r.data.title);
-    }
+    return from(
+      this.searchByText('users', query, r => r.data.name)
+    );
+  }
 
-    if (term.length < 4) return [];
+  if (this.isChannelSearch(term)) {
+    const query = term.substring(1).trim();
 
-    const [entities, messages] = await Promise.all([
-      this.searchAcrossCollections(term, ['users', 'channels']),
-      this.searchMessages(term),
-    ]);
+    return this.channelMembershipService.getAllowedChannelIds$().pipe(
+      switchMap(ids => {
+        if (query === '') {
+          return from(this.searchChannelsForUser('', ids));
+        }
 
-    return [...entities, ...messages];
+        return from(this.searchChannelsForUser(query, ids));
+      })
+    );
+  }
+
+  if (term.length < 3) return of([]);
+
+  return this.channelMembershipService.getAllowedChannelIds$().pipe(
+    switchMap(ids => from(this.smartSearchInternal(term, ids)))
+  );
+}
+
+private async smartSearchInternal(
+  term: string,
+  allowedChannelIds: Set<string>
+): Promise<SearchResult[]> {
+
+  if (term.length < 3) return [];
+
+  const [users, channels, messages] = await Promise.all([
+    this.searchByText('users', term, r => r.data.name),
+
+    this.searchChannelsForUser(term, allowedChannelIds),
+
+    this.searchMessagesForUser(term, allowedChannelIds),
+  ]);
+
+  return [...users, ...channels, ...messages];
+}
+
+private async searchChannelsForUser(
+  term: string,
+  allowedChannelIds: Set<string>
+): Promise<SearchResult[]> {
+
+  const lowerTerm = term.toLowerCase();
+  const channels = await this.getAllFromCollection('channels');
+
+  return channels.filter(c => {
+    if (!allowedChannelIds.has(c.id)) return false;
+
+    if (lowerTerm === '') return true;
+
+    return c.data.title?.toLowerCase().includes(lowerTerm);
+  });
+}
+
+  private async searchMessagesForUser(term: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
+    const lowerTerm = term.toLowerCase();
+    const messagesRef = collectionGroup(this.firestore, 'messages');
+    const snapshot = await getDocs(messagesRef);
+
+    const channels = await this.getAllFromCollection('channels');
+    const channelMap = new Map(channels.map((c) => [c.id, c.data.title]));
+
+    return snapshot.docs
+      .map((doc) => {
+        const channelId = doc.ref.parent.parent?.id;
+        if (!channelId || !allowedChannelIds.has(channelId)) {
+          return null;
+        }
+
+        const data = doc.data() as MessageDoc;
+
+        return {
+          id: doc.id,
+          collection: 'messages',
+          channelId,
+          channelTitle: channelMap.get(channelId),
+          data: {
+            text: data.text,
+            authorName: data.authorName,
+            authorPhotoUrl: data.authorPhotoUrl,
+          },
+        } as SearchResult;
+      })
+      .filter((r): r is SearchResult => !!r && r.data.text?.toLowerCase().includes(lowerTerm));
   }
 
   normalizeTerm(term: string): string {
@@ -48,9 +129,9 @@ export class SearchService {
 
   /**
    * Performs a case-insensitive text search within a single Firestore collection.
-   * 
+   *
    * This method is used for users and channels (prefix searches).
-   * 
+   *
    * @param collectionName - The Firestore collection to search in
    * @param term - The search term without prefix
    * @param extractField - A function to extract the field to search in
@@ -64,82 +145,7 @@ export class SearchService {
     const results = await this.getAllFromCollection(collectionName);
     const lowerTerm = term.toLowerCase();
 
-    return results.filter((r) =>
-      extractField(r).toLowerCase().includes(lowerTerm)
-    );
-  }
-
-  /**
-   * Performs a case-insensitive plain-text search across multiple Firestore collections.
-   * 
-   * Note to ourselves: This is just for smaller datasets.
-   * 
-   * @param term - Plain text search term
-   * @param collections - List of collection names to search in
-   * @returns A list of SearchResult objects from the matching collections
-   */
-  private async searchAcrossCollections(
-    term: string,
-    collections: SearchCollection[]
-  ): Promise<SearchResult[]> {
-    const lowerTerm = term.toLowerCase();
-
-    const results = await Promise.all(
-      collections.map((col) => this.getAllFromCollection(col))
-    );
-
-    return results
-      .flat()
-      .filter((r) => {
-        const value =
-          r.collection === 'users'
-            ? r.data.name
-            : r.collection === 'channels'
-            ? r.data.title
-            : '';
-
-        return value.toLowerCase().includes(lowerTerm);
-      });
-  }
-
-
-  /**
-   * Performs a case-insensitive plain-text search across all message documents.
-   * 
-   * Note to ourselves: This is just for smaller datasets.
-   * 
-   * @param term - Plain text search term
-   * @returns matching SearchResult objects from the 'messages' collection
-   */
-  private async searchMessages(term: string): Promise<SearchResult[]> {
-    const lowerTerm = term.toLowerCase();
-
-    const messagesRef = collectionGroup(this.firestore, 'messages');
-    const snapshot = await getDocs(messagesRef);
-
-    const channels = await this.getAllFromCollection('channels');
-    const channelMap = new Map(
-      channels.map((c) => [c.id, c.data.title])
-    );
-
-    return snapshot.docs
-      .map((doc) => {
-        const data = doc.data() as MessageDoc;
-        const channelId = doc.ref.parent.parent?.id ?? '';
-
-        return {
-          id: doc.id,
-          collection: 'messages',
-          data: {
-            text: data.text,
-            authorName: data.authorName,
-            authorPhotoUrl: data.authorPhotoUrl,
-          },
-          channelId,
-          channelTitle: channelMap.get(channelId),
-        } as SearchResult;
-      })
-      .filter((r) => r.data.text?.toLowerCase().includes(lowerTerm));
+    return results.filter((r) => extractField(r).toLowerCase().includes(lowerTerm));
   }
 
   /**

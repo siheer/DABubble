@@ -39,7 +39,7 @@
   <ng-container *ngIf="!isUserSearch && !isChannelSearch">
     <ng-container *ngIf="users.length">
       <div class="px-10 py-2">
-        <div class="px-4 text-sm font-semibold">User</div>
+        <div class="filter-color px-4 text-xs font-semibold">User</div>
         <div
           *ngFor="let user of sortedUsers"
           (click)="choose(user)"
@@ -52,7 +52,7 @@
 
     <ng-container *ngIf="channels.length">
       <div class="px-10 py-2">
-        <div class="px-4 text-xs font-semibold">Channels</div>
+        <div class="filter-color px-4 text-xs font-semibold">Channels</div>
         <div
           *ngFor="let channel of channels"
           (click)="choose(channel)"
@@ -64,7 +64,7 @@
 
     <ng-container *ngIf="messages.length">
       <div class="px-10 py-2">
-        <div class="px-4 text-xs font-semibold">Messages</div>
+        <div class="filter-color px-4 text-xs font-semibold">Messages</div>
 
         <div
           *ngFor="let message of messages"

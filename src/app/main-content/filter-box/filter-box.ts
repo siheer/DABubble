@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, inject } from '@angular/core';
 import { SearchService } from '../../services/search.service';
 import { CommonModule } from '@angular/common';
 import { SearchResult } from '../../classes/search-result.class';
@@ -6,6 +6,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { AppUser, UserService } from '../../services/user.service';
 import { ChannelSelectionService } from '../../services/channel-selection.service';
+import { Subject, debounceTime, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef } from '@angular/core';
 
 @Component({
   selector: 'app-filter-box',
@@ -13,7 +16,7 @@ import { ChannelSelectionService } from '../../services/channel-selection.servic
   templateUrl: './filter-box.html',
   styleUrl: './filter-box.scss',
 })
-export class FilterBox implements OnChanges {
+export class FilterBox implements OnInit, OnChanges {
   @Input() searchTerm: string = '';
   @Output() selectItem = new EventEmitter<any>();
   @Output() close = new EventEmitter<void>();
@@ -24,6 +27,8 @@ export class FilterBox implements OnChanges {
     private userService: UserService,
     private channelSelectionService: ChannelSelectionService
   ) {}
+
+  private destroyRef = inject(DestroyRef);
 
   get currentUserUid(): string | null {
     return this.userService.currentUser()?.uid ?? null;
@@ -51,19 +56,38 @@ export class FilterBox implements OnChanges {
 
     return usersCopy;
   }
-
+  private searchTerm$ = new Subject<string>();
   results: SearchResult[] = [];
 
-  async ngOnChanges(changes: SimpleChanges) {
-    if (changes['searchTerm']) {
-      const term = this.searchTerm.trim();
+  ngOnChanges(changes: SimpleChanges) {
+    if (!changes['searchTerm']) return;
 
-      if (term.startsWith('@') || term.startsWith('#')) {
-        this.results = await this.searchService.smartSearch(term);
-      } else {
-        this.results = await this.searchService.smartSearch(term);
-      }
+    const term = this.searchTerm.trim();
+
+    if (term === '@' || term === '#') {
+      this.searchService.smartSearch$(term).subscribe((results) => {
+        this.results = results ?? [];
+      });
+      return;
     }
+
+    this.searchTerm$.next(term);
+  }
+
+  ngOnInit() {
+    this.searchTerm$
+      .pipe(
+        debounceTime(200),
+        switchMap((term) => {
+          console.log('TERM →', term);
+          return this.searchService.smartSearch$(term);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((results) => {
+        console.log('RESULTS →', results);
+        this.results = results ?? [];
+      });
   }
 
   choose(item: SearchResult) {
@@ -120,12 +144,6 @@ export class FilterBox implements OnChanges {
   }
 
   get shouldShowResults(): boolean {
-    const term = this.searchTerm.trim();
-
-    if (term.startsWith('@') || term.startsWith('#')) {
-      return term.length >= 1;
-    }
-
-    return term.length >= 3;
+    return this.searchTerm.trim().length > 0;
   }
 }
