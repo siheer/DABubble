@@ -4,7 +4,7 @@
     #splashWrapper
     class="flex items-center gap-3"
     [style.opacity]="logoOpacity"
-    [@logoMove]="{ value: logoState, params: { transform: logoTransform } }">
+    [@logoMove]="{ value: logoState, params: { transform: logoTransform, startScale: startScale } }">
     <img src="imgs/logo.svg" alt="DABubble Logo" class="logo-img" />
     <div class="text-mask" [@textMask]="showText ? 'visible' : 'hidden'">
       <span class="logo-text text-2xl font-bold sm:text-3xl" [@textColor]="textColorState">DABubble</span>

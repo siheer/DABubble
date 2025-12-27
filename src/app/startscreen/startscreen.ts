@@ -10,8 +10,10 @@ import { BrandStateService } from '../services/brand-state.service';
   styleUrl: './startscreen.scss',
   animations: [
     trigger('logoMove', [
-      state('center', style({ transform: 'translate(0, 0) scale(2)' })),
-      state('textIn', style({ transform: 'translate(-40px, 0) scale(2)' })),
+      state('center', style({ transform: 'translate(0, 0) scale({{ startScale }})' }), { params: { startScale: 2 } }),
+      state('textIn', style({ transform: 'translate(0, 0) scale({{ startScale }})' }), {
+        params: { startScale: 2 },
+      }),
       state('move', style({ transform: '{{ transform }}' }), { params: { transform: 'translate(0,0) scale(1)' } }),
 
       transition('center => textIn', animate('900ms cubic-bezier(0.22, 1, 0.36, 1)')),
@@ -78,12 +80,13 @@ export class Startscreen implements AfterViewInit {
   @ViewChild('splashWrapper', { read: ElementRef })
   splashWrapper!: ElementRef<HTMLElement>;
   logoOpacity: any;
+  isSmallScreen = window.matchMedia('(max-width: 40rem)').matches;
+  startScale = this.isSmallScreen ? 1 : 2;
 
   constructor(private brandState: BrandStateService) {}
 
   private getTargetLogoRect(): DOMRect | null {
     const el = document.querySelector('app-logo a > div') as HTMLElement;
-
     return el ? el.getBoundingClientRect() : null;
   }
 
@@ -120,7 +123,7 @@ export class Startscreen implements AfterViewInit {
       const translateY = targetCenterY - splashCenterY;
 
       this.logoTransform = `
-      translate(${translateX -40}px, ${translateY}px)
+      translate(${translateX}px, ${translateY}px)
       scale(1)
     `;
 
