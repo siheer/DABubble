@@ -2,6 +2,7 @@ import { Component, input, OnDestroy, signal } from '@angular/core';
 import { Logo } from './logo';
 import { RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
+import { BrandStateService } from '../services/brand-state.service';
 
 @Component({
   selector: 'app-aside-content-wrapper',
@@ -34,7 +35,7 @@ import { NgTemplateOutlet } from '@angular/common';
         <section class="aside-content-wrapper">
           <header>
             <div class="flex h-full justify-center px-8 pt-6 pb-4 sm:px-10 sm:pt-10">
-              <app-logo></app-logo>
+              <app-logo [class.logo-hidden]="!brandState.splashDone()"></app-logo>
             </div>
           </header>
 
@@ -50,7 +51,7 @@ import { NgTemplateOutlet } from '@angular/common';
         <section class="aside-content-wrapper">
           <header>
             <div class="flex h-full items-start justify-between px-8 pt-6 pb-4 sm:px-10 sm:pt-10">
-              <app-logo></app-logo>
+              <app-logo [class.logo-hidden]="!brandState.splashDone()"></app-logo>
               <ng-container [ngTemplateOutlet]="top"></ng-container>
             </div>
           </header>
@@ -72,6 +73,10 @@ import { NgTemplateOutlet } from '@angular/common';
         margin-right: 0;
       }
     }
+    .logo-hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
   `,
 })
 export class AsideContentWrapperComponent implements OnDestroy {
@@ -84,7 +89,7 @@ export class AsideContentWrapperComponent implements OnDestroy {
   mediaQueryListener: MediaQueryList;
   matchQuery: () => void;
 
-  constructor() {
+  constructor(public brandState: BrandStateService) {
     this.mediaQueryListener = matchMedia('(max-width: 40rem)');
     this.matchQuery = () => this.isSmallScreen.set(this.mediaQueryListener.matches);
 

@@ -1,6 +1,7 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BrandStateService } from '../services/brand-state.service';
 
 @Component({
   selector: 'app-startscreen',
@@ -78,9 +79,12 @@ export class Startscreen implements AfterViewInit {
   splashWrapper!: ElementRef<HTMLElement>;
   logoOpacity: any;
 
+  constructor(private brandState: BrandStateService) {}
+
   private getTargetLogoRect(): DOMRect | null {
-    const img = document.querySelector('app-logo img') as HTMLElement;
-    return img ? img.getBoundingClientRect() : null;
+    const el = document.querySelector('app-logo a > div') as HTMLElement;
+
+    return el ? el.getBoundingClientRect() : null;
   }
 
   logoState: 'center' | 'textIn' | 'move' = 'center';
@@ -116,7 +120,7 @@ export class Startscreen implements AfterViewInit {
       const translateY = targetCenterY - splashCenterY;
 
       this.logoTransform = `
-      translate(${translateX + 50}px, ${translateY}px)
+      translate(${translateX -40}px, ${translateY}px)
       scale(1)
     `;
 
@@ -133,6 +137,7 @@ export class Startscreen implements AfterViewInit {
 
     setTimeout(() => {
       this.logoOpacity = 0;
+      this.brandState.splashDone.set(true);
     }, 1700);
   }
 }
