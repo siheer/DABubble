@@ -1,8 +1,8 @@
-<section class="mx-auto flex max-w-[1440px] items-center justify-between gap-24 p-4 px-4">
+<section class="mx-auto flex max-w-[1440px] items-center justify-between gap-12 md:gap-24 p-4 px-4">
   <div class="flex items-center gap-3 pl-4">
-    <img class="size-20" src="/imgs/logo.svg" /><span class="text-2xl font-bold sm:text-3xl cursor-default">DABubble</span>
+    <img class="size-12 lg:size-20" src="/imgs/logo.svg" /><span class="text-2xl font-bold sm:text-3xl cursor-default">DABubble</span>
   </div>
-  <div clickOutside (clickOutside)="closeDropdown()" class="relative grow">
+  <div clickOutside (clickOutside)="closeDropdown()" class="relative grow hidden lg:block">
     <input
       matInput
       type="text"
@@ -15,16 +15,16 @@
     <app-filter-box *ngIf="dropdownOpen" [searchTerm]="searchTerm" (close)="closeDropdown()"></app-filter-box>
   </div>
   <div class="hover-me flex items-center gap-4" (click)="openUserMenu()">
-    <p class="font-nunito text-3xl font-bold">{{ currentUser()?.name || 'Gast' }}</p>
+    <p class="hidden sm:block font-nunito sm:text-2xl md:text-3xl font-bold">{{ currentUser()?.name || 'Gast' }}</p>
     <div class="relative">
-      <img class="size-16 rounded-full" [src]="currentUser()?.photoUrl || 'imgs/default-profile-picture.png'" />
+      <img class="size-10 md:size-14 lg:size-16 rounded-full" [src]="currentUser()?.photoUrl || 'imgs/default-profile-picture.png'" />
       <span
-        class="absolute right-0 bottom-0 size-4 rounded-full border-2 border-white"
+        class="absolute right-0 bottom-0 size-3 lg:size-4 rounded-full border-2 border-white"
         [ngClass]="currentUser()?.onlineStatus ? 'bg-green-500' : 'bg-gray-400'"
         title="{{ currentUser()?.onlineStatus ? 'Online' : 'Offline' }}">
       </span>
     </div>
-    <button #menuBtn class="size-6" matIconButton>
+    <button #menuBtn class="size-6 hidden lg:block" matIconButton>
       <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </div>
