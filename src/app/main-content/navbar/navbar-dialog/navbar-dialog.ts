@@ -35,7 +35,7 @@ export class NavbarDialog {
 
   @ViewChild('profileBtn', { read: ElementRef })
   profileBtn!: ElementRef<HTMLElement>;
-  activeItem: any;
+  activeItem: 'profile' | 'logout' | null = null;
 
   constructor(
     private authService: AuthService,
@@ -47,7 +47,15 @@ export class NavbarDialog {
     this.originTarget = this.profileBtn.nativeElement;
   }
 
+  ngOnInit() {
+    this.overlayService.registerOnAnyOverlayClosed(() => {
+      this.activeItem = null;
+    });
+  }
+
   openProfileDialog() {
+    this.activeItem = 'profile';
+
     if (this.mode === 'desktop') {
       this.openProfileDesktop();
     } else {
@@ -67,8 +75,8 @@ export class NavbarDialog {
   openProfileMobile() {
     this.overlayService.open(ProfileMenu, {
       target: this.originTarget,
-      offsetX: -125,
-      offsetY: -575,
+      offsetX: -5,
+      offsetY: -535,
     });
   }
 

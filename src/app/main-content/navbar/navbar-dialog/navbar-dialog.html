@@ -1,7 +1,7 @@
 <section
   *ngIf="visible"
   [@slide]="mode"
-  class="navbar-dialog flex flex-col items-center justify-center gap-4 bg-white shadow-xl"
+  class="navbar-dialog flex flex-col items-center justify-center gap-4 bg-white shadow-xl inset-shadow-xl"
   [class.mobile]="mode === 'mobile'">
   <div class="h-1.5 w-16 cursor-pointer rounded-full bg-gray-300 lg:hidden" (click)="startCloseAnimation()"></div>
   <div

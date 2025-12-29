@@ -8,9 +8,26 @@ export class OverlayService {
 
   private overlays: OverlayRef<object>[] = [];
   private backdrop!: HTMLElement;
+  private onAnyOverlayClosed?: () => void;
 
   constructor() {
     this.createBackdrop();
+  }
+
+  registerOnAnyOverlayClosed(cb: () => void) {
+    this.onAnyOverlayClosed = cb;
+  }
+
+  private updateBackdropStyle() {
+    const depth = this.overlays.length;
+
+    if (depth <= 1) {
+      this.backdrop.style.background = 'rgba(0,0,0,0.4)';
+    } else {
+      this.backdrop.style.background = 'rgba(0,0,0,0.3)';
+    }
+
+    this.backdrop.style.zIndex = String(1000 + depth - 1);
   }
 
   private createBackdrop() {
@@ -34,16 +51,24 @@ export class OverlayService {
 
   open<T extends object>(component: Type<T>, config?: OverlayConfig<T>) {
     this.backdrop.style.display = 'block';
+    this.backdrop.style.zIndex = String(1000 + this.overlays.length);
 
     const overlayRef = new OverlayRef<T>(component, config, this.appRef, this.envInjector);
 
+    overlayRef.stackIndex = this.overlays.length;
+
     this.overlays.push(overlayRef as OverlayRef<object>);
+    this.updateBackdropStyle();
 
     overlayRef.onClose(() => {
       this.overlays = this.overlays.filter((o) => o !== overlayRef);
 
+      this.onAnyOverlayClosed?.();
+
       if (this.overlays.length === 0) {
         this.backdrop.style.display = 'none';
+      } else {
+        this.updateBackdropStyle();
       }
     });
 

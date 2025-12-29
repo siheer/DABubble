@@ -36,6 +36,7 @@ export class OverlayRef<T extends object = any> {
   private _escListener!: (e: KeyboardEvent) => void;
   private onCloseCallback?: () => void;
   public mode: 'desktop' | 'mobile' = 'desktop';
+  public stackIndex = 0;
 
   /** Visibility flag for controlling animations */
   public visible = true;
@@ -62,7 +63,7 @@ export class OverlayRef<T extends object = any> {
     this.overlayContainer = document.createElement('div');
     Object.assign(this.overlayContainer.style, {
       position: 'fixed',
-      zIndex: '1000',
+      zIndex: String(1000 + this.stackIndex),
     });
     document.body.appendChild(this.overlayContainer);
 
