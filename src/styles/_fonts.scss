@@ -23,6 +23,8 @@
   direction: ltr;
   width: 24px;
   height: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
 
   /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
