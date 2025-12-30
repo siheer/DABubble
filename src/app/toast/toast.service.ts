@@ -39,8 +39,8 @@ export class ToastService {
 
       durationMs: options.durationMs === undefined ? 5000 : options.durationMs,
       showCloseButton: options.showCloseButton ?? true,
-      icon: options.icon !== null ? this.getDefaultIcon(variant) : options.icon,
-      action: options.action ?? null,
+      icon: options.icon,
+      action: options.action,
 
       enterFrom: options.enterFrom ?? 'right',
       animation: options.animation ?? 'slide',
@@ -89,7 +89,7 @@ export class ToastService {
     ids.forEach((id) => this.dismiss(id));
   }
 
-  private getDefaultIcon(variant: ToastVariant): string | null {
+  getDefaultIcon(variant: ToastVariant): string {
     if (variant === 'success') return 'check_circle_outlined';
     if (variant === 'error') return 'error_outlined';
     return 'info_outlined';

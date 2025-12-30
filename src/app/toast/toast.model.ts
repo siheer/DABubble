@@ -13,8 +13,8 @@ export interface ToastCreateOptions {
   variant?: ToastVariant;
   durationMs?: number | null;
   showCloseButton?: boolean;
-  icon?: string | null;
-  action?: ToastAction | null;
+  icon?: string;
+  action?: ToastAction;
 
   enterFrom?: ToastEnterFrom;
   animation?: ToastAnimation;
@@ -33,8 +33,8 @@ export interface ToastItem {
 
   durationMs: number | null;
   showCloseButton: boolean;
-  icon: string | null;
-  action: ToastAction | null;
+  icon?: string;
+  action?: ToastAction;
 
   enterFrom: ToastEnterFrom;
   animation: ToastAnimation;
