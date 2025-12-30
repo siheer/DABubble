@@ -79,13 +79,11 @@ export class FilterBox implements OnInit, OnChanges {
       .pipe(
         debounceTime(200),
         switchMap((term) => {
-          console.log('TERM →', term);
           return this.searchService.smartSearch$(term);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((results) => {
-        console.log('RESULTS →', results);
         this.results = results ?? [];
       });
   }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, collectionGroup, getDocs, QuerySnapshot, DocumentData } from '@angular/fire/firestore';
 import { SearchCollection, SearchResult, MessageDoc } from '../classes/search-result.class';
 import { ChannelMembershipService } from './membership.service';
@@ -6,113 +6,107 @@ import { from, Observable, of, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
+  private injector = inject(EnvironmentInjector);
   constructor(
     private firestore: Firestore,
     private channelMembershipService: ChannelMembershipService
   ) {}
 
-smartSearch$(term: string): Observable<SearchResult[]> {
-  term = this.normalizeTerm(term);
-  if (!term) return of([]);
+  smartSearch$(term: string): Observable<SearchResult[]> {
+    term = this.normalizeTerm(term);
+    if (!term) return of([]);
 
-  if (this.isUserSearch(term)) {
-    const query = term.substring(1).trim();
+    if (this.isUserSearch(term)) {
+      const query = term.substring(1).trim();
 
-    if (query === '') {
-      return from(this.getAllFromCollection('users'));
+      if (query === '') {
+        return from(this.getAllFromCollection('users'));
+      }
+
+      return from(this.searchByText('users', query, (r) => r.data.name));
     }
 
-    return from(
-      this.searchByText('users', query, r => r.data.name)
-    );
+    if (this.isChannelSearch(term)) {
+      const query = term.substring(1).trim();
+
+      return this.channelMembershipService.getAllowedChannelIds$().pipe(
+        switchMap((ids) => {
+          if (query === '') {
+            return from(this.searchChannelsForUser('', ids));
+          }
+
+          return from(this.searchChannelsForUser(query, ids));
+        })
+      );
+    }
+
+    if (term.length < 3) return of([]);
+
+    return this.channelMembershipService
+      .getAllowedChannelIds$()
+      .pipe(switchMap((ids) => from(this.smartSearchInternal(term, ids))));
   }
 
-  if (this.isChannelSearch(term)) {
-    const query = term.substring(1).trim();
+  private async smartSearchInternal(term: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
+    if (term.length < 3) return [];
 
-    return this.channelMembershipService.getAllowedChannelIds$().pipe(
-      switchMap(ids => {
-        if (query === '') {
-          return from(this.searchChannelsForUser('', ids));
-        }
+    const [users, channels, messages] = await Promise.all([
+      this.searchByText('users', term, (r) => r.data.name),
 
-        return from(this.searchChannelsForUser(query, ids));
-      })
-    );
+      this.searchChannelsForUser(term, allowedChannelIds),
+
+      this.searchMessagesForUser(term, allowedChannelIds),
+    ]);
+
+    return [...users, ...channels, ...messages];
   }
 
-  if (term.length < 3) return of([]);
+  private async searchChannelsForUser(term: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
+    const lowerTerm = term.toLowerCase();
+    const channels = await this.getAllFromCollection('channels');
 
-  return this.channelMembershipService.getAllowedChannelIds$().pipe(
-    switchMap(ids => from(this.smartSearchInternal(term, ids)))
-  );
-}
+    return channels.filter((c) => {
+      if (!allowedChannelIds.has(c.id)) return false;
 
-private async smartSearchInternal(
-  term: string,
-  allowedChannelIds: Set<string>
-): Promise<SearchResult[]> {
+      if (lowerTerm === '') return true;
 
-  if (term.length < 3) return [];
-
-  const [users, channels, messages] = await Promise.all([
-    this.searchByText('users', term, r => r.data.name),
-
-    this.searchChannelsForUser(term, allowedChannelIds),
-
-    this.searchMessagesForUser(term, allowedChannelIds),
-  ]);
-
-  return [...users, ...channels, ...messages];
-}
-
-private async searchChannelsForUser(
-  term: string,
-  allowedChannelIds: Set<string>
-): Promise<SearchResult[]> {
-
-  const lowerTerm = term.toLowerCase();
-  const channels = await this.getAllFromCollection('channels');
-
-  return channels.filter(c => {
-    if (!allowedChannelIds.has(c.id)) return false;
-
-    if (lowerTerm === '') return true;
-
-    return c.data.title?.toLowerCase().includes(lowerTerm);
-  });
-}
+      return c.data.title?.toLowerCase().includes(lowerTerm);
+    });
+  }
 
   private async searchMessagesForUser(term: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
     const lowerTerm = term.toLowerCase();
-    const messagesRef = collectionGroup(this.firestore, 'messages');
-    const snapshot = await getDocs(messagesRef);
 
-    const channels = await this.getAllFromCollection('channels');
-    const channelMap = new Map(channels.map((c) => [c.id, c.data.title]));
+    return runInInjectionContext(this.injector, async () => {
+      const messagesRef = collectionGroup(this.firestore, 'messages');
+      const snapshot = await getDocs(messagesRef);
 
-    return snapshot.docs
-      .map((doc) => {
-        const channelId = doc.ref.parent.parent?.id;
-        if (!channelId || !allowedChannelIds.has(channelId)) {
-          return null;
-        }
+      const channels = await this.getAllFromCollection('channels');
+      const channelMap = new Map(channels.map((c) => [c.id, c.data.title]));
 
-        const data = doc.data() as MessageDoc;
+      return snapshot.docs
+        .map((doc) => {
+          const channelId = doc.ref.parent.parent?.id;
+          if (!channelId || !allowedChannelIds.has(channelId)) {
+            return null;
+          }
 
-        return {
-          id: doc.id,
-          collection: 'messages',
-          channelId,
-          channelTitle: channelMap.get(channelId),
-          data: {
-            text: data.text,
-            authorName: data.authorName,
-            authorPhotoUrl: data.authorPhotoUrl,
-          },
-        } as SearchResult;
-      })
-      .filter((r): r is SearchResult => !!r && r.data.text?.toLowerCase().includes(lowerTerm));
+          const data = doc.data() as MessageDoc;
+
+          return {
+            id: doc.id,
+            collection: 'messages',
+            channelId,
+            channelTitle: channelMap.get(channelId),
+            data: {
+              text: data.text,
+              authorName: data.authorName,
+              authorPhotoUrl: data.authorPhotoUrl,
+            },
+          } as SearchResult;
+        })
+        .filter((r): r is SearchResult => !!r && r.data.text?.toLowerCase().includes(lowerTerm));
+    });
   }
 
   normalizeTerm(term: string): string {
@@ -172,8 +166,10 @@ private async searchChannelsForUser(
    * @returns A list of all documents in the collection as SearchResult objects
    */
   async getAllFromCollection(collectionName: SearchCollection): Promise<SearchResult[]> {
-    const colRef = collection(this.firestore, collectionName);
-    const snapshot = await getDocs(colRef);
-    return this.mapSnapshot(snapshot, collectionName);
+    return runInInjectionContext(this.injector, async () => {
+      const colRef = collection(this.firestore, collectionName);
+      const snapshot = await getDocs(colRef);
+      return this.mapSnapshot(snapshot, collectionName);
+    });
   }
 }
