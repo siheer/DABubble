@@ -56,16 +56,14 @@
             alt="Neuen Channel hinzufügen" />
         </button>
       </div>
-       <ng-container *ngIf="!areChannelsCollapsed">
+      <ng-container *ngIf="!areChannelsCollapsed">
         <ul class="workspace__list" id="workspace-channels">
-          <li
-            *ngFor="let channel of channelsWithUnread$ | async"
-            class="workspace__list-item"
-            [class.workspace__list-item--unread]="channel.unreadCount > 0">
+          <li *ngFor="let channel of channelsWithUnread$ | async">
             <button
               class="workspace__list-item"
               type="button"
               [class.workspace__list-item--active]="(selectedChannelId$ | async) === channel.id"
+              [class.workspace__list-item--unread]="channel.unreadCount > 0"
               (click)="selectChannel(channel.id)">
               <span class="workspace__hash">#</span>
               <span class="workspace__channel-name">{{ channel.title || 'Unbenannter Channel' }}</span>
@@ -119,14 +117,12 @@
         class="workspace__list workspace__list--direct"
         id="workspace-direct-messages">
         <ng-container *ngIf="directMessageUsers$ | async as users">
-          <li
-            *ngFor="let user of users"
-            class="workspace__list-item"
-            [class.workspace__list-item--unread]="user.unreadCount > 0">
+          <li *ngFor="let user of users">
             <button
               type="button"
               class="workspace__list-item workspace__list-item--direct"
               [class.workspace__list-item--active]="(selectedDirectMessageUser$ | async)?.uid === user.uid"
+              [class.workspace__list-item--unread]="user.unreadCount > 0"
               (click)="openDirectMessage(user)">
               <div class="relative">
                 <img

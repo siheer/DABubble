@@ -4,11 +4,13 @@ import { Observable, combineLatest, map, of, switchMap, tap, filter, distinctUnt
 import { FirestoreService } from '../../services/firestore.service';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog } from '@angular/material/dialog';
 import { AppUser, UserService } from '../../services/user.service';
 import { DirectMessageSelectionService } from '../../services/direct-message-selection.service';
 import { DirectMessageEntry } from '../../services/firestore.service';
 import { Timestamp } from '@angular/fire/firestore';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { MemberDialog } from '../member-dialog/member-dialog';
 
 type MessageBubble = {
   id?: string;
@@ -28,6 +30,7 @@ type MessageBubble = {
 export class Messages {
   private readonly firestoreService = inject(FirestoreService);
   private readonly userService = inject(UserService);
+  private readonly dialog = inject(MatDialog);
   private readonly directMessageSelectionService = inject(
     DirectMessageSelectionService
   );
@@ -38,24 +41,24 @@ export class Messages {
   private readonly currentUser$ = toObservable(this.userService.currentUser);
 
   protected readonly messages$ = combineLatest([
-  this.currentUser$,
-  this.selectedRecipient$,
-]).pipe(
-  switchMap(([currentUser, recipient]) => {
-    if (!currentUser || !recipient) {
-      return of([]);
-    }
+    this.currentUser$,
+    this.selectedRecipient$,
+  ]).pipe(
+    switchMap(([currentUser, recipient]) => {
+      if (!currentUser || !recipient) {
+        return of([]);
+      }
 
-    return this.firestoreService
-      .getDirectConversationMessages(currentUser.uid, recipient.uid)
-      .pipe(
-        map((messages) =>
-          messages.map((message) => this.mapMessage(message, currentUser))
-        )
-      );
-  }),
-  tap(() => this.scrollToBottom())
-);
+      return this.firestoreService
+        .getDirectConversationMessages(currentUser.uid, recipient.uid)
+        .pipe(
+          map((messages) =>
+            messages.map((message) => this.mapMessage(message, currentUser))
+          )
+        );
+    }),
+    tap(() => this.scrollToBottom())
+  );
 
   protected selectedRecipient: AppUser | null = null;
   protected currentUser: AppUser | null = null;
@@ -84,23 +87,23 @@ export class Messages {
     this.selectedRecipient$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((recipient) => (this.selectedRecipient = recipient));
-combineLatest([this.currentUser$, this.selectedRecipient$])
-  .pipe(
-    takeUntilDestroyed(this.destroyRef),
-    filter(
-      ([currentUser, recipient]) => !!currentUser && !!recipient
-    ),
-    distinctUntilChanged(
-      ([u1, r1], [u2, r2]) =>
-        u1?.uid === u2?.uid && r1?.uid === r2?.uid
-    )
-  )
-  .subscribe(([currentUser, recipient]) => {
-    this.firestoreService.updateDirectMessageReadStatus(
-      currentUser!.uid,
-      recipient!.uid
-    );
-  });
+    combineLatest([this.currentUser$, this.selectedRecipient$])
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        filter(
+          ([currentUser, recipient]) => !!currentUser && !!recipient
+        ),
+        distinctUntilChanged(
+          ([u1, r1], [u2, r2]) =>
+            u1?.uid === u2?.uid && r1?.uid === r2?.uid
+        )
+      )
+      .subscribe(([currentUser, recipient]) => {
+        this.firestoreService.updateDirectMessageReadStatus(
+          currentUser!.uid,
+          recipient!.uid
+        );
+      });
   }
 
   protected sendMessage(): void {
@@ -123,6 +126,16 @@ combineLatest([this.currentUser$, this.selectedRecipient$])
         this.draftMessage = '';
         this.scrollToBottom();
       });
+  }
+
+  protected openRecipientProfile(recipient: AppUser): void {
+
+    if (this.currentUser?.uid === recipient.uid) {
+      return;
+    }
+    this.dialog.open(MemberDialog, {
+      data: { user: recipient },
+    });
   }
 
   protected formatTimestamp(timestamp?: Timestamp): string {

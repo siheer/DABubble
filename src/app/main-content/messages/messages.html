@@ -1,7 +1,13 @@
 <section class="message-board" *ngIf="selectedRecipient$ | async as recipient; else chooseRecipient">
   <!-- Recipient header with avatar and quick context. -->
   <header class="message-board__header">
-    <div class="message-board__identity">
+    <div
+      class="message-board__identity"
+      role="button"
+      tabindex="0"
+      (click)="openRecipientProfile(recipient)"
+      (keydown.enter)="openRecipientProfile(recipient)"
+      (keydown.space)="openRecipientProfile(recipient)">
       <img
         class="message-board__avatar"
         [src]="recipient.photoUrl || 'imgs/default-profile-picture.png'"

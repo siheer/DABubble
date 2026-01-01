@@ -23,6 +23,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor:pointer;
 }
 
 .message-board__name-row {
@@ -165,7 +166,7 @@
   padding: 14px 18px;
   border-radius: 20px;
   width: fit-content;
-  max-width: min(85%, 640px);
+  min-width:60%;
 }
 
 .message-board__bubble--own .message-board__bubble-content {
