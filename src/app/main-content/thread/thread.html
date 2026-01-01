@@ -22,28 +22,9 @@
           <button
             type="button"
             class="thread__bubble-action"
-            aria-label="Grünen Haken setzen"
-            [class.thread__bubble-action--active]="messageReactions[thread.root.id] === '✅'"
-            (click)="react(thread.root.id, '✅')">
-            <mat-icon>check_circle</mat-icon>
-          </button>
-          <button
-            type="button"
-            class="thread__bubble-action"
-            aria-label="Daumen hoch geben"
-            [class.thread__bubble-action--active]="messageReactions[thread.root.id] === '👍'"
-            (click)="react(thread.root.id, '👍')">
-            <mat-icon>thumb_up</mat-icon>
-          </button>
-          <button
-            type="button"
-            class="thread__bubble-action"
             aria-label="Emoji-Auswahl öffnen"
             (click)="toggleEmojiPicker(thread.root.id)">
             <mat-icon>add_reaction</mat-icon>
-          </button>
-          <button type="button" class="thread__bubble-action" aria-label="Antwort verfassen" (click)="focusComposer()">
-            <mat-icon>chat_bubble</mat-icon>
           </button>
           <button
             *ngIf="thread.root.isOwn"
@@ -89,7 +70,6 @@
         <div class="thread__bubble-reaction" *ngIf="messageReactions[thread.root.id] as reaction">
           {{ reaction }}
         </div>
-        <div class="thread__chip">Thread</div>
       </div>
     </article>
 
@@ -108,32 +88,9 @@
             <button
               type="button"
               class="thread__bubble-action"
-              aria-label="Grünen Haken setzen"
-              [class.thread__bubble-action--active]="messageReactions[reply.id] === '✅'"
-              (click)="react(reply.id, '✅')">
-              ✅
-            </button>
-            <button
-              type="button"
-              class="thread__bubble-action"
-              aria-label="Daumen hoch geben"
-              [class.thread__bubble-action--active]="messageReactions[reply.id] === '👍'"
-              (click)="react(reply.id, '👍')">
-              👍
-            </button>
-            <button
-              type="button"
-              class="thread__bubble-action"
               aria-label="Emoji-Auswahl öffnen"
               (click)="toggleEmojiPicker(reply.id)">
               <mat-icon>add_reaction</mat-icon>
-            </button>
-            <button
-              type="button"
-              class="thread__bubble-action"
-              aria-label="Antwort verfassen"
-              (click)="focusComposer()">
-              <mat-icon>chat_bubble</mat-icon>
             </button>
             <button
               *ngIf="reply.isOwn"
