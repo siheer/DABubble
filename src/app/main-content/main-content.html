@@ -1,64 +1,65 @@
 <section class="relative pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
   <app-navbar></app-navbar>
 
-  <mat-sidenav-container class="relative h-[calc(100vh-124px)] bg-dab-bg! pl-4">
-    <mat-sidenav class="bg-dab-bg!" #leftSidenav opened mode="side">
-      <app-workspace (newMessage)="openNewMessagePanel()" (channelSelected)="closeNewMessagePanel()"></app-workspace>
-    </mat-sidenav>
-    <mat-sidenav
-      opened
-      mode="side"
-      position="end"
-      *ngIf="showNewMessage"
-      class="main-content__overlay main-content__overlay--new-message bg-dab-bg!">
-      <app-new-message-panel (close)="closeNewMessagePanel()"></app-new-message-panel>
-    </mat-sidenav>
-    <mat-sidenav class="bg-dab-bg!" opened mode="side" position="end" *ngIf="!showNewMessage && (thread$ | async)">
-      <app-thread></app-thread>
-    </mat-sidenav>
+  <ng-container *ngIf="isSmallScreen(); else desktopLayout">
+    <div class="main-content__mobile">
+      <div class="main-content__mobile-header" *ngIf="showMobileBackButton()">
+        <button type="button" class="main-content__back" aria-label="Zur vorherigen Ansicht" (click)="navigateUp()">
+          <span class="main-content__back-icon">&#8592;</span>
+          <span class="main-content__back-text">Zurück</span>
+        </button>
+      </div>
+      <div class="main-content__mobile-body" [@mobileRoute]="prepareRoute(mobileOutlet)">
+        <router-outlet #mobileOutlet="outlet"></router-outlet>
+      </div>
+    </div>
+  </ng-container>
 
-    <mat-sidenav-content>
-      <ng-container *ngIf="selectedDirectMessageUser$ | async; else channelView">
-        <app-messages></app-messages>
-      </ng-container>
-      <ng-template #channelView>
-        <app-channel></app-channel>
-      </ng-template>
-    </mat-sidenav-content>
-  </mat-sidenav-container>
-  <div class="absolute" *ngIf="leftSidenav.opened">
-    <button
-      class="workspace_button open absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
-      (click)="leftSidenav.close()"
-      (mouseenter)="isCloseWorkspaceButtonHovered = true"
-      (mouseleave)="isCloseWorkspaceButtonHovered = false">
-      Workspace-Menü schließen
-      <img
-        class="close_workspace workspace_toggle-icon"
-        [src]="
-          isCloseWorkspaceButtonHovered
-            ? 'imgs/workspace/close-workspace-menu-hover.svg'
-            : 'imgs/workspace/close-workspace-menu.svg'
-        "
-        alt="Workspace-Menü schließen" />
-    </button>
-  </div>
+  <ng-template #desktopLayout>
+    <mat-sidenav-container class="relative h-[calc(100vh-124px)] bg-dab-bg! pl-4">
+      <mat-sidenav class="bg-dab-bg!" #leftSidenav opened mode="side">
+        <app-workspace [activeChannelId]="activeChannelId()" [activeDmId]="activeDmId()"></app-workspace>
+      </mat-sidenav>
 
-  <div class="absolute" *ngIf="!leftSidenav.opened">
-    <button
-      class="workspace_button close absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
-      (click)="leftSidenav.open()"
-      (mouseenter)="isOpenWorkspaceButtonHovered = true"
-      (mouseleave)="isOpenWorkspaceButtonHovered = false">
-      Workspace-Menü öffnen
-      <img
-        class="open_workspace workspace_toggle-icon"
-        [src]="
-          isOpenWorkspaceButtonHovered
-            ? 'imgs/workspace/open-workspace-menu-hover.svg'
-            : 'imgs/workspace/open-workspace-menu.svg'
-        "
-        alt="Workspace-Menü öffnen" />
-    </button>
-  </div>
+      <mat-sidenav-content>
+        <router-outlet></router-outlet>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+
+    <div class="absolute" *ngIf="leftSidenav.opened">
+      <button
+        class="workspace_button open absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
+        (click)="leftSidenav.close()"
+        (mouseenter)="isCloseWorkspaceButtonHovered = true"
+        (mouseleave)="isCloseWorkspaceButtonHovered = false">
+        Workspace-Menü schließen
+        <img
+          class="close_workspace workspace_toggle-icon"
+          [src]="
+            isCloseWorkspaceButtonHovered
+              ? 'imgs/workspace/close-workspace-menu-hover.svg'
+              : 'imgs/workspace/close-workspace-menu.svg'
+          "
+          alt="Workspace-Menü schließen" />
+      </button>
+    </div>
+
+    <div class="absolute" *ngIf="!leftSidenav.opened">
+      <button
+        class="workspace_button close absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
+        (click)="leftSidenav.open()"
+        (mouseenter)="isOpenWorkspaceButtonHovered = true"
+        (mouseleave)="isOpenWorkspaceButtonHovered = false">
+        Workspace-Menü öffnen
+        <img
+          class="open_workspace workspace_toggle-icon"
+          [src]="
+            isOpenWorkspaceButtonHovered
+              ? 'imgs/workspace/open-workspace-menu-hover.svg'
+              : 'imgs/workspace/open-workspace-menu.svg'
+          "
+          alt="Workspace-Menü öffnen" />
+      </button>
+    </div>
+  </ng-template>
 </section>

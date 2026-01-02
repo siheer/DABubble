@@ -1,7 +1,8 @@
-import { Component, DestroyRef, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Observable, combineLatest, from, map, of, shareReplay, switchMap, take, tap } from 'rxjs';
 import {
   Channel,
@@ -12,12 +13,12 @@ import {
 } from '../../services/firestore.service';
 import { OverlayService } from '../../services/overlay.service';
 import { ChannelDescription } from '../messages/channel-description/channel-description';
-import { ChannelSelectionService } from '../../services/channel-selection.service';
 import { AppUser, UserService } from '../../services/user.service';
 import { ChannelMembers } from './channel-members/channel-members';
 import { AddToChannel } from './add-to-channel/add-to-channel';
 import { ThreadService } from '../../services/thread.service';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+
 type ChannelDay = {
   label: string;
   sortKey: number;
@@ -43,18 +44,20 @@ type ChannelMemberView = ChannelMember & { isCurrentUser?: boolean; user?: AppUs
 @Component({
   selector: 'app-channel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, RouterOutlet],
   templateUrl: './channel.html',
   styleUrls: ['./channel.scss'],
 })
 export class ChannelComponent {
   private readonly firestoreService = inject(FirestoreService);
   private readonly overlayService = inject(OverlayService);
-  private readonly channelSelectionService = inject(ChannelSelectionService);
   private readonly userService = inject(UserService);
   private readonly threadService = inject(ThreadService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly currentUser$ = toObservable(this.userService.currentUser);
+
   @ViewChild('messageTextarea') private messageTextarea?: ElementRef<HTMLTextAreaElement>;
   protected readonly channelDefaults = {
     name: 'Entwicklerteam',
@@ -76,10 +79,17 @@ export class ChannelComponent {
       avatar: user?.photoUrl ?? 'imgs/default-profile-picture.png',
     };
   }
+
+  private readonly channelId$ = this.route.paramMap.pipe(
+    map((params) => params.get('channelId')),
+    shareReplay(1)
+  );
+
   private readonly channels$ = this.currentUser$.pipe(
     switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of([]))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
+
   protected messageText = '';
   protected isSending = false;
   private cachedMembers: ChannelMemberView[] = [];
@@ -89,30 +99,22 @@ export class ChannelComponent {
   private mentionCaretIndex: number | null = null;
   private lastMessageCount = 0;
   private lastMessageId?: string;
+  protected readonly hasThreadChild = signal(false);
 
-
-  protected readonly channel$: Observable<Channel | undefined> = combineLatest([
-    this.channelSelectionService.selectedChannelId$,
-    this.channels$,
-  ]).pipe(
-    tap(([selectedChannelId, channels]) => {
-      const activeSelectionExists = channels.some((channel) => channel.id === selectedChannelId);
-
-      if ((!selectedChannelId || !activeSelectionExists) && channels.length > 0) {
-        const firstChannelId = channels[0]?.id;
-        this.channelSelectionService.selectChannel(firstChannelId);
-      }
-    }),
-    map(([selectedChannelId, channels]) => {
-      if (!channels.length) return undefined;
-      if (selectedChannelId) {
-        const activeChannel = channels.find((channel) => channel.id === selectedChannelId);
-
-        if (activeChannel) return activeChannel;
+  protected readonly channel$: Observable<Channel | undefined> = combineLatest([this.channelId$, this.channels$]).pipe(
+    tap(([channelId, channels]) => {
+      if (!channels.length) return;
+      if (!channelId) {
+        void this.router.navigate(['/main']);
+        return;
       }
 
-      return channels[0];
+      const exists = channels.some((channel) => channel.id === channelId);
+      if (!exists) {
+        void this.router.navigate(['/main']);
+      }
     }),
+    map(([channelId, channels]) => channels.find((channel) => channel.id === channelId)),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -126,7 +128,7 @@ export class ChannelComponent {
 
   protected messageReactions: Record<string, string> = {};
   protected openEmojiPickerFor: string | null = null;
-  protected readonly emojiChoices = ['😀', '😄', '😍', '🎉', '🤔', '👏'];
+  protected readonly emojiChoices = ['😀', '😁', '😂', '🤣', '😊', '😍'];
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
@@ -137,16 +139,14 @@ export class ChannelComponent {
     this.channelMessages = ref;
     this.scrollToBottom();
   }
+
   protected readonly members$: Observable<ChannelMemberView[]> = this.channel$.pipe(
     switchMap((channel) => {
       if (!channel?.id) {
         return of<ChannelMemberView[]>([]);
       }
 
-      return combineLatest([
-        this.firestoreService.getChannelMembers(channel.id),
-        this.userService.getAllUsers(),
-      ]).pipe(
+      return combineLatest([this.firestoreService.getChannelMembers(channel.id), this.userService.getAllUsers()]).pipe(
         map(([members, users]) => {
           const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
@@ -187,10 +187,7 @@ export class ChannelComponent {
       }
 
       return this.firestoreService
-        .getChannelMessagesResolved(
-          channel.id,
-          this.userService.getAllUsers()
-        )
+        .getChannelMessagesResolved(channel.id, this.userService.getAllUsers())
         .pipe(map((messages) => this.groupMessagesByDay(messages)));
     })
   );
@@ -205,13 +202,24 @@ export class ChannelComponent {
       this.updateMentionSuggestions();
     });
 
-    this.messagesByDay$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((days) => {
-        if (this.shouldAutoScroll(days)) {
-          this.scrollToBottom();
-        }
-      });
+    this.messagesByDay$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((days) => {
+      if (this.shouldAutoScroll(days)) {
+        this.scrollToBottom();
+      }
+    });
+
+    this.router.events
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        tap((event) => {
+          if (event instanceof NavigationEnd) {
+            this.syncChildRouteState();
+          }
+        })
+      )
+      .subscribe();
+
+    this.syncChildRouteState();
   }
 
   protected onComposerKeydown(event: Event): void {
@@ -352,9 +360,7 @@ export class ChannelComponent {
       });
   }
 
-  private toViewMessage(
-    message: ChannelMessage & { author?: AppUser }
-  ): ChannelMessageView {
+  private toViewMessage(message: ChannelMessage & { author?: AppUser }): ChannelMessageView {
     const createdAt = this.timestampToDate(message.createdAt) ?? new Date();
     const lastReplyAt = this.timestampToDate(message.lastReplyAt);
     const currentUserId = this.userService.currentUser()?.uid;
@@ -362,10 +368,7 @@ export class ChannelComponent {
     return {
       id: message.id,
       author: message.author?.name ?? 'Unbekannter Nutzer',
-      avatar:
-        message.author?.photoUrl ??
-        this.memberAvatars[0] ??
-        'imgs/users/placeholder.svg',
+      avatar: message.author?.photoUrl ?? this.memberAvatars[0] ?? 'imgs/users/placeholder.svg',
 
       createdAt,
       time: this.formatTime(createdAt),
@@ -374,9 +377,7 @@ export class ChannelComponent {
       replies: message.replies ?? 0,
 
       lastReplyAt,
-      lastReplyTime: lastReplyAt
-        ? this.formatTime(lastReplyAt)
-        : undefined,
+      lastReplyTime: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
 
       tag: message.tag,
       attachment: message.attachment,
@@ -472,6 +473,7 @@ export class ChannelComponent {
     this.channel$.pipe(take(1)).subscribe((channel) => {
       if (!channel?.id || !message.id) return;
 
+      void this.router.navigate(['/main/channels', channel.id, 'threads', message.id]);
       this.threadService.openThread({
         id: message.id,
         channelId: channel.id,
@@ -578,7 +580,6 @@ export class ChannelComponent {
     this.openEmojiPickerFor = this.openEmojiPickerFor === messageId ? null : messageId;
   }
 
-
   private scrollToBottom(): void {
     const element = this.channelMessages?.nativeElement;
     if (!element) return;
@@ -586,5 +587,10 @@ export class ChannelComponent {
     requestAnimationFrame(() => {
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  private syncChildRouteState(): void {
+    const threadId = this.route.firstChild?.snapshot?.paramMap?.get('threadId');
+    this.hasThreadChild.set(!!threadId);
   }
 }

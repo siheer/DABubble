@@ -1,207 +1,213 @@
-<section class="channel">
-  <header class="channel__header">
-    <div class="channel__titles">
-      <div class="channel__title-row">
-        <h1># {{ (channelTitle$ | async) ?? channelDefaults.name }}</h1>
-        <button
-          type="button"
-          class="channel__description-trigger"
-          aria-label="Channel-Beschreibung öffnen"
-          (click)="openChannelDescription($event)">
-          <img src="imgs/channel description/keyboard_arrow_down.svg" alt="Channel-Beschreibung öffnen" />
-        </button>
-      </div>
-    </div>
-    <div class="channel__actions">
-      <ng-container *ngIf="members$ | async as members">
-        <button
-          type="button"
-          class="channel__member-preview"
-          aria-label="Mitgliederübersicht"
-          (click)="openChannelMembers($event)">
-          <div class="channel__avatars" aria-hidden="true">
-            <ng-container *ngFor="let member of members | slice: 0 : 3; let i = index">
-              <img [src]="member.avatar" [alt]="member.name" [style.zIndex]="members.length - i" />
-            </ng-container>
-          </div>
-          <span class="channel__member-count">{{ members.length }}</span>
-        </button>
-      </ng-container>
-
-      <button
-        type="button"
-        class="channel__add-member"
-        aria-label="Mitglied zum Channel hinzufügen"
-        (click)="openAddToChannel($event)">
-        <img src="imgs/channels/person_add.svg" alt="Mitglied hinzufügen" />
-      </button>
-    </div>
-  </header>
-
-  <section class="channel__panel">
-    <div class="channel__messages" aria-live="polite" #channelMessages>
-      <ng-container *ngIf="messagesByDay$ | async as messagesByDay">
-        <ng-container *ngIf="messagesByDay.length; else noMessages">
-          <ng-container *ngFor="let day of messagesByDay">
-            <div class="channel__day">
-              <span>{{ day.label }}</span>
-            </div>
-
-            <article
-              *ngFor="let message of day.messages"
-              class="channel__message"
-              [class.channel__message--own]="message.isOwn">
-              <img class="channel__message-avatar" [src]="message.avatar" [alt]="message.author" />
-
-              <div class="channel__message-body">
-                <div
-                  class="channel__message-actions"
-                  [class.channel__message-actions--visible]="openEmojiPickerFor === message.id"
-                  aria-label="Nachrichtenaktionen">
-                  <button
-                    type="button"
-                    class="channel__message-action"
-                    aria-label="Grünen Haken setzen"
-                    [class.channel__message-action--active]="message.id && messageReactions[message.id] === '✅'"
-                    (click)="react(message.id, '✅')">
-                    ✅
-                  </button>
-                  <button
-                    type="button"
-                    class="channel__message-action"
-                    aria-label="Daumen hoch geben"
-                    [class.channel__message-action--active]="message.id && messageReactions[message.id] === '👍'"
-                    (click)="react(message.id, '👍')">
-                    👍
-                  </button>
-                  <button
-                    type="button"
-                    class="channel__message-action"
-                    aria-label="Emoji-Auswahl öffnen"
-                    (click)="toggleEmojiPicker(message.id)">
-                    <mat-icon>add_reaction</mat-icon>
-                  </button>
-                  <button
-                    type="button"
-                    class="channel__message-action"
-                    aria-label="Thread öffnen"
-                    (click)="openThread(message)">
-                    <mat-icon>chat_bubble</mat-icon>
-                  </button>
-                  <button
-                    *ngIf="message.isOwn"
-                    type="button"
-                    class="channel__message-action"
-                    aria-label="Weitere Aktionen"
-                    (click)="startEditingMessage(message)">
-                    <mat-icon>more_vert</mat-icon>
-                  </button>
-                  <div class="channel__emoji-picker" *ngIf="openEmojiPickerFor === message.id">
-                    <button
-                      type="button"
-                      *ngFor="let emoji of emojiChoices"
-                      (click)="react(message.id, emoji)"
-                      aria-label="Emoji auswählen">
-                      {{ emoji }}
-                    </button>
-                  </div>
-                </div>
-                <header class="channel__message-header">
-                  <div class="channel__message-meta">
-                    <div class="channel__author-line">
-                      <strong>{{ message.author }}</strong>
-                      <time>{{ message.time }}</time>
-                    </div>
-                  </div>
-                </header>
-                <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
-                  <p class="channel__message-text">{{ message.text }}</p>
-                </ng-container>
-                <ng-template #editChannelMessage>
-                  <div class="channel__message-edit">
-                    <textarea rows="3" [(ngModel)]="editMessageText" aria-label="Nachricht bearbeiten"></textarea>
-                    <div class="channel__message-edit-actions">
-                      <button type="button" class="channel__message-edit-cancel" (click)="cancelEditingMessage()">
-                        Abbrechen
-                      </button>
-                      <button
-                        type="button"
-                        class="channel__message-edit-save"
-                        [disabled]="!editMessageText.trim() || isSavingEdit"
-                        (click)="message.id && saveEditingMessage(message.id)">
-                        Speichern
-                      </button>
-                    </div>
-                  </div>
-                </ng-template>
-
-                <ng-container *ngIf="message.id as messageId">
-                  <div class="channel__message-reaction" *ngIf="messageReactions[messageId] as reaction">
-                    {{ reaction }}
-                  </div>
-                </ng-container>
-
-                <ng-container *ngIf="message.attachment as attachment">
-                  <div class="channel__attachment">
-                    <div class="channel__attachment-text">
-                      <span *ngIf="attachment.badgeLabel" class="channel__pill channel__pill--info">
-                        {{ attachment.badgeLabel }}
-                      </span>
-                      <h3>{{ attachment.title }}</h3>
-                      <p *ngIf="attachment.description">{{ attachment.description }}</p>
-                    </div>
-                    <a *ngIf="attachment.linkLabel" class="channel__attachment-link" [href]="attachment.linkHref">
-                      {{ attachment.linkLabel }}
-                      <mat-icon>open_in_new</mat-icon>
-                    </a>
-                  </div>
-                </ng-container>
-
-                <button
-                  *ngIf="message.replies"
-                  type="button"
-                  class="channel__thread-summary"
-                  (click)="openThread(message)">
-                  <span class="channel__thread-count">
-                    {{ message.replies }} Antwort{{ message.replies === 1 ? '' : 'en' }}
-                  </span>
-                  <span *ngIf="message.lastReplyTime" class="channel__thread-meta">
-                    Letzte Antwort {{ message.lastReplyTime }}
-                  </span>
-                </button>
-              </div>
-            </article>
-          </ng-container>
-        </ng-container>
-      </ng-container>
-      <ng-template #noMessages>
-        <p class="channel__empty">Noch keine Nachrichten vorhanden.</p>
-      </ng-template>
-    </div>
-
-    <form class="channel__composer" aria-label="Neue Nachricht verfassen" (ngSubmit)="sendMessage()">
-      <div class="channel__composer-input">
-        <textarea
-          #messageTextarea
-          rows="3"
-          name="message"
-          [(ngModel)]="messageText"
-          (input)="onMessageInput($event)"
-          (click)="onMessageInput($event)"
-          (keydown.enter)="onComposerKeydown($event)"
-          [placeholder]="'Nachricht an #' + ((channelTitle$ | async) ?? channelDefaults.name)"></textarea>
-        <div *ngIf="isMentionListVisible" class="channel__mention-suggestions">
-          <button type="button" *ngFor="let member of mentionSuggestions" (click)="insertMention(member)">
-            <img [src]="member.avatar" [alt]="member.name" />
-            <span>{{ member.name }}</span>
+<ng-container *ngIf="!hasThreadChild(); else threadView">
+  <section class="channel">
+    <header class="channel__header">
+      <div class="channel__titles">
+        <div class="channel__title-row">
+          <h1># {{ (channelTitle$ | async) ?? channelDefaults.name }}</h1>
+          <button
+            type="button"
+            class="channel__description-trigger"
+            aria-label="Channel-Beschreibung öffnen"
+            (click)="openChannelDescription($event)">
+            <img src="imgs/channel description/keyboard_arrow_down.svg" alt="Channel-Beschreibung öffnen" />
           </button>
         </div>
       </div>
-      <div class="channel__composer-actions">
-        <button type="submit" aria-label="Nachricht senden" [disabled]="!messageText.trim() || isSending">
-          <img src="imgs/channels/send.svg" alt="" />
+      <div class="channel__actions">
+        <ng-container *ngIf="members$ | async as members">
+          <button
+            type="button"
+            class="channel__member-preview"
+            aria-label="Mitgliederübersicht"
+            (click)="openChannelMembers($event)">
+            <div class="channel__avatars" aria-hidden="true">
+              <ng-container *ngFor="let member of members | slice: 0 : 3; let i = index">
+                <img [src]="member.avatar" [alt]="member.name" [style.zIndex]="members.length - i" />
+              </ng-container>
+            </div>
+            <span class="channel__member-count">{{ members.length }}</span>
+          </button>
+        </ng-container>
+
+        <button
+          type="button"
+          class="channel__add-member"
+          aria-label="Mitglied zum Channel hinzufügen"
+          (click)="openAddToChannel($event)">
+          <img src="imgs/channels/person_add.svg" alt="Mitglied hinzufügen" />
         </button>
       </div>
-    </form>
+    </header>
+
+    <section class="channel__panel">
+      <div class="channel__messages" aria-live="polite" #channelMessages>
+        <ng-container *ngIf="messagesByDay$ | async as messagesByDay">
+          <ng-container *ngIf="messagesByDay.length; else noMessages">
+            <ng-container *ngFor="let day of messagesByDay">
+              <div class="channel__day">
+                <span>{{ day.label }}</span>
+              </div>
+
+              <article
+                *ngFor="let message of day.messages"
+                class="channel__message"
+                [class.channel__message--own]="message.isOwn">
+                <img class="channel__message-avatar" [src]="message.avatar" [alt]="message.author" />
+
+                <div class="channel__message-body">
+                  <div
+                    class="channel__message-actions"
+                    [class.channel__message-actions--visible]="openEmojiPickerFor === message.id"
+                    aria-label="Nachrichtenaktionen">
+                    <button
+                      type="button"
+                      class="channel__message-action"
+                      aria-label="Grünen Haken setzen"
+                      [class.channel__message-action--active]="message.id && messageReactions[message.id] === '✔️'"
+                      (click)="react(message.id, '✔️')">
+                      ✔️
+                    </button>
+                    <button
+                      type="button"
+                      class="channel__message-action"
+                      aria-label="Daumen hoch geben"
+                      [class.channel__message-action--active]="message.id && messageReactions[message.id] === '👍'"
+                      (click)="react(message.id, '👍')">
+                      👍
+                    </button>
+                    <button
+                      type="button"
+                      class="channel__message-action"
+                      aria-label="Emoji-Auswahl öffnen"
+                      (click)="toggleEmojiPicker(message.id)">
+                      <mat-icon>add_reaction</mat-icon>
+                    </button>
+                    <button
+                      type="button"
+                      class="channel__message-action"
+                      aria-label="Thread öffnen"
+                      (click)="openThread(message)">
+                      <mat-icon>chat_bubble</mat-icon>
+                    </button>
+                    <button
+                      *ngIf="message.isOwn"
+                      type="button"
+                      class="channel__message-action"
+                      aria-label="Weitere Aktionen"
+                      (click)="startEditingMessage(message)">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <div class="channel__emoji-picker" *ngIf="openEmojiPickerFor === message.id">
+                      <button
+                        type="button"
+                        *ngFor="let emoji of emojiChoices"
+                        (click)="react(message.id, emoji)"
+                        aria-label="Emoji auswählen">
+                        {{ emoji }}
+                      </button>
+                    </div>
+                  </div>
+                  <header class="channel__message-header">
+                    <div class="channel__message-meta">
+                      <div class="channel__author-line">
+                        <strong>{{ message.author }}</strong>
+                        <time>{{ message.time }}</time>
+                      </div>
+                    </div>
+                  </header>
+                  <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
+                    <p class="channel__message-text">{{ message.text }}</p>
+                  </ng-container>
+                  <ng-template #editChannelMessage>
+                    <div class="channel__message-edit">
+                      <textarea rows="3" [(ngModel)]="editMessageText" aria-label="Nachricht bearbeiten"></textarea>
+                      <div class="channel__message-edit-actions">
+                        <button type="button" class="channel__message-edit-cancel" (click)="cancelEditingMessage()">
+                          Abbrechen
+                        </button>
+                        <button
+                          type="button"
+                          class="channel__message-edit-save"
+                          [disabled]="!editMessageText.trim() || isSavingEdit"
+                          (click)="message.id && saveEditingMessage(message.id)">
+                          Speichern
+                        </button>
+                      </div>
+                    </div>
+                  </ng-template>
+
+                  <ng-container *ngIf="message.id as messageId">
+                    <div class="channel__message-reaction" *ngIf="messageReactions[messageId] as reaction">
+                      {{ reaction }}
+                    </div>
+                  </ng-container>
+
+                  <ng-container *ngIf="message.attachment as attachment">
+                    <div class="channel__attachment">
+                      <div class="channel__attachment-text">
+                        <span *ngIf="attachment.badgeLabel" class="channel__pill channel__pill--info">
+                          {{ attachment.badgeLabel }}
+                        </span>
+                        <h3>{{ attachment.title }}</h3>
+                        <p *ngIf="attachment.description">{{ attachment.description }}</p>
+                      </div>
+                      <a *ngIf="attachment.linkLabel" class="channel__attachment-link" [href]="attachment.linkHref">
+                        {{ attachment.linkLabel }}
+                        <mat-icon>open_in_new</mat-icon>
+                      </a>
+                    </div>
+                  </ng-container>
+
+                  <button
+                    *ngIf="message.replies"
+                    type="button"
+                    class="channel__thread-summary"
+                    (click)="openThread(message)">
+                    <span class="channel__thread-count">
+                      {{ message.replies }} Antwort{{ message.replies === 1 ? '' : 'en' }}
+                    </span>
+                    <span *ngIf="message.lastReplyTime" class="channel__thread-meta">
+                      Letzte Antwort {{ message.lastReplyTime }}
+                    </span>
+                  </button>
+                </div>
+              </article>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+        <ng-template #noMessages>
+          <p class="channel__empty">Noch keine Nachrichten vorhanden.</p>
+        </ng-template>
+      </div>
+
+      <form class="channel__composer" aria-label="Neue Nachricht verfassen" (ngSubmit)="sendMessage()">
+        <div class="channel__composer-input">
+          <textarea
+            #messageTextarea
+            rows="3"
+            name="message"
+            [(ngModel)]="messageText"
+            (input)="onMessageInput($event)"
+            (click)="onMessageInput($event)"
+            (keydown.enter)="onComposerKeydown($event)"
+            [placeholder]="'Nachricht an #' + ((channelTitle$ | async) ?? channelDefaults.name)"></textarea>
+          <div *ngIf="isMentionListVisible" class="channel__mention-suggestions">
+            <button type="button" *ngFor="let member of mentionSuggestions" (click)="insertMention(member)">
+              <img [src]="member.avatar" [alt]="member.name" />
+              <span>{{ member.name }}</span>
+            </button>
+          </div>
+        </div>
+        <div class="channel__composer-actions">
+          <button type="submit" aria-label="Nachricht senden" [disabled]="!messageText.trim() || isSending">
+            <img src="imgs/channels/send.svg" alt="" />
+          </button>
+        </div>
+      </form>
+    </section>
   </section>
-</section>
+</ng-container>
+
+<ng-template #threadView>
+  <router-outlet></router-outlet>
+</ng-template>

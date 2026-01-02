@@ -5,8 +5,7 @@ import { BehaviorSubject, Observable, combineLatest, map, of, switchMap } from '
 import { Channel, FirestoreService } from '../../../services/firestore.service';
 import { AppUser, UserService } from '../../../services/user.service';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { ChannelSelectionService } from '../../../services/channel-selection.service';
-import { DirectMessageSelectionService } from '../../../services/direct-message-selection.service';
+import { Router } from '@angular/router';
 
 type SearchResult = {
   channels: Channel[];
@@ -24,19 +23,14 @@ type SearchResult = {
 export class NewMessagePanel {
   private readonly firestoreService = inject(FirestoreService);
   private readonly userService = inject(UserService);
-  private readonly channelSelectionService = inject(ChannelSelectionService);
-  private readonly directMessageSelectionService = inject(
-    DirectMessageSelectionService
-  );
+  private readonly router = inject(Router);
   private readonly currentUser$ = toObservable(this.userService.currentUser);
   private readonly searchTermSubject = new BehaviorSubject<string>('');
   protected readonly searchTerm$ = this.searchTermSubject.asObservable();
   protected searchTerm = '';
 
   private readonly channels$: Observable<Channel[]> = this.currentUser$.pipe(
-    switchMap((user) =>
-      user ? this.firestoreService.getChannelsForUser(user.uid) : of([])
-    )
+    switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of([])))
   );
 
   private readonly users$ = this.userService.getAllUsers();
@@ -63,15 +57,10 @@ export class NewMessagePanel {
       const filteredUsers = users
         .map((user) => ({
           ...user,
-          displayName:
-            currentUser && user.uid === currentUser.uid
-              ? `${user.name} (Du)`
-              : user.name,
+          displayName: currentUser && user.uid === currentUser.uid ? `${user.name} (Du)` : user.name,
           isCurrentUser: currentUser ? user.uid === currentUser.uid : false,
         }))
-        .filter(
-          (user) => matchesTerm(user.name) || matchesTerm(user.email || '')
-        )
+        .filter((user) => matchesTerm(user.name) || matchesTerm(user.email || ''))
         .sort((a, b) => {
           if (a.isCurrentUser) return -1;
           if (b.isCurrentUser) return 1;
@@ -90,15 +79,20 @@ export class NewMessagePanel {
   protected selectChannel(channel: Channel): void {
     if (!channel.id) return;
 
-    this.channelSelectionService.selectChannel(channel.id);
-    this.directMessageSelectionService.selectUser(null);
+    void this.router.navigate(['/main/channels', channel.id]);
     this.close.emit();
   }
 
   protected startDirectMessage(user: AppUser): void {
-    this.directMessageSelectionService.selectUser(user);
+    if (!user?.uid) return;
+    void this.router.navigate(['/main/dms', user.uid]);
     this.close.emit();
   }
 
   @Output() readonly close = new EventEmitter<void>();
+
+  protected closePanel(): void {
+    this.close.emit();
+    void this.router.navigate(['/main']);
+  }
 }

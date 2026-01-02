@@ -12,6 +12,11 @@ import { AuthAction } from './auth/auth-action/auth-action';
 import { unverifiedGuard } from './guards/unverified.guard';
 import { LegalNotice } from './aside-content/legal-notice/legal-notice';
 import { PrivacyPolicy } from './aside-content/privacy-policy/privacy-policy';
+import { Messages } from './main-content/messages/messages';
+import { ChannelComponent } from './main-content/channel/channel';
+import { Thread } from './main-content/thread/thread';
+import { NewMessagePanel } from './main-content/messages/new-massage-panel/new-massage-panel';
+import { MainHome } from './main-content/main-home';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -47,6 +52,33 @@ export const routes: Routes = [
     path: 'main',
     component: MainContent,
     canActivate: [onlyVerifiedGuard],
+    children: [
+      { path: '', component: MainHome },
+      {
+        path: 'channels',
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: '/main' },
+          {
+            path: ':channelId',
+            component: ChannelComponent,
+            children: [
+              {
+                path: 'threads/:threadId',
+                component: Thread,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'dms/:dmId',
+        component: Messages,
+      },
+      {
+        path: 'new-message',
+        component: NewMessagePanel,
+      },
+    ],
   },
   {
     path: 'legal-notice',
@@ -56,4 +88,5 @@ export const routes: Routes = [
     path: 'privacy-policy',
     component: PrivacyPolicy,
   },
+  { path: '**', redirectTo: 'main' },
 ];

@@ -5,10 +5,10 @@ import { SearchResult } from '../../classes/search-result.class';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { AppUser, UserService } from '../../services/user.service';
-import { ChannelSelectionService } from '../../services/channel-selection.service';
 import { Subject, debounceTime, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-filter-box',
@@ -25,7 +25,7 @@ export class FilterBox implements OnInit, OnChanges {
     private searchService: SearchService,
     private dialog: MatDialog,
     private userService: UserService,
-    private channelSelectionService: ChannelSelectionService
+    private router: Router
   ) {}
 
   private destroyRef = inject(DestroyRef);
@@ -34,11 +34,6 @@ export class FilterBox implements OnInit, OnChanges {
     return this.userService.currentUser()?.uid ?? null;
   }
 
-  /**
-   * Returns the list of users sorted alphabetically by name,
-   * with the current user at the top of the list.
-   * Getter is used to ensure re-evaluation on each access.
-   * */
   get sortedUsers() {
     if (!this.users.length) return [];
 
@@ -107,11 +102,13 @@ export class FilterBox implements OnInit, OnChanges {
 
       this.close.emit();
     } else if (item.collection === 'channels') {
-      this.channelSelectionService.selectChannel(item.id);
+      void this.router.navigate(['/main/channels', item.id]);
       this.selectItem.emit(item);
       this.close.emit();
     } else if (item.collection === 'messages') {
-      this.channelSelectionService.selectChannel(item.channelId);
+      if (item.channelId && item.id) {
+        void this.router.navigate(['/main/channels', item.channelId, 'threads', item.id]);
+      }
       this.selectItem.emit(item);
       this.close.emit();
     }

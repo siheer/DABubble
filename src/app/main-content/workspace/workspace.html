@@ -62,7 +62,7 @@
             <button
               class="workspace__list-item"
               type="button"
-              [class.workspace__list-item--active]="(selectedChannelId$ | async) === channel.id"
+              [class.workspace__list-item--active]="(activeChannelId$ | async) === channel.id"
               [class.workspace__list-item--unread]="channel.unreadCount > 0"
               (click)="selectChannel(channel.id)">
               <span class="workspace__hash">#</span>
@@ -121,7 +121,7 @@
             <button
               type="button"
               class="workspace__list-item workspace__list-item--direct"
-              [class.workspace__list-item--active]="(selectedDirectMessageUser$ | async)?.uid === user.uid"
+              [class.workspace__list-item--active]="(activeDmId$ | async) === user.uid"
               [class.workspace__list-item--unread]="user.unreadCount > 0"
               (click)="openDirectMessage(user)">
               <div class="relative">
