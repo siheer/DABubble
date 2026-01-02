@@ -110,11 +110,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  align-self: flex-start;
-  width: fit-content;
+  align-self: stretch;
+  max-width: 100%;
+  width: 100%;
   gap: 8px;
-  max-width: min(85%, 720px);
-  width: fit-content;
+  padding: 8px 12px;  
   --avatar-size: 36px;
 }
 .message-board__bubble:hover {
@@ -126,7 +126,7 @@
 }
 
 .message-board__bubble--own {
-  align-self: flex-end;
+  align-self: stretch;
 }
 
 .message-board__bubble-main {

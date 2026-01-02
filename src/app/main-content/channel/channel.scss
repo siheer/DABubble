@@ -210,13 +210,13 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  align-self: flex-start;
-  max-width: min(85%, 720px);
-  width: fit-content;
+  align-self: stretch;
+  max-width:100%;
+  width: 100%;
+  padding: 8px 12px
 }
 
 .channel__message--own {
-  align-self: flex-end;
   flex-direction: row-reverse;
 }
 
