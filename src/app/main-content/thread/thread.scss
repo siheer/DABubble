@@ -77,9 +77,9 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  align-self: flex-start;
-  max-width: min(85%, 720px);
-  width: fit-content;
+  align-self: stretch;
+  max-width: 100%;
+  width: 100%;
   position: relative;
 }
 
@@ -92,10 +92,6 @@
 .thread__root:not(.thread__root--own):hover .thread__text,
 .thread__reply:not(.thread__reply--own):hover .thread__text {
   background: #ffffff;
-}
-
-.thread__reply {
-  width: fit-content;
 }
 
 .thread__reply--own {

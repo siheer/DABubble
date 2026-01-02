@@ -14,6 +14,7 @@ import {
 import { User as FirebaseUser, UserCredential } from 'firebase/auth';
 import { Observable, map, shareReplay } from 'rxjs';
 import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
+import { FirestoreService } from './firestore.service';
 import { AuthService } from './auth.service';
 import { TEXTS } from '../texts';
 

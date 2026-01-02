@@ -7,6 +7,7 @@ import {
   collectionData,
   doc,
   docData,
+  getDocs,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -102,6 +103,12 @@ export class FirestoreService {
   // Feste Dokument-ID für die Thread-Metadaten, damit der Pfad eine gerade Segmentzahl hat:
   // channels/{channelId}/messages/{messageId}/thread/{THREAD_DOC_ID}
   private static readonly THREAD_DOC_ID = 'meta';
+  private static readonly DEFAULT_CHANNELS: Array<Pick<Channel, 'title' | 'description'>> = [
+    { title: 'Willkommen' },
+    { title: 'Allgemeines' },
+    { title: 'Meetings' },
+
+  ];
 
   getChannels(): Observable<Channel[]> {
     return runInInjectionContext(this.injector, () => {
@@ -349,6 +356,41 @@ export class FirestoreService {
 
     return newChannel.id;
   }
+
+  private async ensureDefaultChannels(): Promise<Map<string, string>> {
+    const channelsCollection = collection(this.firestore, 'channels');
+    const snapshot = await getDocs(channelsCollection);
+    const existingByTitle = new Map<string, string>();
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data() as Channel;
+      if (data.title) {
+        existingByTitle.set(data.title, docSnap.id);
+      }
+    });
+
+    const channelIds = new Map(existingByTitle)
+    for (const channel of FirestoreService.DEFAULT_CHANNELS) {
+      if (channel.title && channelIds.has(channel.title)) {
+        continue;
+      }
+
+      const newChannel = await addDoc(channelsCollection, {
+        title: channel.title?.trim(),
+        description: channel.description?.trim(),
+        createdAt: serverTimestamp(),
+        isDefault: true,
+      });
+
+      if (channel.title) {
+        channelIds.set(channel.title, newChannel.id);
+      }
+    }
+
+    return channelIds;
+  }
+
+  
 
   async updateChannel(channelId: string, payload: Partial<Pick<Channel, 'title' | 'description'>>): Promise<void> {
     const updates: Record<string, unknown> = {};
