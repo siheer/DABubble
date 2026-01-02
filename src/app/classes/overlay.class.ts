@@ -36,6 +36,7 @@ export class OverlayRef<T extends object = any> {
   private _updateBound!: () => void;
   private _escListener!: (e: KeyboardEvent) => void;
   private onCloseCallback?: () => void;
+  private previouslyFocusedElement: HTMLElement | null = null;
   public mode: 'desktop' | 'mobile' = 'desktop';
   public stackIndex = 0;
 
@@ -61,24 +62,30 @@ export class OverlayRef<T extends object = any> {
    * Opens the overlay and renders the component inside it.
    */
   open() {
+    this.previouslyFocusedElement = document.activeElement as HTMLElement;
+
     this.overlayContainer = document.createElement('div');
     Object.assign(this.overlayContainer.style, {
       position: 'fixed',
       zIndex: String(1000 + this.stackIndex),
     });
+
+    this.overlayContainer.setAttribute('role', 'dialog');
+    this.overlayContainer.setAttribute('aria-modal', 'true');
+    this.overlayContainer.classList.add('overlay');
+    this.overlayContainer.tabIndex = -1;
+
     document.body.appendChild(this.overlayContainer);
 
     this.createComponent(this.component, this.config.data);
+
+    this.trapFocus();
+    this.focusFirstElement();
 
     this.updatePosition();
     this._updateBound = this.updatePosition.bind(this);
     window.addEventListener('resize', this._updateBound);
     window.addEventListener('scroll', this._updateBound);
-
-    this._escListener = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') this.startCloseAnimation();
-    };
-    window.addEventListener('keydown', this._escListener);
   }
 
   /**
@@ -152,7 +159,7 @@ export class OverlayRef<T extends object = any> {
    * Destroys the overlay and the attached component.
    */
   private destroy() {
-    window.removeEventListener('keydown', this._escListener);
+    this.overlayContainer.removeEventListener('keydown', this._escListener);
     window.removeEventListener('resize', this._updateBound);
     window.removeEventListener('scroll', this._updateBound);
 
@@ -161,7 +168,6 @@ export class OverlayRef<T extends object = any> {
     this.overlayContainer.remove();
 
     this.onCloseCallback?.();
-    (document.activeElement as HTMLElement)?.blur();
   }
 
   /**
@@ -170,5 +176,62 @@ export class OverlayRef<T extends object = any> {
    */
   onClose(cb: () => void) {
     this.onCloseCallback = cb;
+  }
+
+  private focusableElements(): HTMLElement[] {
+    return Array.from(
+      this.overlayContainer.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => !el.hasAttribute('disabled'));
+  }
+
+  private trapFocus() {
+    this._escListener = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        this.startCloseAnimation();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const elements = this.focusableElements();
+      if (elements.length === 0) return;
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    this.overlayContainer.addEventListener('keydown', this._escListener);
+  }
+
+  private focusFirstElement() {
+    requestAnimationFrame(() => {
+      const elements = this.focusableElements();
+      if (elements.length > 0) {
+        elements[0].focus();
+      } else {
+        this.overlayContainer.focus();
+      }
+    });
+  }
+
+  suspendFocus() {
+    this.overlayContainer?.setAttribute('aria-hidden', 'true');
+    this.overlayContainer?.setAttribute('inert', '');
+  }
+
+  resumeFocus() {
+    this.overlayContainer?.removeAttribute('aria-hidden');
+    this.overlayContainer?.removeAttribute('inert');
+    this.focusFirstElement();
   }
 }

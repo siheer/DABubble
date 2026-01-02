@@ -5,7 +5,7 @@
   class="navbar-dialog inset-shadow-xl flex flex-col items-center justify-center gap-4 bg-white shadow-xl"
   [class.mobile]="mode === 'mobile'">
   <div class="h-1.5 w-16 cursor-pointer rounded-full bg-gray-300 lg:hidden" (click)="startCloseAnimation()"></div>
-  <div
+  <button
     #profileBtn
     class="hover-button mr-40 flex h-10 w-35 cursor-pointer items-center justify-items-start gap-4 rounded-full pl-4 text-xl lg:mr-0 lg:w-48 lg:justify-center lg:pl-0"
     [ngClass]="{ active: activeItem === 'profile' }"
@@ -14,10 +14,10 @@
       class="account-img lg:hidden"
       [src]="activeItem === 'profile' ? '/imgs/account_focus.png' : '/imgs/direktnachrichten img.svg'"
       alt="" />
-    <button class="">Profil</button>
-  </div>
+    Profil
+  </button>
 
-  <div
+  <button
     class="hover-button mr-40 flex h-10 w-35 cursor-pointer items-center justify-items-start gap-4 rounded-full pl-4 text-xl lg:mr-0 lg:w-48 lg:justify-center lg:pl-0"
     [ngClass]="{ active: activeItem === 'logout' }"
     (click)="logOut()">
@@ -25,6 +25,6 @@
       class="account-img lg:hidden"
       [src]="activeItem === 'logout' ? '/imgs/logout_focus.png' : '/imgs/logout.png'"
       alt="" />
-    <button class="">Log out</button>
-  </div>
+    Log out
+  </button>
 </section>

@@ -24,7 +24,7 @@ export class OverlayService {
     if (depth <= 1) {
       this.backdrop.style.background = 'rgba(0,0,0,0.4)';
     } else {
-      this.backdrop.style.background = 'rgba(0,0,0,0.3)';
+      this.backdrop.style.background = 'rgba(0,0,0,0.6)';
     }
 
     this.backdrop.style.zIndex = String(1000 + depth - 1);
@@ -50,6 +50,8 @@ export class OverlayService {
   }
 
   open<T extends object>(component: Type<T>, config?: OverlayConfig<T>) {
+    const previous = this.getLastOverlay();
+    previous?.suspendFocus?.();
     this.backdrop.style.display = 'block';
     this.backdrop.style.zIndex = String(1000 + this.overlays.length);
 
@@ -66,13 +68,16 @@ export class OverlayService {
     overlayRef.onClose(() => {
       this.overlays = this.overlays.filter((o) => o !== overlayRef);
 
-      this.onAnyOverlayClosed?.();
-
-      if (this.overlays.length === 0) {
-        this.backdrop.style.display = 'none';
+      const last = this.getLastOverlay();
+      if (last) {
+        last.resumeFocus();
       } else {
-        this.updateBackdropStyle();
+        overlayRef['previouslyFocusedElement']?.focus();
+        this.backdrop.style.display = 'none';
       }
+
+      this.onAnyOverlayClosed?.();
+      this.updateBackdropStyle();
     });
 
     overlayRef.open();

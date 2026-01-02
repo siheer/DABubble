@@ -1,11 +1,6 @@
-button {
-  border: 1px solid #797ef3;
-  padding: 12px 24px;
-}
-
 button:disabled {
   cursor: not-allowed;
-    &:hover {
+  &:hover {
     cursor: not-allowed;
     background-color: #bb0404;
     opacity: 0.5;
@@ -40,6 +35,8 @@ h4 {
 .cancel {
   color: #535af1;
   font-weight: 700;
+  border: 1px solid #797ef3;
+  padding: 12px 24px;
   &:hover {
     cursor: pointer;
     background-color: #535af1;
@@ -47,10 +44,12 @@ h4 {
   }
 }
 
-.update{
+.update {
   background-color: #535af1;
   color: white;
   font-weight: 700;
+  border: 1px solid #797ef3;
+  padding: 12px 24px;
   &:hover {
     cursor: pointer;
     background-color: #797ef3;
@@ -65,7 +64,9 @@ h4 {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  transition: transform 0.2s, color 0.2s;
+  transition:
+    transform 0.2s,
+    color 0.2s;
 }
 
 .close::before {
@@ -78,7 +79,9 @@ h4 {
   background-color: #eceefe;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: width 0.2s ease, height 0.2s ease;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease;
   z-index: -1;
 }
 
@@ -96,7 +99,7 @@ h4 {
 .input-disabled {
   cursor: not-allowed;
   opacity: 0.5;
-    &:hover {
+  &:hover {
     border: 1px solid #535af1;
     cursor: not-allowed;
   }
