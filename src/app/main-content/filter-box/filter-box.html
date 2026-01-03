@@ -32,7 +32,7 @@
 
   <ng-container *ngIf="isChannelSearch">
     <ng-container *ngIf="channels.length; else noChannels">
-      <div class="px-10 py-2">
+      <div class="scroll-container max-h-[400px] overflow-y-auto px-10 py-2">
         <div
           *ngFor="let channel of channels"
           (click)="choose(channel)"
@@ -48,56 +48,58 @@
   </ng-container>
 
   <ng-container *ngIf="!isUserSearch && !isChannelSearch">
-    <ng-container *ngIf="users.length">
-      <div class="px-10 py-2">
-        <div class="filter-color text-decoration-line: px-2 text-xs font-semibold underline">User</div>
-        <div
-          *ngFor="let user of sortedUsers"
-          (click)="choose(user)"
-          class="filter-bg flex cursor-pointer items-center px-2 py-3">
-          <img class="mr-3 h-8 w-8 rounded-full" [src]="user.data.photoUrl" />
-          {{ user.data.name }}
+    <div class="scroll-container max-h-[400px] overflow-y-auto">
+      <ng-container *ngIf="users.length">
+        <div class="px-10 py-2">
+          <div class="filter-color text-decoration-line: px-2 text-xs font-semibold underline">User</div>
+          <div
+            *ngFor="let user of sortedUsers"
+            (click)="choose(user)"
+            class="filter-bg flex cursor-pointer items-center px-2 py-3">
+            <img class="mr-3 h-8 w-8 rounded-full" [src]="user.data.photoUrl" />
+            {{ user.data.name }}
+          </div>
         </div>
-      </div>
-    </ng-container>
+      </ng-container>
 
-    <ng-container *ngIf="channels.length">
-      <div class="px-10 py-2">
-        <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Channels</div>
-        <div
-          *ngFor="let channel of channels"
-          (click)="choose(channel)"
-          class="filter-bg flex cursor-pointer items-center gap-2 px-2 py-3">
-          <span>#</span><span>{{ channel.data.title }}</span>
+      <ng-container *ngIf="channels.length">
+        <div class="px-10 py-2">
+          <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Channels</div>
+          <div
+            *ngFor="let channel of channels"
+            (click)="choose(channel)"
+            class="filter-bg flex cursor-pointer items-center gap-2 px-2 py-3">
+            <span>#</span><span>{{ channel.data.title }}</span>
+          </div>
         </div>
-      </div>
-    </ng-container>
+      </ng-container>
 
-    <ng-container *ngIf="messages.length">
-      <div class="px-10 py-2">
-        <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Messages</div>
-        <div
-          *ngFor="let message of messages"
-          (click)="choose(message)"
-          class="filter-bg flex cursor-pointer items-start gap-3 px-4 py-3">
-          <div class="flex flex-col">
-            <div class="line-clamp-2">
-              <span class="bg-yellow-100 text-sm text-gray-700"> {{ message.data.text }}</span>
-            </div>
-            <div class="text-sm">
-              <span class="font-semibold">von {{ message.data.authorName }}</span>
-              <span class="text-gray-400"> in #{{ message.channelTitle }} </span>
+      <ng-container *ngIf="messages.length">
+        <div class="px-10 py-2">
+          <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Messages</div>
+          <div
+            *ngFor="let message of messages"
+            (click)="choose(message)"
+            class="filter-bg flex cursor-pointer items-start gap-3 px-4 py-3">
+            <div class="flex flex-col">
+              <div class="line-clamp-2">
+                <span class="bg-yellow-100 text-sm text-gray-700"> {{ message.data.text }}</span>
+              </div>
+              <div class="text-sm">
+                <span class="font-semibold">von {{ message.data.authorName }}</span>
+                <span class="text-gray-400"> in #{{ message.channelTitle }} </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </ng-container>
+      </ng-container>
 
-    <ng-container *ngIf="showEmptyState">
-      <div class="px-4 py-3 text-gray-400">
-        🔍 Leider nichts gefunden.
-        <div class="mt-1 text-xs text-purple-400/60">Vielleicht ein anderer Begriff?</div>
-      </div>
-    </ng-container>
+      <ng-container *ngIf="showEmptyState">
+        <div class="px-4 py-3 text-gray-400">
+          🔍 Leider nichts gefunden.
+          <div class="mt-1 text-xs text-purple-400/60">Vielleicht ein anderer Begriff?</div>
+        </div>
+      </ng-container>
+    </div>
   </ng-container>
 </div>

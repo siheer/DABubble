@@ -163,6 +163,7 @@ export class FilterBox implements OnInit, OnChanges {
 
   private handleEmptyState(term: string) {
     clearTimeout(this.emptyStateTimer);
+    this.showEmptyState = false;
 
     if (!term || this.results.length > 0) return;
 

@@ -1,10 +1,10 @@
 .filter-bg:hover {
-  background-color: #ECEEFE;
+  background-color: #eceefe;
   border-radius: 50px;
 }
 
-.box-border{
-  border: 3px solid #ECEEFE;
+.box-border {
+  border: 3px solid #eceefe;
   border-bottom-left-radius: 25px;
   border-bottom-right-radius: 25px;
   border-top-right-radius: 25px;
@@ -13,8 +13,10 @@
 
 .scroll-container {
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.filter-color{
-  color: #444DF2;
+.filter-color {
+  color: #444df2;
 }
