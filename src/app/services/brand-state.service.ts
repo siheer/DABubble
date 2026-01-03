@@ -20,4 +20,8 @@ export class BrandStateService {
     this.splashDone.set(false);
     localStorage.removeItem(SPLASH_KEY);
   }
+
+  resetSplashForMainPage() {
+    this.splashDone.set(false);
+  }
 }

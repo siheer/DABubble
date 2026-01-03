@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { Component, inject, input, OnInit, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -8,6 +8,7 @@ import { UserCredential } from 'firebase/auth';
 import { UserService } from '../../services/user.service';
 import { AsideContentWrapperComponent } from '../../aside-content/aside-content-wrapper';
 import { ToastService } from '../../toast/toast.service';
+import { BrandStateService } from '../../services/brand-state.service';
 
 @Component({
   selector: 'app-login',
@@ -15,11 +16,13 @@ import { ToastService } from '../../toast/toast.service';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly userService = inject(UserService);
   private readonly toastService = inject(ToastService);
+
+  constructor(private brandState: BrandStateService) {}
 
   mode = input<'login' | 'reauth'>('login');
   embedded = input(false);
@@ -32,6 +35,10 @@ export class Login {
   errorMessage: string | null = null;
   infoMessage: string | null = null;
   isResetMode = false;
+
+  ngOnInit() {
+    this.brandState.resetSplashForMainPage();
+  }
 
   private get isReauthMode(): boolean {
     return this.mode() === 'reauth';
