@@ -23,10 +23,10 @@ export class Workspace {
   private readonly router = inject(Router);
   private readonly currentUser$ = toObservable(this.userService.currentUser);
 
-  protected readonly activeChannelId = input<string | null>(null);
-  protected readonly activeDmId = input<string | null>(null);
+  readonly activeChannelId = input<string | null>(null);
+  readonly activeDmId = input<string | null>(null);
 
-  protected readonly activeDmId$ = toObservable(this.activeDmId);
+  readonly activeDmId$ = toObservable(this.activeDmId);
 
   protected readonly channelsWithUnread$: Observable<ChannelListItem[]> = combineLatest([
     this.firestoreService.getChannels(),
