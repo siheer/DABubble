@@ -60,7 +60,7 @@ export class MainContent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly screenService = inject(ScreenService);
 
-  protected readonly isSmallScreen = this.screenService.isSmallScreen;
+  protected readonly isTabletScreen = this.screenService.isTabletScreen;
   protected readonly activeChannelId = signal<string | null>(null);
   protected readonly activeDmId = signal<string | null>(null);
   protected readonly activeThreadId = signal<string | null>(null);
@@ -82,7 +82,7 @@ export class MainContent {
   }
 
   protected showMobileBackButton(): boolean {
-    if (!this.isSmallScreen()) return false;
+    if (!this.isTabletScreen()) return false;
     return this.activeView() !== 'home';
   }
 
@@ -166,7 +166,7 @@ export class MainContent {
       current = current.firstChild;
     }
 
-    if (threadId && this.isSmallScreen()) {
+    if (threadId && this.isTabletScreen()) {
       view = 'thread';
     }
 

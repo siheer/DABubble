@@ -13,7 +13,7 @@ import { catchError, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs'
   standalone: true,
   imports: [CommonModule, Workspace],
   template: `
-    @if (isSmallScreen()) {
+    @if (isTabletScreen()) {
       <app-workspace class="h-full w-full"></app-workspace>
     } @else {
       <section class="main-home">
@@ -48,7 +48,7 @@ export class MainHome {
 
   private readonly currentUser$ = toObservable(this.userService.currentUser);
 
-  protected readonly isSmallScreen = this.screenService.isSmallScreen;
+  protected readonly isTabletScreen = this.screenService.isTabletScreen;
   protected readonly isLoading = signal(true);
   protected readonly hasChannels = signal(false);
 
@@ -78,7 +78,7 @@ export class MainHome {
         this.hasChannels.set(channels.length > 0);
 
         const firstChannelId = channels.find((c) => !!c.id)?.id ?? null;
-        if (!this.isSmallScreen() && firstChannelId) {
+        if (!this.isTabletScreen() && firstChannelId) {
           void this.router.navigate(['/main/channels', firstChannelId], { replaceUrl: true });
         }
       });

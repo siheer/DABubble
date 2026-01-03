@@ -66,7 +66,7 @@ export class ChannelComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly currentUser$ = toObservable(this.userService.currentUser);
 
-  protected readonly isSmallScreen = this.screenService.isSmallScreen;
+  protected readonly isTabletScreen = this.screenService.isTabletScreen;
 
   @ViewChild('messageTextarea')
   private messageTextarea?: ElementRef<HTMLTextAreaElement>;

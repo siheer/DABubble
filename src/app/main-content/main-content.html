@@ -1,7 +1,7 @@
 <section class="relative pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
   <app-navbar></app-navbar>
 
-  <ng-container *ngIf="isSmallScreen(); else desktopLayout">
+  <ng-container *ngIf="isTabletScreen(); else desktopLayout">
     <div class="main-content__mobile">
       <div class="main-content__mobile-header" *ngIf="showMobileBackButton()">
         <button type="button" class="main-content__back" aria-label="Zur vorherigen Ansicht" (click)="navigateUp()">

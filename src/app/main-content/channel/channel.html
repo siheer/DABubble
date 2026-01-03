@@ -212,9 +212,9 @@
   <mat-sidenav
     class="channel-layout__thread"
     position="end"
-    [mode]="isSmallScreen() ? 'over' : 'side'"
+    [mode]="isTabletScreen() ? 'over' : 'side'"
     [opened]="hasThreadChild()"
-    [disableClose]="!isSmallScreen()"
+    [disableClose]="!isTabletScreen()"
     (closedStart)="closeThreadFromSidenav()">
     <router-outlet></router-outlet>
   </mat-sidenav>
