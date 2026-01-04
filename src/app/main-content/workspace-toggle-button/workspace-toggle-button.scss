@@ -1,0 +1,25 @@
+.workspace_button {
+  width: max-content;
+  height: max-content;
+  padding: 12px 6px;
+  background-color: white;
+  writing-mode: sideways-lr;
+  text-orientation: mixed;
+  &:hover {
+    color: #535af1;
+    cursor: pointer;
+  }
+}
+
+.workspace_toggle-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.open_workspace {
+  transform: rotate(90deg);
+}
+
+.close_workspace {
+  transform: rotate(270deg);
+}

@@ -9,11 +9,12 @@ import { Workspace } from './workspace/workspace';
 import { Navbar } from './navbar/navbar';
 import { ScreenService } from '../services/screen.service';
 import { ThreadCloseService } from '../services/thread-close.service';
+import { WorkspaceToggleButton } from "./workspace-toggle-button/workspace-toggle-button";
 
 @Component({
   selector: 'app-main-content',
   standalone: true,
-  imports: [MatSidenavModule, Workspace, Navbar, CommonModule, RouterOutlet],
+  imports: [MatSidenavModule, Workspace, Navbar, CommonModule, RouterOutlet, WorkspaceToggleButton],
   templateUrl: './main-content.html',
   styleUrl: './main-content.scss',
   animations: [

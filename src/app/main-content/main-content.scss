@@ -1,35 +1,3 @@
-.workspace_button {
-  transform: rotate(270deg);
-  width: max-content;
-  padding: 12px 20px;
-  background-color: white;
-  &:hover {
-    color: #535af1;
-    cursor: pointer;
-  }
-}
-
-.workspace_toggle-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.open_workspace {
-  transform: rotate(90deg);
-}
-
-.close_workspace {
-  transform: rotate(270deg);
-}
-
-.open {
-  left: -115px;
-}
-
-.close {
-  left: -103px;
-}
-
 .main-content__mobile {
   height: calc(100vh - 124px);
   display: flex;

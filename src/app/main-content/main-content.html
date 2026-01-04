@@ -2,7 +2,7 @@
   <app-navbar [showBackButton]="showMobileBackButton()" (back)="navigateUp()"></app-navbar>
 
   <ng-container *ngIf="isTabletScreen(); else desktopLayout">
-    <div class="main-content__mobile ">
+    <div class="main-content__mobile">
       <div class="main-content__mobile-body h-[calc(100vh-80px)]" [@mobileRoute]="prepareRoute(mobileOutlet)">
         <router-outlet #mobileOutlet="outlet"></router-outlet>
       </div>
@@ -20,41 +20,11 @@
       </mat-sidenav-content>
     </mat-sidenav-container>
 
-    <div class="absolute" *ngIf="leftSidenav.opened">
-      <button
-        class="workspace_button open absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
-        (click)="leftSidenav.close()"
-        (mouseenter)="isCloseWorkspaceButtonHovered = true"
-        (mouseleave)="isCloseWorkspaceButtonHovered = false">
-        Workspace-Menü schließen
-        <img
-          class="close_workspace workspace_toggle-icon"
-          [src]="
-            isCloseWorkspaceButtonHovered
-              ? 'imgs/workspace/close-workspace-menu-hover.svg'
-              : 'imgs/workspace/close-workspace-menu.svg'
-          "
-          alt="Workspace-Menü schließen" />
-      </button>
-    </div>
-
-    <div class="absolute" *ngIf="!leftSidenav.opened">
-      <button
-        class="workspace_button close absolute bottom-64 z-10 flex items-center gap-3 rounded-b-xl drop-shadow-lg"
-        (click)="leftSidenav.open()"
-        (mouseenter)="isOpenWorkspaceButtonHovered = true"
-        (mouseleave)="isOpenWorkspaceButtonHovered = false">
-        Workspace-Menü öffnen
-        <img
-          class="open_workspace workspace_toggle-icon"
-          [src]="
-            isOpenWorkspaceButtonHovered
-              ? 'imgs/workspace/open-workspace-menu-hover.svg'
-              : 'imgs/workspace/open-workspace-menu.svg'
-          "
-          alt="Workspace-Menü öffnen" />
-      </button>
-    </div>
+    <app-workspace-toggle-button
+      *ngIf="leftSidenav"
+      [opened]="leftSidenav.opened"
+      (toggle)="leftSidenav.opened ? leftSidenav.close() : leftSidenav.open()">
+    </app-workspace-toggle-button>
 
     <button class="mobile-workspace-button" type="button" aria-label="Mobile Workspace">
       <img src="imgs/workspace/mobileButton.svg" alt="" />
