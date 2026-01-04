@@ -1,5 +1,5 @@
 <div
-  class="absolute top-8 right-0 left-4 sm:left-3 lg:left-12 z-50 box-border max-w-[300px] sm:max-w-[360px] scale-100 bg-white opacity-100 shadow-xl transition-all duration-150 ease-out"
+  class="absolute top-8 right-0 left-4 z-50 box-border max-w-[300px] scale-100 bg-white opacity-100 shadow-xl transition-all duration-150 ease-out sm:left-3 sm:max-w-[360px] lg:left-12"
   *ngIf="hasRenderableContent">
   <ng-container *ngIf="isGuidance">
     <div class="px-6 py-4 text-sm text-gray-500">
@@ -13,7 +13,7 @@
 
   <ng-container *ngIf="isUserSearch">
     <ng-container *ngIf="users.length; else noUsers">
-      <div class="scroll-container max-h-[250px] sm:max-h-[400px] overflow-y-auto px-10 py-2 pr-2 pb-2">
+      <div class="scroll-container max-h-[250px] overflow-y-auto px-10 py-2 pr-2 pb-2 sm:max-h-[400px]">
         <div
           *ngFor="let user of sortedUsers"
           (click)="choose(user)"
@@ -32,7 +32,7 @@
 
   <ng-container *ngIf="isChannelSearch">
     <ng-container *ngIf="channels.length; else noChannels">
-      <div class="scroll-container max-h-[250px] sm:max-h-[400px] overflow-y-auto px-10 py-2">
+      <div class="scroll-container max-h-[250px] overflow-y-auto px-10 py-2 sm:max-h-[400px]">
         <div
           *ngFor="let channel of channels"
           (click)="choose(channel)"
@@ -48,46 +48,55 @@
   </ng-container>
 
   <ng-container *ngIf="!isUserSearch && !isChannelSearch">
-    <div class="scroll-container max-h-[250px] sm:max-h-[400px] overflow-y-auto">
+    <div class="scroll-container max-h-[250px] overflow-y-auto sm:max-h-[400px]">
       <ng-container *ngIf="users.length">
         <div class="px-10 py-2">
-          <div class="filter-color text-decoration-line: px-2 text-xs font-semibold underline">User</div>
           <div
             *ngFor="let user of sortedUsers"
             (click)="choose(user)"
             class="filter-bg flex cursor-pointer items-center px-2 py-3">
             <img class="mr-3 h-8 w-8 rounded-full" [src]="user.data.photoUrl" />
             {{ user.data.name }}
+            <span class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700"> User </span>
           </div>
         </div>
       </ng-container>
 
       <ng-container *ngIf="channels.length">
         <div class="px-10 py-2">
-          <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Channels</div>
           <div
             *ngFor="let channel of channels"
             (click)="choose(channel)"
             class="filter-bg flex cursor-pointer items-center gap-2 px-2 py-3">
             <span>#</span><span>{{ channel.data.title }}</span>
+            <span class="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-700"> Channel </span>
           </div>
         </div>
       </ng-container>
 
       <ng-container *ngIf="messages.length">
         <div class="px-10 py-2">
-          <div class="filter-color text-decoration-line: px-4 text-xs font-semibold underline">Messages</div>
           <div
             *ngFor="let message of messages"
             (click)="choose(message)"
             class="filter-bg flex cursor-pointer items-start gap-3 px-4 py-3">
-            <div class="flex flex-col">
+            <div class="flex w-full flex-col gap-1">
               <div class="line-clamp-2">
-                <span class="bg-yellow-100 text-sm text-gray-700"> {{ message.data.text }}</span>
+                <span class="text-sm text-gray-700">
+                  {{ message.data.text }}
+                </span>
               </div>
-              <div class="text-sm">
-                <span class="font-semibold">von {{ message.data.authorName }}</span>
-                <span class="text-gray-400"> in #{{ message.channelTitle }} </span>
+              <div class="flex flex-wrap items-center gap-1 text-xs text-gray-500">
+                <span class="font-semibold"> von {{ getAuthor(message)?.name }} </span>
+
+                <span>in #{{ message.channelTitle }}</span>
+                <span *ngIf="message.parentMessageId" class="ml-2 rounded bg-purple-100 px-2 py-0.5 text-purple-700">
+                  Thread
+                </span>
+
+                <span *ngIf="!message.parentMessageId" class="ml-2 rounded bg-yellow-100 px-2 py-0.5 text-yellow-700">
+                  Message
+                </span>
               </div>
             </div>
           </div>

@@ -31,6 +31,8 @@ export class FilterBox implements OnInit, OnChanges {
 
   private destroyRef = inject(DestroyRef);
 
+  private usersById = new Map<string, AppUser>();
+
   private emptyStateTimer?: number;
   showEmptyState = false;
 
@@ -89,6 +91,13 @@ export class FilterBox implements OnInit, OnChanges {
   }
 
   ngOnInit() {
+    this.userService
+      .getAllUsers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((users) => {
+        this.usersById = new Map(users.map((u) => [u.uid, u]));
+      });
+
     this.searchTerm$
       .pipe(
         debounceTime(200),
@@ -127,10 +136,12 @@ export class FilterBox implements OnInit, OnChanges {
       this.selectItem.emit(item);
       this.close.emit();
     } else if (item.collection === 'messages') {
-      if (item.channelId && item.id) {
-        void this.router.navigate(['/main/channels', item.channelId], {
-          queryParams: { highlight: item.id },
-        });
+      if (!item.channelId || !item.id) return;
+
+      if (item.parentMessageId) {
+        void this.router.navigate(['/main/channels', item.channelId, 'threads', item.parentMessageId]);
+      } else {
+        void this.router.navigate(['/main/channels', item.channelId], { queryParams: { highlight: item.id } });
       }
       this.selectItem.emit(item);
       this.close.emit();
@@ -163,6 +174,10 @@ export class FilterBox implements OnInit, OnChanges {
 
   get hasRenderableContent(): boolean {
     return this.isGuidance || this.results.length > 0 || this.showEmptyState;
+  }
+
+  getAuthor(message: SearchResult): AppUser | undefined {
+    return this.usersById.get(message.data.authorId);
   }
 
   private handleEmptyState(term: string) {

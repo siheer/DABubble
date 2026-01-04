@@ -6,10 +6,16 @@ export interface SearchResult<T = any> {
   data: T;
   channelId?: string;
   channelTitle?: string;
+  parentMessageId?: string;
+  isThread?: boolean;
 }
 
 export interface MessageDoc {
   text: string;
-  authorName: string;
-  authorPhotoUrl?: string;
+  authorId: string;
+}
+
+export interface ThreadDoc {
+  text: string;
+  authorId: string;
 }

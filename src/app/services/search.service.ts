@@ -1,12 +1,18 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, collectionGroup, getDocs, QuerySnapshot, DocumentData } from '@angular/fire/firestore';
-import { SearchCollection, SearchResult, MessageDoc } from '../classes/search-result.class';
+import { SearchCollection, SearchResult, MessageDoc, ThreadDoc } from '../classes/search-result.class';
 import { ChannelMembershipService } from './membership.service';
 import { from, Observable, of, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
   private injector = inject(EnvironmentInjector);
+
+  private async buildChannelMap(): Promise<Map<string, string>> {
+    const channels = await this.getAllFromCollection('channels');
+    return new Map(channels.map((c) => [c.id, c.data.title]));
+  }
+
   constructor(
     private firestore: Firestore,
     private channelMembershipService: ChannelMembershipService
@@ -78,35 +84,75 @@ export class SearchService {
     const lowerTerm = term.toLowerCase();
 
     return runInInjectionContext(this.injector, async () => {
-      const messagesRef = collectionGroup(this.firestore, 'messages');
-      const snapshot = await getDocs(messagesRef);
+      const [messageResults, threadResults] = await Promise.all([
+        this.searchChannelMessages(lowerTerm, allowedChannelIds),
+        this.searchThreadMessages(lowerTerm, allowedChannelIds),
+      ]);
 
-      const channels = await this.getAllFromCollection('channels');
-      const channelMap = new Map(channels.map((c) => [c.id, c.data.title]));
-
-      return snapshot.docs
-        .map((doc) => {
-          const channelId = doc.ref.parent.parent?.id;
-          if (!channelId || !allowedChannelIds.has(channelId)) {
-            return null;
-          }
-
-          const data = doc.data() as MessageDoc;
-
-          return {
-            id: doc.id,
-            collection: 'messages',
-            channelId,
-            channelTitle: channelMap.get(channelId),
-            data: {
-              text: data.text,
-              authorName: data.authorName,
-              authorPhotoUrl: data.authorPhotoUrl,
-            },
-          } as SearchResult;
-        })
-        .filter((r): r is SearchResult => !!r && r.data.text?.toLowerCase().includes(lowerTerm));
+      return [...messageResults, ...threadResults];
     });
+  }
+
+  private async searchChannelMessages(lowerTerm: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
+    const messagesRef = collectionGroup(this.firestore, 'messages');
+    const snapshot = await getDocs(messagesRef);
+
+    const channelMap = await this.buildChannelMap();
+
+    return snapshot.docs
+      .map((doc) => {
+        const channelId = doc.ref.parent.parent?.id;
+        if (!channelId || !allowedChannelIds.has(channelId)) return null;
+
+        const data = doc.data() as MessageDoc;
+
+        if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
+
+        return {
+          id: doc.id,
+          collection: 'messages',
+          channelId,
+          channelTitle: channelMap.get(channelId),
+          data: {
+            text: data.text,
+            authorId: data.authorId,
+          },
+        } as SearchResult;
+      })
+      .filter((r): r is SearchResult => r !== null);
+  }
+
+  private async searchThreadMessages(lowerTerm: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
+    const threadsRef = collectionGroup(this.firestore, 'threads');
+    const snapshot = await getDocs(threadsRef);
+
+    const channelMap = await this.buildChannelMap();
+
+    return snapshot.docs
+      .map((doc) => {
+        const parentMessageId = doc.ref.parent.parent?.id;
+        const channelId = doc.ref.parent.parent?.parent.parent?.id;
+
+        if (!parentMessageId || !channelId) return null;
+        if (!allowedChannelIds.has(channelId)) return null;
+
+        const data = doc.data() as ThreadDoc;
+        if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
+
+        return {
+          id: doc.id,
+          collection: 'messages',
+          channelId,
+          channelTitle: channelMap.get(channelId),
+          parentMessageId,
+          isThread: true,
+          data: {
+            text: data.text,
+            authorId: data.authorId,
+          },
+        } as SearchResult;
+      })
+      .filter((r): r is SearchResult => r !== null);
   }
 
   normalizeTerm(term: string): string {
