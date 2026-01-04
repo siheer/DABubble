@@ -135,9 +135,17 @@ export class OverlayRef<T extends object = any> {
     const offsetY = this.config.offsetY ?? 0;
     // this.overlayContainer.style.left = rect.left + offsetX + 'px';
     // this.overlayContainer.style.top = rect.bottom + offsetY + 'px';
-      const margin = 12;
+    const margin = 12;
+
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const maxWidth = Math.max(0, viewportWidth - margin * 2);
+    const maxHeight = Math.max(0, viewportHeight - margin * 2);
+
+    this.overlayContainer.style.maxWidth = `${maxWidth}px`;
+    this.overlayContainer.style.maxHeight = `${maxHeight}px`;
+    this.overlayContainer.style.overflowY = 'auto';
+    this.overlayContainer.style.overflowX = 'hidden';
     const overlayWidth = this.overlayContainer.offsetWidth;
     const overlayHeight = this.overlayContainer.offsetHeight;
     let left = rect.left + offsetX;
