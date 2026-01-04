@@ -36,7 +36,7 @@
       </button>
     </li>
   </ul>
-
+<p *ngIf="members.length >3" class="channel-members__more-info">{{ members.length }} Mitglieder</p>
   <button type="button" class="channel-members__add" (click)="openAddToChannel($event)">
         <img class="channel-members__add-icon" src="imgs/channel-members/Add members button.svg" alt="" />
     <img

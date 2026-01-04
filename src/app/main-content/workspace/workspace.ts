@@ -35,34 +35,34 @@ export class Workspace {
 
   readonly activeDmId$ = toObservable(this.activeDmId);
 
-  protected readonly channelsWithUnread$: Observable<ChannelListItem[]> = combineLatest([
-    this.firestoreService.getChannels(),
-    this.currentUser$,
-  ]).pipe(
-    switchMap(([channels, currentUser]) => {
+  protected readonly channelsWithUnread$: Observable<ChannelListItem[]> = this.currentUser$.pipe(
+    switchMap((currentUser) => {
       if (!currentUser) return of([]);
 
-      const channelObservables = channels.map((channel) => {
-        const channelId = channel.id;
-        if (!channelId) return of({ ...channel, unreadCount: 0 });
+      return this.firestoreService.getChannelsForUser(currentUser.uid).pipe(
+        switchMap((channels) => {
+          const channelObservables = channels.map((channel) => {
+            const channelId = channel.id;
+            if (!channelId) return of({ ...channel, unreadCount: 0 });
 
-        return this.firestoreService.getChannelMessages(channelId).pipe(
-          map((messages) => {
-            const lastRead = this.getChannelLastRead(currentUser.uid, channelId);
-            const unreadCount = messages.filter((message) => {
-              const createdAtMs = message.createdAt?.toMillis?.() ?? 0;
-              return message.authorId !== currentUser.uid && createdAtMs > lastRead;
-            }).length;
+            return this.firestoreService.getChannelMessages(channelId).pipe(
+              map((messages) => {
+                const lastRead = this.getChannelLastRead(currentUser.uid, channelId);
+                const unreadCount = messages.filter((message) => {
+                  const createdAtMs = message.createdAt?.toMillis?.() ?? 0;
+                  return message.authorId !== currentUser.uid && createdAtMs > lastRead;
+                }).length;
 
-            return { ...channel, unreadCount };
-          })
-        );
-      });
+                return { ...channel, unreadCount };
+              })
+            );
+          });
 
-      return channelObservables.length ? combineLatest(channelObservables) : of([]);
+          return channelObservables.length ? combineLatest(channelObservables) : of([]);
+        })
+      );
     })
   );
-
   protected readonly directMessageUsers$: Observable<DirectMessageUser[]> = combineLatest([
     this.userService.getAllUsers(),
     this.currentUser$,

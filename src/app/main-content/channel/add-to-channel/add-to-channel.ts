@@ -118,7 +118,9 @@ export class AddToChannel implements OnInit {
     this.filteredMembers = this.filterMembers(this.searchTerm);
   }
 
-
+ protected confirmSuggestions(): void {
+    this.showSuggestions = false;
+  }
   protected onSubmit(event?: Event): void {
     event?.preventDefault();
     void this.addSelectedMembers();

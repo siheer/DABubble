@@ -61,6 +61,12 @@
         </div>
         <span *ngIf="member.status === 'online'" class="add-to-channel__status" aria-label="Online"></span>
       </button>
+
+      <div class="add-to-channel__dropdown-actions">
+        <button type="button" class="add-to-channel__dropdown-confirm" (click)="confirmSuggestions()">
+          Auswahl bestätigen
+        </button>
+      </div>
     </div>
 
     <p *ngIf="saveError" class="add-to-channel__error" role="alert">{{ saveError }}</p>
