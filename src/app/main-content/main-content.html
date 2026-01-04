@@ -1,9 +1,9 @@
-<section class="relative pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
+<section class="relative h-full pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
   <app-navbar [showBackButton]="showMobileBackButton()" (back)="navigateUp()"></app-navbar>
 
   <ng-container *ngIf="isTabletScreen(); else desktopLayout">
     <div class="main-content__mobile">
-      <div class="main-content__mobile-body h-[calc(100vh-80px)]">
+      <div class="main-content__mobile-body h-full">
         <router-outlet></router-outlet>
       </div>
     </div>
