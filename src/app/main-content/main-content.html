@@ -10,7 +10,7 @@
   </ng-container>
 
   <ng-template #desktopLayout>
-    <mat-sidenav-container class="relative h-[calc(100vh-124px)] bg-dab-bg! pl-4 pr-4">
+    <mat-sidenav-container class="relative h-[calc(100vh-124px)] bg-dab-bg! pr-4 pl-4">
       <mat-sidenav class="bg-dab-bg!" #leftSidenav opened mode="side">
         <app-workspace [activeChannelId]="activeChannelId()" [activeDmId]="activeDmId()"></app-workspace>
       </mat-sidenav>
@@ -25,9 +25,5 @@
       [opened]="leftSidenav.opened"
       (toggle)="leftSidenav.opened ? leftSidenav.close() : leftSidenav.open()">
     </app-workspace-toggle-button>
-
-    <button class="mobile-workspace-button" type="button" aria-label="Mobile Workspace">
-      <img src="imgs/workspace/mobileButton.svg" alt="" />
-    </button>
   </ng-template>
 </section>
