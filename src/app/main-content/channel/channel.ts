@@ -22,6 +22,7 @@ import { ThreadCloseService } from '../../services/thread-close.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { EMOJI_CHOICES } from '../../texts';
+import { MobileRouteAnimationDirective } from '../../directives/mobile-route-animation.directive';
 
 type ChannelDay = {
   label: string;
@@ -53,6 +54,7 @@ type ChannelMemberView = ChannelMember & {
   selector: 'app-channel',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, MatSidenavModule, RouterOutlet],
+  hostDirectives: [MobileRouteAnimationDirective],
   templateUrl: './channel.html',
   styleUrls: ['./channel.scss'],
 })

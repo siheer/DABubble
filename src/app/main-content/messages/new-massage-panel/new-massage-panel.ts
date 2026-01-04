@@ -6,6 +6,7 @@ import { Channel, FirestoreService } from '../../../services/firestore.service';
 import { AppUser, UserService } from '../../../services/user.service';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { MobileRouteAnimationDirective } from '../../../directives/mobile-route-animation.directive';
 
 type SearchResult = {
   channels: Channel[];
@@ -17,6 +18,7 @@ type SearchResult = {
   selector: 'app-new-message-panel',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  hostDirectives: [MobileRouteAnimationDirective],
   templateUrl: './new-massage-panel.html',
   styleUrl: './new-massage-panel.scss',
 })

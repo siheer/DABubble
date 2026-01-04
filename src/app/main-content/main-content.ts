@@ -1,4 +1,3 @@
-import { animate, group, query, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -9,7 +8,8 @@ import { Workspace } from './workspace/workspace';
 import { Navbar } from './navbar/navbar';
 import { ScreenService } from '../services/screen.service';
 import { ThreadCloseService } from '../services/thread-close.service';
-import { WorkspaceToggleButton } from "./workspace-toggle-button/workspace-toggle-button";
+import { WorkspaceToggleButton } from './workspace-toggle-button/workspace-toggle-button';
+import { MobileRouteAnimationService } from '../services/mobile-route-animation.service';
 
 @Component({
   selector: 'app-main-content',
@@ -17,44 +17,6 @@ import { WorkspaceToggleButton } from "./workspace-toggle-button/workspace-toggl
   imports: [MatSidenavModule, Workspace, Navbar, CommonModule, RouterOutlet, WorkspaceToggleButton],
   templateUrl: './main-content.html',
   styleUrl: './main-content.scss',
-  animations: [
-    trigger('mobileRoute', [
-      transition('* <=> *', [
-        style({ position: 'relative', overflow: 'hidden' }),
-        query(
-          ':enter, :leave',
-          [
-            style({
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-            }),
-          ],
-          { optional: true }
-        ),
-        group([
-          query(
-            ':enter',
-            [
-              style({ transform: 'translateX(100%)', opacity: 0 }),
-              animate('250ms cubic-bezier(0.25, 0.8, 0.25, 1)', style({ transform: 'translateX(0)', opacity: 1 })),
-            ],
-            { optional: true }
-          ),
-          query(
-            ':leave',
-            [
-              style({ transform: 'translateX(0)', opacity: 1 }),
-              animate('200ms cubic-bezier(0.4, 0, 0.2, 1)', style({ transform: 'translateX(-20%)', opacity: 0 })),
-            ],
-            { optional: true }
-          ),
-        ]),
-      ]),
-    ]),
-  ],
 })
 export class MainContent {
   private readonly router = inject(Router);
@@ -62,6 +24,7 @@ export class MainContent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly screenService = inject(ScreenService);
   private readonly threadCloseService = inject(ThreadCloseService);
+  private readonly mobileRouteAnimation = inject(MobileRouteAnimationService);
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
   protected readonly activeChannelId = signal<string | null>(null);
@@ -90,6 +53,10 @@ export class MainContent {
   }
 
   protected navigateUp(): void {
+    if (this.isTabletScreen()) {
+      this.mobileRouteAnimation.setDirection('back');
+    }
+
     if (this.activeView() === 'thread') {
       this.threadCloseService.requestClose();
       return;
@@ -98,16 +65,6 @@ export class MainContent {
     const target = this.mobileBackTarget();
     if (!target) return;
     void this.router.navigateByUrl(target);
-  }
-
-  protected prepareRoute(outlet: RouterOutlet): string {
-    if (!outlet || !outlet.isActivated) {
-      return '';
-    }
-
-    return (
-      (outlet.activatedRouteData?.['animation'] as string | undefined) ?? outlet.activatedRoute?.routeConfig?.path ?? ''
-    );
   }
 
   private mobileBackTarget(): string | null {
@@ -143,12 +100,14 @@ export class MainContent {
    * @param route Root-Route der Komponente (typischerweise `this.route`), deren Child-Kette ausgewertet wird.
    */
   private syncRouteState(route: ActivatedRoute): void {
+    const previousView = this.activeView();
     let current: ActivatedRoute | null = route.firstChild;
 
     if (!current) {
       this.activeChannelId.set(null);
       this.activeDmId.set(null);
       this.activeThreadId.set(null);
+      this.updateMobileRouteDirection(previousView, 'home');
       this.activeView.set('home');
       return;
     }
@@ -177,9 +136,35 @@ export class MainContent {
       view = 'thread';
     }
 
+    this.updateMobileRouteDirection(previousView, view);
     this.activeChannelId.set(channelId);
     this.activeDmId.set(dmId);
     this.activeThreadId.set(threadId);
     this.activeView.set(view);
+  }
+
+  private updateMobileRouteDirection(
+    previousView: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage',
+    nextView: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage'
+  ): void {
+    if (!this.isTabletScreen()) {
+      return;
+    }
+
+    if (previousView === nextView) {
+      return;
+    }
+
+    const previousDepth = this.mobileViewDepth(previousView);
+    const nextDepth = this.mobileViewDepth(nextView);
+    const direction = nextDepth < previousDepth ? 'back' : 'forward';
+
+    this.mobileRouteAnimation.setDirection(direction);
+  }
+
+  private mobileViewDepth(view: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage'): number {
+    if (view === 'home') return 0;
+    if (view === 'thread') return 2;
+    return 1;
   }
 }

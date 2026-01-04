@@ -3,8 +3,8 @@
 
   <ng-container *ngIf="isTabletScreen(); else desktopLayout">
     <div class="main-content__mobile">
-      <div class="main-content__mobile-body h-[calc(100vh-80px)]" [@mobileRoute]="prepareRoute(mobileOutlet)">
-        <router-outlet #mobileOutlet="outlet"></router-outlet>
+      <div class="main-content__mobile-body h-[calc(100vh-80px)]">
+        <router-outlet></router-outlet>
       </div>
     </div>
   </ng-container>
