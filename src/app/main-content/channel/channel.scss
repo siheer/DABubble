@@ -157,6 +157,7 @@
 }
 
 .channel__description-trigger {
+  gap: 16px;
   border: none;
   background: transparent;
   padding: 4px;
@@ -180,8 +181,8 @@
 }
 
 .channel__description-trigger img {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
 }
 
 .channel__panel {
@@ -235,9 +236,9 @@
   align-items: flex-start;
   gap: 12px;
   align-self: stretch;
-  max-width:100%;
+  max-width: 100%;
   width: 100%;
-  padding: 8px 12px
+  padding: 8px 12px;
 }
 
 .channel__message--own {
