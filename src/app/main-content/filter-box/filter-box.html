@@ -1,5 +1,5 @@
 <div
-  class="absolute top-8 right-0 left-4 sm:left-3 lg:left-12 z-50 box-border max-w-[360px] scale-100 bg-white opacity-100 shadow-xl transition-all duration-150 ease-out"
+  class="absolute top-8 right-0 left-4 sm:left-3 lg:left-12 z-50 box-border max-w-[300px] sm:max-w-[360px] scale-100 bg-white opacity-100 shadow-xl transition-all duration-150 ease-out"
   *ngIf="hasRenderableContent">
   <ng-container *ngIf="isGuidance">
     <div class="px-6 py-4 text-sm text-gray-500">
@@ -32,7 +32,7 @@
 
   <ng-container *ngIf="isChannelSearch">
     <ng-container *ngIf="channels.length; else noChannels">
-      <div class="scroll-container max-h-[400px] overflow-y-auto px-10 py-2">
+      <div class="scroll-container max-h-[250px] sm:max-h-[400px] overflow-y-auto px-10 py-2">
         <div
           *ngFor="let channel of channels"
           (click)="choose(channel)"
@@ -48,7 +48,7 @@
   </ng-container>
 
   <ng-container *ngIf="!isUserSearch && !isChannelSearch">
-    <div class="scroll-container max-h-[400px] overflow-y-auto">
+    <div class="scroll-container max-h-[250px] sm:max-h-[400px] overflow-y-auto">
       <ng-container *ngIf="users.length">
         <div class="px-10 py-2">
           <div class="filter-color text-decoration-line: px-2 text-xs font-semibold underline">User</div>
