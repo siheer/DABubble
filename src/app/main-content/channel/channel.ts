@@ -97,7 +97,7 @@ export class ChannelComponent {
   );
 
   private readonly channels$ = this.currentUser$.pipe(
-    switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of([]))),
+    switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of(null))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -123,13 +123,14 @@ export class ChannelComponent {
         void this.router.navigate(['/main']);
         return;
       }
+      if (!channels) return;
 
       const channelExists = channels.some((channel) => channel.id === channelId);
       if (!channelExists) {
         void this.router.navigate(['/main']);
       }
     }),
-    map(([_, channelId, channels]) => channels.find((c) => c.id === channelId)),
+    map(([_, channelId, channels]) => (channels ? channels.find((c) => c.id === channelId) : undefined)),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
