@@ -15,6 +15,7 @@ export class ChannelDescription implements OnChanges, OnInit {
   private readonly overlayService = inject(OverlayService);
   private readonly firestoreService = inject(FirestoreService);
   private readonly userService = inject(UserService);
+  private readonly nonLeavableTitles = new Set(['willkommen', 'allgemeines', 'meetings']);
 
   @Input() channelId?: string;
   @Input() title = '';
@@ -32,6 +33,9 @@ export class ChannelDescription implements OnChanges, OnInit {
   protected isSavingDescription = false;
   protected isLeaving = false;
   protected errorMessage = '';
+  protected get canLeave(): boolean {
+    return !this.nonLeavableTitles.has((this.title ?? '').trim().toLowerCase());
+  }
 
   ngOnInit(): void {
     this.syncEditableFields();
@@ -119,7 +123,7 @@ export class ChannelDescription implements OnChanges, OnInit {
   }
 
   protected async leaveChannel(): Promise<void> {
-    if (!this.channelId || this.isLeaving) {
+    if (!this.channelId || this.isLeaving || !this.canLeave) {
       return;
     }
 

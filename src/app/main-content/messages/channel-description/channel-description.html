@@ -77,7 +77,7 @@
     <span class="channel-description__creator-name">{{ createdBy }}</span>
   </div>
 
-  <div class="channel-description__actions">
+  <div class="channel-description__actions" *ngIf="canLeave ">
     <button type="button" class="channel-description__secondary" (click)="leaveChannel()" [disabled]="isLeaving || !channelId">Channel verlassen</button>
   </div>
 </section>
