@@ -11,7 +11,6 @@
 }
 .message-board {
   background: #ffffff;
-  border-radius: 24px;
   padding: 24px;
   box-shadow: 0 10px 40px rgba(16, 24, 40, 0.06);
   height: 100%;
@@ -114,7 +113,7 @@
   max-width: 100%;
   width: 100%;
   gap: 8px;
-  padding: 8px 12px;  
+  padding: 8px 12px;
   --avatar-size: 36px;
 }
 .message-board__bubble:hover {
