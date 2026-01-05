@@ -34,20 +34,17 @@ export interface ChannelAttachment {
 
 export interface ThreadReply {
   id?: string;
-  author?: string;
-  avatar?: string;
-  text?: string;
-  createdAt?: Timestamp;
+  authorId: string;
+  text: string;
+  createdAt?: any;
   isOwn?: boolean;
 }
 
 export interface ThreadDocument {
-  id?: string;
+  authorId: string;
+  text: string;
+  createdAt?: any;
   channelTitle?: string;
-  author?: string;
-  avatar?: string;
-  text?: string;
-  createdAt?: Timestamp;
 }
 
 export interface ChannelMessage {
@@ -109,7 +106,6 @@ export class FirestoreService {
     { title: 'Willkommen' },
     { title: 'Allgemeines' },
     { title: 'Meetings' },
-
   ];
 
   getChannels(): Observable<Channel[]> {
@@ -470,7 +466,6 @@ export class FirestoreService {
     await commitBatch();
   }
 
-
   async updateChannel(channelId: string, payload: Partial<Pick<Channel, 'title' | 'description'>>): Promise<void> {
     const updates: Record<string, unknown> = {};
 
@@ -564,8 +559,7 @@ export class FirestoreService {
           map((replies) =>
             (replies as any[]).map((reply) => ({
               id: reply.id,
-              author: reply.author ?? 'Unbekannter Nutzer',
-              avatar: reply.avatar ?? 'imgs/users/placeholder.svg',
+              authorId: reply.authorId,
               text: reply.text ?? '',
               createdAt: reply.createdAt,
               isOwn: reply.isOwn,
@@ -584,12 +578,14 @@ export class FirestoreService {
   async addThreadReply(
     channelId: string,
     messageId: string,
-    reply: Pick<ThreadReply, 'author' | 'avatar' | 'text' | 'isOwn'>
+    reply: Pick<ThreadReply, 'authorId' | 'text' | 'isOwn'>
   ): Promise<void> {
     const repliesCollection = collection(this.firestore, `channels/${channelId}/messages/${messageId}/threads`);
 
     await addDoc(repliesCollection, {
-      ...reply,
+      authorId: reply.authorId,
+      text: reply.text,
+      isOwn: reply.isOwn ?? false,
       createdAt: serverTimestamp(),
     });
 
@@ -617,7 +613,7 @@ export class FirestoreService {
   async saveThread(
     channelId: string,
     messageId: string,
-    payload: Pick<ThreadDocument, 'channelTitle' | 'author' | 'avatar' | 'text'>
+    payload: Pick<ThreadDocument, 'authorId' | 'text' | 'channelTitle'>
   ): Promise<void> {
     const threadDoc = doc(
       this.firestore,
@@ -627,7 +623,9 @@ export class FirestoreService {
     await setDoc(
       threadDoc,
       {
-        ...payload,
+        authorId: payload.authorId,
+        text: payload.text,
+        channelTitle: payload.channelTitle,
         createdAt: serverTimestamp(),
       },
       { merge: true }

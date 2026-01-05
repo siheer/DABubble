@@ -94,13 +94,7 @@ export class Thread {
     if (!trimmed) return;
 
     try {
-      await this.threadService.addReply({
-        author: this.currentUser.name,
-        avatar: this.currentUser.avatar,
-        text: trimmed,
-        isOwn: true,
-      });
-
+      await this.threadService.addReply(trimmed);
       this.draftReply = '';
     } catch (error) {
       console.error('Reply konnte nicht gespeichert werden', error);

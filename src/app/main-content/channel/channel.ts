@@ -32,6 +32,7 @@ type ChannelDay = {
 
 export type ChannelMessageView = {
   id?: string;
+  authorId: string;
   author: string;
   avatar: string;
   createdAt: Date;
@@ -422,6 +423,7 @@ export class ChannelComponent {
 
     return {
       id: message.id,
+      authorId: message.authorId,
       author: message.author?.name ?? 'Unbekannter Nutzer',
       avatar: message.author?.photoUrl ?? this.memberAvatars[0] ?? 'imgs/users/placeholder.svg',
 
@@ -534,11 +536,9 @@ export class ChannelComponent {
         id: message.id,
         channelId: channel.id,
         channelTitle: channel.title ?? this.channelDefaults.name,
-        author: message.author,
-        avatar: message.avatar,
+        authorId: message.authorId,
         time: message.time,
         text: message.text,
-        isOwn: message.isOwn,
       });
     });
   }

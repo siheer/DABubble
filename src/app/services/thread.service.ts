@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest, map, of, switchMap } from 'rxjs';
 import { FirestoreService, ThreadDocument, ThreadReply as FirestoreThreadReply } from './firestore.service';
+import { UserService } from './user.service';
 
 export interface ThreadMessage {
   id: string;
-  author: string;
-  avatar: string;
+  authorId: string;
+  authorName?: string;
+  avatarUrl?: string;
   timestamp: string;
   text: string;
   isOwn?: boolean;
@@ -22,31 +24,49 @@ export interface ThreadSource {
   id?: string;
   channelId: string;
   channelTitle: string;
-  author: string;
-  avatar: string;
+  authorId: string;
   time: string;
   text: string;
-  isOwn?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ThreadService {
+  private readonly userService = inject(UserService);
   private readonly firestoreService = inject(FirestoreService);
   private readonly threadSubject = new BehaviorSubject<ThreadContext | null>(null);
-  readonly thread$: Observable<ThreadContext | null> = this.threadSubject.pipe(
+  readonly thread$ = this.threadSubject.pipe(
     switchMap((context) => {
       if (!context?.channelId || !context.root.id) return of(null);
 
       return combineLatest([
         this.firestoreService.getThread(context.channelId, context.root.id),
         this.firestoreService.getThreadReplies(context.channelId, context.root.id),
+        this.userService.getAllUsers(),
       ]).pipe(
-        map(([storedThread, replies]) => ({
-          channelId: context.channelId,
-          channelTitle: storedThread?.channelTitle ?? context.channelTitle,
-          root: this.toRootMessage(context, storedThread),
-          replies: replies.map((reply) => this.toThreadMessage(reply)),
-        }))
+        map(([storedThread, replies, users]) => {
+          const userMap = new Map(users.map((u) => [u.uid, u]));
+
+          const mapUser = (authorId: string) => {
+            const user = userMap.get(authorId);
+            return {
+              authorName: user?.name ?? 'Gelöschter Nutzer',
+              avatarUrl: user?.photoUrl,
+            };
+          };
+
+          return {
+            channelId: context.channelId,
+            channelTitle: storedThread?.channelTitle ?? context.channelTitle,
+            root: {
+              ...this.toRootMessage(context, storedThread),
+              ...mapUser(storedThread?.authorId ?? context.root.authorId),
+            },
+            replies: replies.map((r) => ({
+              ...this.toThreadMessage(r),
+              ...mapUser(r.authorId),
+            })),
+          };
+        })
       );
     })
   );
@@ -57,23 +77,20 @@ export class ThreadService {
       channelId: source.channelId,
       channelTitle: source.channelTitle,
       root: {
-        id: source.id ?? id,
-        author: source.author,
-        avatar: source.avatar,
+        id,
+        authorId: source.authorId,
         timestamp: source.time,
         text: source.text,
-        isOwn: source.isOwn,
+        isOwn: true,
       },
       replies: [],
     };
 
     this.threadSubject.next(context);
 
-    void this.firestoreService.saveThread(context.channelId, context.root.id, {
-      channelTitle: context.channelTitle,
-      author: context.root.author,
-      avatar: context.root.avatar,
-      text: context.root.text,
+    void this.firestoreService.saveThread(source.channelId, id, {
+      authorId: source.authorId,
+      text: source.text,
     });
   }
 
@@ -90,8 +107,7 @@ export class ThreadService {
       channelTitle: current?.channelId === channelId ? current.channelTitle : '',
       root: {
         id: messageId,
-        author: current?.root.author ?? '',
-        avatar: current?.root.avatar ?? 'imgs/users/placeholder.svg',
+        authorId: current?.root.authorId ?? '',
         timestamp: current?.root.timestamp ?? '',
         text: current?.root.text ?? '',
         isOwn: current?.root.isOwn ?? false,
@@ -102,12 +118,15 @@ export class ThreadService {
     this.threadSubject.next(context);
   }
 
-  async addReply(reply: Omit<ThreadMessage, 'id' | 'timestamp'>): Promise<void> {
+  async addReply(text: string): Promise<void> {
     const current = this.threadSubject.value;
-    if (!current?.root.id) return;
+    const user = this.userService.currentUser();
+    if (!current || !user) return;
 
     await this.firestoreService.addThreadReply(current.channelId, current.root.id, {
-      ...reply,
+      authorId: user.uid,
+      text,
+      isOwn: true,
     });
   }
 
@@ -145,19 +164,18 @@ export class ThreadService {
     const createdAt = this.resolveTimestamp(storedThread);
     return {
       id: context.root.id,
-      author: storedThread?.author ?? context.root.author,
-      avatar: storedThread?.avatar ?? context.root.avatar,
+      authorId: storedThread?.authorId ?? context.root.authorId,
       timestamp: storedThread?.createdAt ? this.formatTime(createdAt) : context.root.timestamp,
       text: storedThread?.text ?? context.root.text,
       isOwn: context.root.isOwn,
     };
   }
+
   private toThreadMessage(reply: FirestoreThreadReply): ThreadMessage {
     const createdAt = this.resolveTimestamp(reply);
     return {
       id: reply.id ?? this.generateId(),
-      author: reply.author ?? 'Unbekannter Nutzer',
-      avatar: reply.avatar ?? 'imgs/users/placeholder.svg',
+      authorId: reply.authorId,
       timestamp: this.formatTime(createdAt),
       text: reply.text ?? '',
       isOwn: reply.isOwn,

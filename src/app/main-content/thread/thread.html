@@ -13,7 +13,7 @@
   </header>
   <div class="thread__scroll-area" #threadScrollArea>
     <article class="thread__root" [class.thread__root--own]="thread.root.isOwn">
-      <img class="thread__avatar" [src]="thread.root.avatar" [alt]="thread.root.author" />
+      <img class="thread__avatar" [src]="thread.root.avatarUrl" [alt]="thread.root.authorName" />
       <div class="thread__body">
         <div
           class="thread__bubble-actions"
@@ -46,7 +46,7 @@
           </div>
         </div>
         <div class="thread__meta">
-          <strong>{{ thread.root.author }}</strong>
+          <strong>{{ thread.root.authorName }}</strong>
           <time>{{ thread.root.timestamp }}</time>
         </div>
         <ng-container *ngIf="editingMessageId !== thread.root.id; else editRootMessage">
@@ -79,7 +79,7 @@
 
     <div class="thread__replies">
       <article *ngFor="let reply of thread.replies" class="thread__reply" [class.thread__reply--own]="reply.isOwn">
-        <img class="thread__avatar" [src]="reply.avatar" [alt]="reply.author" />
+        <img class="thread__avatar" [src]="reply.avatarUrl" [alt]="reply.authorName" />
         <div class="thread__body">
           <div
             class="thread__bubble-actions"
@@ -112,7 +112,7 @@
             </div>
           </div>
           <div class="thread__meta">
-            <strong>{{ reply.author }}</strong>
+            <strong>{{ reply.authorName }}</strong>
             <time>{{ reply.timestamp }}</time>
           </div>
           <ng-container *ngIf="editingMessageId !== reply.id; else editReplyMessage">
