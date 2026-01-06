@@ -4,7 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { Observable, combineLatest, from, map, of, shareReplay, switchMap, take, tap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  combineLatest,
+  distinctUntilChanged,
+  from,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+  take,
+  tap,
+} from 'rxjs';
 import {
   Channel,
   ChannelAttachment,
@@ -70,6 +82,7 @@ export class ChannelComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly currentUser$ = this.userService.currentUser$;
+  private readonly allUsers$ = this.userService.getAllUsers();
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
 
@@ -172,7 +185,7 @@ export class ChannelComponent {
         return of<ChannelMemberView[]>([]);
       }
 
-      return combineLatest([this.firestoreService.getChannelMembers(channel.id), this.userService.getAllUsers()]).pipe(
+      return combineLatest([this.firestoreService.getChannelMembers(channel.id), this.allUsers$]).pipe(
         map(([members, users]) => {
           const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
@@ -213,7 +226,7 @@ export class ChannelComponent {
       }
 
       return this.firestoreService
-        .getChannelMessagesResolved(channel.id, this.userService.getAllUsers())
+        .getChannelMessagesResolved(channel.id, this.allUsers$)
         .pipe(map((messages) => this.groupMessagesByDay(messages)));
     })
   );
@@ -225,6 +238,9 @@ export class ChannelComponent {
       this.lastMessageCount = 0;
       this.lastMessageId = undefined;
     });
+
+    this.publicChannelMemberSync();
+
     this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((members) => {
       this.cachedMembers = members;
       this.updateMentionSuggestions();
@@ -263,6 +279,30 @@ export class ChannelComponent {
     });
 
     this.syncChildRouteState();
+  }
+
+  private publicChannelMemberSync(): void {
+    this.channel$
+      .pipe(
+        map((channel) => (channel?.isPublic ? channel.id : null)),
+        distinctUntilChanged(),
+        switchMap((channelId) => {
+          if (!channelId) return of(null);
+
+          return combineLatest([this.allUsers$, this.firestoreService.getChannelMembers(channelId)]).pipe(
+            switchMap(([users, members]) =>
+              from(this.firestoreService.syncPublicChannelMembers(channelId, users, members)).pipe(
+                catchError((error: unknown) => {
+                  console.error(error);
+                  return of(null);
+                })
+              )
+            )
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
   }
 
   closeThread(): void {

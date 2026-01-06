@@ -126,6 +126,29 @@
     resize: vertical;
   }
 
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    background: #f8f9fb;
+    cursor: pointer;
+
+    input {
+      width: 18px;
+      height: 18px;
+      accent-color: #6b4eff;
+      cursor: pointer;
+    }
+
+    span {
+      font-size: 14px;
+      color: #1e1e1e;
+    }
+  }
+
   &__actions {
     margin-top: 4px;
     display: flex;

@@ -24,6 +24,7 @@ export interface Channel {
   id?: string;
   title?: string;
   description?: string;
+  isPublic?: boolean;
   messageCount?: number;
   lastMessageAt?: Timestamp;
 }
@@ -111,11 +112,6 @@ export class FirestoreService {
   // Feste Dokument-ID für die Thread-Metadaten, damit der Pfad eine gerade Segmentzahl hat:
   // channels/{channelId}/messages/{messageId}/thread/{THREAD_DOC_ID}
   private static readonly THREAD_DOC_ID = 'meta';
-  private static readonly DEFAULT_CHANNELS: Array<Pick<Channel, 'title' | 'description'>> = [
-    { title: 'Willkommen' },
-    { title: 'Allgemeines' },
-    { title: 'Meetings' },
-  ];
 
   getChannels(): Observable<Channel[]> {
     if (!this.channels$) {
@@ -159,20 +155,24 @@ export class FirestoreService {
           return of<Channel[]>([]);
         }
 
-        const channelsWithMembers$ = channels
+        const channelChecks$ = channels
           .filter((channel): channel is Channel & { id: string } => !!channel.id)
-          .map((channel) => this.getChannelMembers(channel.id).pipe(map((members) => ({ channel, members }))));
+          .map((channel) => {
+            if (channel.isPublic) {
+              return of({ channel, hasAccess: true });
+            }
 
-        if (!channelsWithMembers$.length) {
+            return this.getChannelMembers(channel.id).pipe(
+              map((members) => ({ channel, hasAccess: members.some((member) => member.id === userId) }))
+            );
+          });
+
+        if (!channelChecks$.length) {
           return of<Channel[]>([]);
         }
 
-        return combineLatest(channelsWithMembers$).pipe(
-          map((results) =>
-            results
-              .filter(({ members }) => members.length > 0 && members.some((member) => member.id === userId))
-              .map(({ channel }) => channel)
-          )
+        return combineLatest(channelChecks$).pipe(
+          map((results) => results.filter((result) => result.hasAccess).map((result) => result.channel))
         );
       })
     );
@@ -403,7 +403,7 @@ export class FirestoreService {
     return [userA, userB].sort((a, b) => a.localeCompare(b)).join('__');
   }
 
-  async createChannel(title: string, description?: string): Promise<string> {
+  async createChannel(title: string, description?: string, isPublic = false): Promise<string> {
     const trimmedTitle = title.trim();
     const trimmedDescription = description?.trim();
 
@@ -416,124 +416,14 @@ export class FirestoreService {
     if (trimmedDescription) {
       channelPayload['description'] = trimmedDescription;
     }
+    if (isPublic) {
+      channelPayload['isPublic'] = true;
+    }
 
     const channelsCollection = collection(this.firestore, 'channels');
     const newChannel = await addDoc(channelsCollection, channelPayload);
 
     return newChannel.id;
-  }
-
-  private async ensureDefaultChannels(): Promise<Map<string, string>> {
-    const channelsCollection = collection(this.firestore, 'channels');
-    const snapshot = await getDocs(channelsCollection);
-    const existingByTitle = new Map<string, string>();
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data() as Channel;
-      if (data.title) existingByTitle.set(data.title, docSnap.id);
-    });
-
-    const channelIds = new Map(existingByTitle);
-
-    for (const channel of FirestoreService.DEFAULT_CHANNELS) {
-      const title = channel.title?.trim();
-      if (!title) continue;
-
-      if (channelIds.has(title)) continue;
-
-      // ✅ Payload ohne undefined bauen
-      const payload: Record<string, unknown> = {
-        title,
-        createdAt: serverTimestamp(),
-        isDefault: true,
-        messageCount: 0,
-      };
-
-      const description = channel.description?.trim();
-      if (description) payload['description'] = description;
-
-      const newChannel = await addDoc(channelsCollection, payload);
-      channelIds.set(title, newChannel.id);
-    }
-
-    return channelIds;
-  }
-  async ensureDefaultChannelMembership(user: AppUser): Promise<void> {
-    const channelIds = await this.ensureDefaultChannels();
-
-    const memberships = FirestoreService.DEFAULT_CHANNELS.map((channel) => {
-      const channelId = channel.title ? channelIds.get(channel.title) : undefined;
-      if (!channelId) return undefined;
-
-      // ✅ payload ohne subtitle bauen
-      const memberPayload: Pick<ChannelMember, 'id' | 'name' | 'avatar' | 'subtitle'> = {
-        id: user.uid,
-        name: user.name,
-        avatar: user.photoUrl,
-      };
-
-      // ✅ subtitle nur setzen, wenn email wirklich ein string ist
-      if (user.email) {
-        memberPayload.subtitle = user.email;
-      }
-
-      return this.upsertChannelMember(channelId, memberPayload);
-    }).filter((p): p is Promise<void> => Boolean(p));
-
-    if (!memberships.length) return;
-    await Promise.all(memberships);
-  }
-  async ensureDefaultChannelMembershipForAllUsers(): Promise<void> {
-    const channelIds = await this.ensureDefaultChannels();
-    if (!channelIds.size) return;
-
-    const usersCollection = collection(this.firestore, 'users');
-    const usersSnapshot = await getDocs(usersCollection);
-    if (usersSnapshot.empty) return;
-
-    const defaultChannelIds = FirestoreService.DEFAULT_CHANNELS.map((channel) =>
-      channel.title ? channelIds.get(channel.title) : undefined
-    ).filter((id): id is string => Boolean(id));
-    if (!defaultChannelIds.length) return;
-    let batch = writeBatch(this.firestore);
-    let operationCount = 0;
-
-    const commitBatch = async (): Promise<void> => {
-      if (!operationCount) return;
-      await batch.commit();
-      batch = writeBatch(this.firestore);
-      operationCount = 0;
-    };
-
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data() as AppUser;
-      const userId = userData.uid ?? userDoc.id;
-      if (!userId) continue;
-
-      const basePayload: Record<string, unknown> = {
-        id: userId,
-        name: userData.name ?? 'Unbekannter Nutzer',
-        avatar: userData.photoUrl ?? 'imgs/users/placeholder.svg',
-        scope: 'channel',
-        addedAt: serverTimestamp(),
-      };
-
-      if (userData.email) {
-        basePayload['subtitle'] = userData.email;
-      }
-
-      for (const channelId of defaultChannelIds) {
-        const memberDoc = doc(this.firestore, `channels/${channelId}/members/${userId}`);
-        batch.set(memberDoc, { ...basePayload, channelId }, { merge: true });
-        operationCount += 1;
-
-        if (operationCount >= 450) {
-          await commitBatch();
-        }
-      }
-    }
-
-    await commitBatch();
   }
 
   async updateChannel(channelId: string, payload: Partial<Pick<Channel, 'title' | 'description'>>): Promise<void> {
@@ -604,6 +494,69 @@ export class FirestoreService {
 
       await setDoc(memberDoc, payload, { merge: true });
     });
+  }
+
+  async syncPublicChannelMembers(channelId: string, users: AppUser[], members: ChannelMember[]): Promise<void> {
+    const missingUsers = this.getMissingChannelUsers(users, members);
+    if (!missingUsers.length) return;
+
+    await this.addChannelMembersBatch(channelId, missingUsers);
+  }
+
+  private getMissingChannelUsers(users: AppUser[], members: ChannelMember[]): Array<{ userId: string; data: AppUser }> {
+    const memberIds = new Set(members.map((member) => member.id));
+
+    return users
+      .filter((user) => user.uid && !memberIds.has(user.uid))
+      .map((user) => ({ userId: user.uid, data: user }));
+  }
+
+  private async addChannelMembersBatch(
+    channelId: string,
+    missingUsers: Array<{ userId: string; data: AppUser }>
+  ): Promise<void> {
+    let batch = writeBatch(this.firestore);
+    let operationCount = 0;
+
+    for (const { userId, data } of missingUsers) {
+      const payload = this.buildChannelMemberPayload(userId, data, channelId);
+      const memberDoc = doc(this.firestore, `channels/${channelId}/members/${userId}`);
+      batch.set(memberDoc, payload, { merge: true });
+      operationCount += 1;
+
+      if (operationCount >= 450) {
+        ({ batch, operationCount } = await this.commitBatch(batch, operationCount));
+      }
+    }
+
+    await this.commitBatch(batch, operationCount);
+  }
+
+  private async commitBatch(
+    batch: ReturnType<typeof writeBatch>,
+    operationCount: number
+  ): Promise<{ batch: ReturnType<typeof writeBatch>; operationCount: number }> {
+    if (!operationCount) return { batch, operationCount };
+
+    await batch.commit();
+    return { batch: writeBatch(this.firestore), operationCount: 0 };
+  }
+
+  private buildChannelMemberPayload(userId: string, data: AppUser, channelId: string): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
+      id: userId,
+      name: data.name ?? 'Unbekannter Nutzer',
+      avatar: data.photoUrl ?? 'imgs/users/placeholder.svg',
+      scope: 'channel',
+      addedAt: serverTimestamp(),
+      channelId,
+    };
+
+    if (data.email) {
+      payload['subtitle'] = data.email;
+    }
+
+    return payload;
   }
 
   async leaveChannel(channelId: string, userId: string): Promise<void> {

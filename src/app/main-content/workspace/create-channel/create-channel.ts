@@ -11,7 +11,6 @@ import { UserService } from '../../../services/user.service';
   styleUrl: './create-channel.scss',
 })
 export class CreateChannel {
-
   // for sending modal to parent component
   @Output() readonly close = new EventEmitter<void>();
 
@@ -19,7 +18,12 @@ export class CreateChannel {
   private readonly userService = inject(UserService);
   protected title = '';
   protected description = '';
+  protected isPublic = false;
   protected isSubmitting = false;
+
+  protected isAdmin() {
+    return this.userService.currentUser()?.role === 'admin';
+  }
 
   protected closeOverlay(): void {
     if (this.isSubmitting) {
@@ -38,10 +42,7 @@ export class CreateChannel {
       const title = this.title.trim();
       const description = this.description.trim();
 
-      const channelId = await this.firestoreService.createChannel(
-        title,
-        description
-      );
+      const channelId = await this.firestoreService.createChannel(title, description, this.isAdmin() && this.isPublic);
 
       const currentUser = this.userService.currentUser();
 
@@ -54,18 +55,14 @@ export class CreateChannel {
         });
       }
       form.resetForm();
+      this.isPublic = false;
       this.forceCloseOverlay();
-    }
-
-    finally {
+    } finally {
       this.isSubmitting = false;
     }
   }
 
   protected forceCloseOverlay(): void {
-  this.close.emit();
+    this.close.emit();
+  }
 }
-
-}
-
-

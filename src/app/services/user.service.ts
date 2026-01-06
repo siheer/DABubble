@@ -28,7 +28,7 @@ export interface AppUser {
   lastSeen?: unknown;
   updatedAt?: unknown;
   createdAt?: unknown;
-  //   role?: 'moderator' | 'user';
+  role?: 'admin' | 'user';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -81,8 +81,6 @@ export class UserService {
       lastSeen: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    await this.firestoreService.ensureDefaultChannelMembership(appUser);
-    await this.firestoreService.ensureDefaultChannelMembershipForAllUsers();
   }
 
   /**
@@ -103,8 +101,6 @@ export class UserService {
     };
 
     await setDoc(userRef, newUser);
-    await this.firestoreService.ensureDefaultChannelMembership(newUser);
-    await this.firestoreService.ensureDefaultChannelMembershipForAllUsers();
   }
 
   /**
@@ -187,6 +183,7 @@ export class UserService {
               lastSeen: user.lastSeen,
               updatedAt: user.updatedAt,
               createdAt: user.createdAt,
+              role: user.role,
             }))
           ),
           shareReplay({ bufferSize: 1, refCount: false })
@@ -215,6 +212,7 @@ export class UserService {
             lastSeen: data.lastSeen,
             updatedAt: data.updatedAt,
             createdAt: data.createdAt,
+            role: data.role,
           },
         };
       });
@@ -253,7 +251,6 @@ export class UserService {
 
     const existingAppUser = await this.getUserOnce(firebaseUser.uid);
     if (existingAppUser) {
-      await this.firestoreService.ensureDefaultChannelMembership(existingAppUser);
       return;
     }
     if (firebaseUser.isAnonymous) {

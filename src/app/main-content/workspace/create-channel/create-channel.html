@@ -32,6 +32,16 @@
       </div>
       <textarea name="description" placeholder="Dein Text hier" maxlength="200" [(ngModel)]="description"></textarea>
     </label>
+    <div class="create-channel__field" *ngIf="isAdmin()">
+      <div class="create-channel__label-row">
+        <h2>Channel-Zugriff</h2>
+        <span>nur Admins</span>
+      </div>
+      <label class="create-channel__checkbox">
+        <input name="isPublic" type="checkbox" [(ngModel)]="isPublic" />
+        <span>Für alle User zugänglich</span>
+      </label>
+    </div>
     <div class="create-channel__actions">
       <button type="button" class="create-channel__secondary" (click)="closeOverlay()" [disabled]="isSubmitting">
         Abbrechen
