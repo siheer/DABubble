@@ -549,22 +549,27 @@
 .channel__message-reaction {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 6px 10px;
-
-  background: #eef2ff;
+  padding: 0px 12px;
+  background: #ffffff;
   color: #4338ca;
   border-radius: 999px;
   font-weight: 700;
-  border: 1px solid #c7d2fe;
+  border: 1px solid #797ef3;
   width: fit-content;
+  &:hover {
+    border: 1px solid #444df2;
+    cursor: pointer;
+  }
 }
 
 .channel__message--own .channel__message-reaction {
-  background: rgba(255, 255, 255, 0.15);
+  background: #ffffff;
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.35);
+  border: 1px solid #797ef3;
+  &:hover {
+    border: 1px solid #444df2;
+    cursor: pointer;
+  }
 }
 
 .channel__composer {
