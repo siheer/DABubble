@@ -8,7 +8,8 @@ import { MobileRouteAnimationService } from '../services/mobile-route-animation.
   host: {
     '[class.mobile-route-surface]': 'this.screenService.isTabletScreen()',
     '[animate.enter]': 'enterClass',
-    '[animate.leave]': 'leaveClass',
+    // commented out, since it leads to bug on signout, then signin -> container are not removed anymore on navigation.
+    // '[animate.leave]': 'leaveClass',
   },
 })
 export class MobileRouteAnimationDirective {
