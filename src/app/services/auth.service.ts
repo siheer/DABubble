@@ -40,7 +40,6 @@ export class AuthService {
 
   constructor() {
     this.auth.useDeviceLanguage();
-    (globalThis as any).signOut = () => this.signOut();
   }
 
   readonly user$: Observable<User | null> = user(this.auth);

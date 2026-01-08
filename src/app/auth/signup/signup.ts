@@ -49,7 +49,6 @@ export class Signup {
 
     try {
       const passwordValidationResult = await this.authenticationService.validateUserPassword(this.password);
-      console.log(passwordValidationResult);
 
       if (!passwordValidationResult.isValid) {
         this.passwordValidationErrors = this.authenticationService.buildPasswordErrorMessages(passwordValidationResult);
