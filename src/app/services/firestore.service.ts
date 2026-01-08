@@ -19,9 +19,7 @@ import {
   where,
   arrayUnion,
   arrayRemove,
-  deleteField,
   runTransaction,
-  collectionGroup,
 } from '@angular/fire/firestore';
 import { Observable, catchError, combineLatest, map, of, shareReplay, switchMap } from 'rxjs';
 import type { AppUser } from './user.service';
@@ -541,7 +539,7 @@ export class FirestoreService {
     await this.commitBatch(batch, operationCount);
   }
 
-  private async commitBatch(
+  async commitBatch(
     batch: ReturnType<typeof writeBatch>,
     operationCount: number
   ): Promise<{ batch: ReturnType<typeof writeBatch>; operationCount: number }> {
@@ -778,77 +776,4 @@ export class FirestoreService {
     });
   }
 
-  async deleteAllMessagesByAuthor(userId: string): Promise<void> {
-    const db = this.firestore;
-
-    try {
-      const channelsSnap = await getDocs(collection(db, 'channels'));
-
-      for (const channel of channelsSnap.docs) {
-        const messagesSnap = await getDocs(
-          query(collection(db, `channels/${channel.id}/messages`), where('authorId', '==', userId))
-        );
-
-        for (const message of messagesSnap.docs) {
-          const threadsSnap = await getDocs(collection(message.ref, 'threads'));
-          for (const reply of threadsSnap.docs) {
-            await deleteDoc(reply.ref);
-          }
-
-          await deleteDoc(message.ref);
-        }
-      }
-
-      const dmMessagesSnap = await getDocs(query(collectionGroup(db, 'messages'), where('authorId', '==', userId)));
-
-      for (const dm of dmMessagesSnap.docs) {
-        await deleteDoc(dm.ref);
-      }
-    } catch (error) {
-      console.error('deleteAllMessagesByAuthor failed', error);
-    }
-  }
-
-  async removeReactionsByUser(userId: string): Promise<void> {
-    const db = this.firestore;
-
-    try {
-      const channelsSnap = await getDocs(collection(db, 'channels'));
-
-      for (const channel of channelsSnap.docs) {
-        const messagesSnap = await getDocs(collection(db, `channels/${channel.id}/messages`));
-
-        for (const message of messagesSnap.docs) {
-          const data = message.data();
-          const reactions = data['reactions'] as Record<string, string[]> | undefined;
-
-          if (!reactions) continue;
-
-          let changed = false;
-          const updatedReactions: Record<string, string[]> = {};
-
-          for (const [emoji, users] of Object.entries(reactions)) {
-            const filtered = (users as string[]).filter((id) => id !== userId);
-
-            if (filtered.length > 0) {
-              updatedReactions[emoji] = filtered;
-            }
-
-            if (filtered.length !== users.length) {
-              changed = true;
-            }
-          }
-
-          if (changed) {
-            await updateDoc(message.ref, {
-              reactions: Object.keys(updatedReactions).length ? updatedReactions : deleteField(),
-              updatedAt: serverTimestamp(),
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.error('removeReactionsByUser failed', err);
-    }
-  }
 }

@@ -4,7 +4,6 @@ import {
   Firestore,
   collection,
   collectionData,
-  deleteDoc,
   doc,
   docData,
   getDoc,
@@ -16,11 +15,10 @@ import {
 import { User as FirebaseUser, UserCredential } from 'firebase/auth';
 import { Observable, Subscription, catchError, map, of, shareReplay } from 'rxjs';
 import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
-import { FirestoreService } from './firestore.service';
 import { AuthService } from './auth.service';
+import { GuestService } from './guest.service';
 import { TEXTS } from '../texts';
 import { Router } from '@angular/router';
-import { NOTIFICATIONS } from '../notifications';
 
 export interface AppUser {
   uid: string;
@@ -39,9 +37,9 @@ export interface AppUser {
 export class UserService {
   private readonly injector = inject(EnvironmentInjector);
   private authService = inject(AuthService);
+  private guestService = inject(GuestService);
   private firestore = inject(Firestore);
   private router = inject(Router);
-  private firestoreService = inject(FirestoreService);
   private userDocSubscription?: Subscription;
   private allUsers$?: Observable<AppUser[]>;
   private userDocCache = new Map<string, Observable<AppUser | null>>();
@@ -260,12 +258,9 @@ export class UserService {
     if (existingAppUser) {
       return;
     }
+
     if (firebaseUser.isAnonymous) {
-      await this.createUserDocument(firebaseUser, {
-        name: 'Gast',
-        photoUrl: PROFILE_PICTURE_URLS.default,
-        isGuest: true,
-      });
+      await this.guestService.createUserDocument(firebaseUser);
       return;
     }
 
@@ -280,42 +275,11 @@ export class UserService {
     });
   }
 
-  async signOutGuest(): Promise<void> {
-    const user = this.currentUser();
-    const firebaseUser = this.authService.auth.currentUser;
-
-    if (!user || !firebaseUser) return;
-    if (!user.isGuest || !firebaseUser.isAnonymous) return;
-
-    const uid = user.uid;
-
-    let deleted = false;
-    try {
-      await this.authService.deleteCurrentUser();
-      deleted = true;
-    } catch (error) {
-      console.error(error);
-      console.error(NOTIFICATIONS.ACCOUNT_DELETION_FAILURE);
-    }
-
-    if (!deleted) return;
-
-    queueMicrotask(async () => {
-      try {
-        await this.firestoreService.deleteAllMessagesByAuthor(uid);
-        await this.firestoreService.removeReactionsByUser(uid);
-        await deleteDoc(doc(this.firestore, `users/${uid}`));
-      } catch (err) {
-        console.error('Guest background cleanup failed', err);
-      }
-    });
-  }
-
   async logout(): Promise<void> {
     const user = this.currentUser();
 
     if (user?.isGuest) {
-      await this.signOutGuest();
+      await this.guestService.signOutGuest(user);
     } else {
       await this.authService.signOut();
     }
