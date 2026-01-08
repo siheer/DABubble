@@ -34,7 +34,6 @@ import { ThreadCloseService } from '../../services/thread-close.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMOJI_CHOICES } from '../../texts';
-import { MobileRouteAnimationDirective } from '../../directives/mobile-route-animation.directive';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from './tooltip/tooltip';
@@ -73,7 +72,7 @@ type ChannelMemberView = ChannelMember & {
   selector: 'app-channel',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, MatSidenavModule, RouterOutlet],
-  hostDirectives: [MobileRouteAnimationDirective],
+
   templateUrl: './channel.html',
   styleUrls: ['./channel.scss'],
 })

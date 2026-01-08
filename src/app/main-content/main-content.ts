@@ -9,7 +9,6 @@ import { Navbar } from './navbar/navbar';
 import { ScreenService } from '../services/screen.service';
 import { ThreadCloseService } from '../services/thread-close.service';
 import { WorkspaceToggleButton } from './workspace-toggle-button/workspace-toggle-button';
-import { MobileRouteAnimationService } from '../services/mobile-route-animation.service';
 import { UnreadMessagesService } from '../services/unread-messages.service';
 
 @Component({
@@ -25,7 +24,6 @@ export class MainContent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly screenService = inject(ScreenService);
   private readonly threadCloseService = inject(ThreadCloseService);
-  private readonly mobileRouteAnimation = inject(MobileRouteAnimationService);
   private readonly unreadMessagesService = inject(UnreadMessagesService);
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
@@ -55,10 +53,6 @@ export class MainContent {
   }
 
   protected navigateUp(): void {
-    if (this.isTabletScreen()) {
-      this.mobileRouteAnimation.setDirection('back');
-    }
-
     if (this.activeView() === 'thread') {
       this.threadCloseService.requestClose();
       return;
@@ -66,7 +60,9 @@ export class MainContent {
 
     const target = this.mobileBackTarget();
     if (!target) return;
-    void this.router.navigateByUrl(target);
+    void this.router.navigateByUrl(target, {
+      info: { mobileRouteDirection: 'back' },
+    });
   }
 
   private mobileBackTarget(): string | null {
@@ -111,7 +107,6 @@ export class MainContent {
       this.activeThreadId.set(null);
       this.unreadMessagesService.setActiveChannelId(null);
       this.unreadMessagesService.setActiveDmId(null);
-      this.updateMobileRouteDirection(previousView, 'home');
       this.activeView.set('home');
       return;
     }
@@ -140,37 +135,11 @@ export class MainContent {
       view = 'thread';
     }
 
-    this.updateMobileRouteDirection(previousView, view);
     this.activeChannelId.set(channelId);
     this.activeDmId.set(dmId);
     this.activeThreadId.set(threadId);
     this.unreadMessagesService.setActiveChannelId(channelId);
     this.unreadMessagesService.setActiveDmId(dmId);
     this.activeView.set(view);
-  }
-
-  private updateMobileRouteDirection(
-    previousView: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage',
-    nextView: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage'
-  ): void {
-    if (!this.isTabletScreen()) {
-      return;
-    }
-
-    if (previousView === nextView) {
-      return;
-    }
-
-    const previousDepth = this.mobileViewDepth(previousView);
-    const nextDepth = this.mobileViewDepth(nextView);
-    const direction = nextDepth < previousDepth ? 'back' : 'forward';
-
-    this.mobileRouteAnimation.setDirection(direction);
-  }
-
-  private mobileViewDepth(view: 'home' | 'channel' | 'dm' | 'thread' | 'newMessage'): number {
-    if (view === 'home') return 0;
-    if (view === 'thread') return 2;
-    return 1;
   }
 }

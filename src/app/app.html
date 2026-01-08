@@ -1,3 +1,5 @@
-<router-outlet />
+<div class="view-transition h-full">
+  <router-outlet />
+</div>
 <app-startscreen *ngIf="!brandState.splashDone()"></app-startscreen>
 <app-toast-outlet />

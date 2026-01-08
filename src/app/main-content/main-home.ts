@@ -7,13 +7,12 @@ import { ScreenService } from '../services/screen.service';
 import { FirestoreService } from '../services/firestore.service';
 import { UserService } from '../services/user.service';
 import { catchError, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
-import { MobileRouteAnimationDirective } from '../directives/mobile-route-animation.directive';
 
 @Component({
   selector: 'app-main-home',
   standalone: true,
   imports: [CommonModule, Workspace],
-  hostDirectives: [MobileRouteAnimationDirective],
+
   template: `
     @if (isTabletScreen()) {
       <app-workspace class="h-full w-full"></app-workspace>

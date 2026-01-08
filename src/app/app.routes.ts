@@ -24,6 +24,9 @@ export const routes: Routes = [
     path: 'login',
     component: Login,
     canActivate: [publicOrRedirectGuard],
+    data: {
+      viewTransitionRouteKey: 'login',
+    },
   },
   {
     path: 'signup',
@@ -65,6 +68,9 @@ export const routes: Routes = [
               {
                 path: 'threads/:threadId',
                 component: Thread,
+                data: {
+                  viewTransitionRouteKey: 'threads',
+                },
               },
             ],
           },

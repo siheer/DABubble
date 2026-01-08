@@ -23,7 +23,6 @@ import { Timestamp } from '@angular/fire/firestore';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { EMOJI_CHOICES } from '../../texts';
-import { MobileRouteAnimationDirective } from '../../directives/mobile-route-animation.directive';
 
 type MessageBubble = {
   id?: string;
@@ -38,7 +37,7 @@ type MessageBubble = {
   selector: 'app-messages',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule],
-  hostDirectives: [MobileRouteAnimationDirective],
+
   templateUrl: './messages.html',
   styleUrl: './messages.scss',
 })
