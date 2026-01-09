@@ -24,23 +24,16 @@ import {
   switchMap,
 } from 'rxjs';
 import { AppUser, UserService } from './user.service';
-import { Channel, DirectMessageMeta, FirestoreService } from './firestore.service';
-
-export type DirectMessageUser = AppUser & { displayName: string; unreadCount: number };
-export type ChannelListItem = Channel & { unreadCount: number };
-type ReadStatusEntry = {
-  userId: string;
-  conversationId?: string;
-  channelId?: string;
-  lastReadAt?: Timestamp;
-  lastReadCount?: number;
-  updatedAt?: Timestamp;
-  scope?: 'channel' | 'dm';
-};
+import { ChannelService } from './channel.service';
+import { DirectMessagesService } from './direct-messages.service';
+import { ChannelMembershipService } from './membership.service';
+import type { Channel, ChannelListItem, DirectMessageMeta, DirectMessageUser, ReadStatusEntry } from '../types';
 
 @Injectable({ providedIn: 'root' })
 export class UnreadMessagesService {
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly channelService = inject(ChannelService);
+  private readonly membershipService = inject(ChannelMembershipService);
+  private readonly directMessagesService = inject(DirectMessagesService);
   private readonly userService = inject(UserService);
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
@@ -54,7 +47,7 @@ export class UnreadMessagesService {
       if (!currentUser) return of<ChannelListItem[]>([]);
 
       return combineLatest([
-        this.firestoreService.getChannelsForUser(currentUser.uid),
+        this.membershipService.getChannelsForUser(currentUser.uid),
         this.getReadStatusEntriesByUser(currentUser.uid),
         this.activeChannelIdSubject,
       ]).pipe(
@@ -74,7 +67,7 @@ export class UnreadMessagesService {
 
       return combineLatest([
         this.userService.getAllUsers(),
-        this.firestoreService.getDirectMessageMetas(currentUser.uid),
+        this.directMessagesService.getDirectMessageMetas(currentUser.uid),
         this.getReadStatusEntriesByUser(currentUser.uid),
         this.activeDmIdSubject,
       ]).pipe(
@@ -150,7 +143,7 @@ export class UnreadMessagesService {
         return { ...user, displayName, unreadCount: 0 };
       }
 
-      const conversationId = this.firestoreService.buildConversationId(currentUserId, user.uid);
+      const conversationId = this.directMessagesService.buildConversationId(currentUserId, user.uid);
       const meta = metaMap.get(conversationId);
       const readStatus = readStatusMap.get(conversationId);
       const messageCount = meta?.messageCount ?? 0;
@@ -180,7 +173,7 @@ export class UnreadMessagesService {
           if (!currentUser || !channelId) return of(null);
 
           return combineLatest([
-            this.firestoreService.getChannel(channelId),
+            this.channelService.getChannel(channelId),
             this.getReadStatusEntriesByUser(currentUser.uid),
           ]).pipe(
             map(([channel, readStatusEntries]) => {
@@ -223,9 +216,9 @@ export class UnreadMessagesService {
         switchMap(([currentUser, dmId]) => {
           if (!currentUser || !dmId) return of(null);
 
-          const conversationId = this.firestoreService.buildConversationId(currentUser.uid, dmId);
+          const conversationId = this.directMessagesService.buildConversationId(currentUser.uid, dmId);
           return combineLatest([
-            this.firestoreService.getDirectMessageMetas(currentUser.uid),
+            this.directMessagesService.getDirectMessageMetas(currentUser.uid),
             this.getReadStatusEntriesByUser(currentUser.uid),
           ]).pipe(
             map(([metas, readStatusEntries]) => {

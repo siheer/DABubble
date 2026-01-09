@@ -1,57 +1,68 @@
-import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest, filter, map, of, startWith, switchMap } from 'rxjs';
-import { ChannelMessage, FirestoreService, ThreadDocument, ThreadReply as FirestoreThreadReply } from './firestore.service';
+import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
+import {
+  Firestore,
+  addDoc,
+  collection,
+  collectionData,
+  doc,
+  docData,
+  increment,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from '@angular/fire/firestore';
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  catchError,
+  combineLatest,
+  filter,
+  map,
+  of,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs';
+import { ChannelService } from './channel.service';
 import { UserService } from './user.service';
 import { AuthService } from './auth.service';
+import type { ChannelMessage, ThreadDocument, ThreadReply, ThreadContext, ThreadSource, ThreadMessage } from '../types';
 import type { User } from '@angular/fire/auth';
-
-export interface ThreadMessage {
-  id: string;
-  authorId: string;
-  authorName?: string;
-  avatarUrl?: string;
-  timestamp: string;
-  text: string;
-  isOwn?: boolean;
-}
-
-export interface ThreadContext {
-  channelId: string;
-  channelTitle: string;
-  root: ThreadMessage;
-  replies: ThreadMessage[];
-}
-
-export interface ThreadSource {
-  id?: string;
-  channelId: string;
-  channelTitle: string;
-  authorId: string;
-  time: string;
-  text: string;
-  isOwn?: boolean;
-}
 
 @Injectable({ providedIn: 'root' })
 export class ThreadService {
   private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly channelService = inject(ChannelService);
+  private readonly firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
+
+  private readonly closeRequests = new Subject<void>();
+  readonly closeRequests$ = this.closeRequests.asObservable();
+
   private readonly authUser$ = this.authService.authState$.pipe(
     startWith(this.authService.auth.currentUser),
     filter((user): user is User => !!user)
   );
   private readonly threadSubject = new BehaviorSubject<ThreadContext | null>(null);
+  private threadRepliesCache = new Map<string, Observable<ThreadReply[]>>();
+  private threadCache = new Map<string, Observable<ThreadDocument | null>>();
+  // Feste Dokument-ID für die Thread-Metadaten, damit der Pfad eine gerade Segmentzahl hat:
+  // channels/{channelId}/messages/{messageId}/thread/{THREAD_DOC_ID}
+  private static readonly THREAD_DOC_ID = 'meta';
   readonly thread$ = this.threadSubject.pipe(
     switchMap((context) => {
       if (!context?.channelId || !context.root.id) return of(null);
 
       return combineLatest([
-        this.firestoreService.getThread(context.channelId, context.root.id),
-        this.firestoreService.getThreadReplies(context.channelId, context.root.id),
+        this.getThread(context.channelId, context.root.id),
+        this.getThreadReplies(context.channelId, context.root.id),
         this.userService.getAllUsers(),
-        this.firestoreService.getChannel(context.channelId),
-        this.firestoreService.getChannelMessage(context.channelId, context.root.id),
+        this.channelService.getChannel(context.channelId),
+        this.channelService.getChannelMessage(context.channelId, context.root.id),
         this.authUser$,
       ]).pipe(
         map(([storedThread, replies, users, channel, rootMessage, authUser]) => {
@@ -101,7 +112,7 @@ export class ThreadService {
       isOwn: source.isOwn ?? false,
     });
 
-    void this.firestoreService.saveThread(source.channelId, id, {
+    void this.saveThread(source.channelId, id, {
       authorId: source.authorId,
       text: source.text,
     });
@@ -137,12 +148,16 @@ export class ThreadService {
     });
   }
 
+  requestClose(): void {
+    this.closeRequests.next();
+  }
+
   async addReply(text: string): Promise<void> {
     const current = this.threadSubject.value;
     const user = this.userService.currentUser();
     if (!current || !user) return;
 
-    await this.firestoreService.addThreadReply(current.channelId, current.root.id, {
+    await this.addThreadReply(current.channelId, current.root.id, {
       authorId: user.uid,
       text,
     });
@@ -156,8 +171,8 @@ export class ThreadService {
     if (!current?.channelId || !current.root.id) return;
 
     await Promise.all([
-      this.firestoreService.updateChannelMessage(current.channelId, current.root.id, { text }),
-      this.firestoreService.updateThreadMeta(current.channelId, current.root.id, { text }),
+      this.channelService.updateChannelMessage(current.channelId, current.root.id, { text }),
+      this.updateThreadMeta(current.channelId, current.root.id, { text }),
     ]);
 
     this.threadSubject.next({
@@ -173,9 +188,137 @@ export class ThreadService {
     const current = this.threadSubject.value;
     if (!current?.channelId || !current.root.id || !replyId) return;
 
-    await this.firestoreService.updateThreadReply(current.channelId, current.root.id, replyId, {
+    await this.updateThreadReply(current.channelId, current.root.id, replyId, {
       text,
     });
+  }
+
+  private getThreadReplies(channelId: string, messageId: string): Observable<ThreadReply[]> {
+    const key = `${channelId}:${messageId}`;
+
+    if (!this.threadRepliesCache.has(key)) {
+      const stream$ = runInInjectionContext(this.injector, () => {
+        const repliesCollection = collection(this.firestore, `channels/${channelId}/messages/${messageId}/threads`);
+
+        const repliesQuery = query(repliesCollection, orderBy('createdAt', 'asc'));
+
+        return collectionData(repliesQuery, { idField: 'id' }).pipe(
+          map((replies) =>
+            (replies as any[]).map((reply) => ({
+              id: reply.id,
+              authorId: reply.authorId,
+              text: reply.text ?? '',
+              createdAt: reply.createdAt,
+            }))
+          ),
+          shareReplay({ bufferSize: 1, refCount: false })
+        );
+      });
+
+      this.threadRepliesCache.set(key, stream$);
+    }
+
+    return this.threadRepliesCache.get(key)!;
+  }
+
+  private async addThreadReply(
+    channelId: string,
+    messageId: string,
+    reply: Pick<ThreadReply, 'authorId' | 'text'>
+  ): Promise<void> {
+    const repliesCollection = collection(this.firestore, `channels/${channelId}/messages/${messageId}/threads`);
+
+    await addDoc(repliesCollection, {
+      channelId,
+      parentMessageId: messageId,
+      authorId: reply.authorId,
+      text: reply.text,
+      createdAt: serverTimestamp(),
+    });
+
+    const messageDoc = doc(this.firestore, `channels/${channelId}/messages/${messageId}`);
+
+    await updateDoc(messageDoc, {
+      replies: increment(1),
+      lastReplyAt: serverTimestamp(),
+    });
+  }
+
+  private async updateThreadReply(
+    channelId: string,
+    messageId: string,
+    replyId: string,
+    payload: Partial<Pick<ThreadReply, 'text'>>
+  ): Promise<void> {
+    const replyDoc = doc(this.firestore, `channels/${channelId}/messages/${messageId}/threads/${replyId}`);
+
+    await updateDoc(replyDoc, {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  private async saveThread(
+    channelId: string,
+    messageId: string,
+    payload: Pick<ThreadDocument, 'authorId' | 'text'>
+  ): Promise<void> {
+    const threadDoc = doc(
+      this.firestore,
+      `channels/${channelId}/messages/${messageId}/thread/${ThreadService.THREAD_DOC_ID}`
+    );
+
+    await setDoc(
+      threadDoc,
+      {
+        authorId: payload.authorId,
+        text: payload.text,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  private async updateThreadMeta(
+    channelId: string,
+    messageId: string,
+    payload: Partial<Pick<ThreadDocument, 'text'>>
+  ): Promise<void> {
+    const threadDoc = doc(
+      this.firestore,
+      `channels/${channelId}/messages/${messageId}/thread/${ThreadService.THREAD_DOC_ID}`
+    );
+
+    await updateDoc(threadDoc, {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  private getThread(channelId: string, messageId: string): Observable<ThreadDocument | null> {
+    const key = `${channelId}:${messageId}`;
+
+    if (!this.threadCache.has(key)) {
+      const stream$ = runInInjectionContext(this.injector, () => {
+        const threadDocRef = doc(
+          this.firestore,
+          `channels/${channelId}/messages/${messageId}/thread/${ThreadService.THREAD_DOC_ID}`
+        );
+
+        return docData(threadDocRef, { idField: 'id' }).pipe(
+          map((data) => (data as ThreadDocument) ?? null),
+          catchError((error) => {
+            console.error(error);
+            return of(null);
+          }),
+          shareReplay({ bufferSize: 1, refCount: false })
+        );
+      });
+
+      this.threadCache.set(key, stream$);
+    }
+
+    return this.threadCache.get(key)!;
   }
 
   private toRootMessage(
@@ -198,7 +341,7 @@ export class ThreadService {
     };
   }
 
-  private toThreadMessage(reply: FirestoreThreadReply): ThreadMessage {
+  private toThreadMessage(reply: ThreadReply): ThreadMessage {
     const createdAt = this.resolveTimestamp(reply);
     return {
       id: reply.id ?? this.generateId(),
@@ -208,7 +351,7 @@ export class ThreadService {
     };
   }
 
-  private resolveTimestamp(message: FirestoreThreadReply | ThreadDocument | ChannelMessage | null): Date {
+  private resolveTimestamp(message: ThreadReply | ThreadDocument | ChannelMessage | null): Date {
     if (message?.createdAt instanceof Date) {
       return message.createdAt;
     }

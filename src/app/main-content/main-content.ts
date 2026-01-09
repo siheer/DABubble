@@ -7,9 +7,9 @@ import { filter, map, startWith } from 'rxjs';
 import { Workspace } from './workspace/workspace';
 import { Navbar } from './navbar/navbar';
 import { ScreenService } from '../services/screen.service';
-import { ThreadCloseService } from '../services/thread-close.service';
 import { WorkspaceToggleButton } from './workspace-toggle-button/workspace-toggle-button';
 import { UnreadMessagesService } from '../services/unread-messages.service';
+import { ThreadService } from '../services/thread.service';
 
 @Component({
   selector: 'app-main-content',
@@ -23,7 +23,7 @@ export class MainContent {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly screenService = inject(ScreenService);
-  private readonly threadCloseService = inject(ThreadCloseService);
+  private readonly threadService = inject(ThreadService);
   private readonly unreadMessagesService = inject(UnreadMessagesService);
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
@@ -54,7 +54,7 @@ export class MainContent {
 
   protected navigateUp(): void {
     if (this.activeView() === 'thread') {
-      this.threadCloseService.requestClose();
+      this.threadService.requestClose();
       return;
     }
 

@@ -2,7 +2,8 @@ import { Component, ElementRef, ViewChild, Input, OnChanges, OnInit, SimpleChang
 import { CommonModule } from '@angular/common';
 import { OverlayService } from '../../../services/overlay.service';
 import { FormsModule } from '@angular/forms';
-import { FirestoreService } from '../../../services/firestore.service';
+import { ChannelService } from '../../../services/channel.service';
+import { ChannelMembershipService } from '../../../services/membership.service';
 import { UserService } from '../../../services/user.service';
 
 @Component({
@@ -13,7 +14,8 @@ import { UserService } from '../../../services/user.service';
 })
 export class ChannelDescription implements OnChanges, OnInit {
   private readonly overlayService = inject(OverlayService);
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly channelService = inject(ChannelService);
+  private readonly membershipService = inject(ChannelMembershipService);
   private readonly userService = inject(UserService);
   private readonly nonLeavableTitles = new Set(['willkommen', 'allgemeines', 'meetings']);
 
@@ -76,7 +78,7 @@ export class ChannelDescription implements OnChanges, OnInit {
     this.errorMessage = '';
 
     try {
-      await this.firestoreService.updateChannel(this.channelId, {
+      await this.channelService.updateChannel(this.channelId, {
         title: trimmedTitle,
       });
 
@@ -107,7 +109,7 @@ export class ChannelDescription implements OnChanges, OnInit {
     this.errorMessage = '';
 
     try {
-      await this.firestoreService.updateChannel(this.channelId, {
+      await this.channelService.updateChannel(this.channelId, {
         description: trimmedDescription,
       });
 
@@ -137,7 +139,7 @@ export class ChannelDescription implements OnChanges, OnInit {
     this.errorMessage = '';
 
     try {
-      await this.firestoreService.leaveChannel(this.channelId, currentUser.uid);
+      await this.membershipService.leaveChannel(this.channelId, currentUser.uid);
       this.closeOverlay();
     } catch (error) {
       console.error('Fehler beim Verlassen des Channels', error);
@@ -156,13 +158,12 @@ export class ChannelDescription implements OnChanges, OnInit {
       this.titleInput?.nativeElement.focus();
       this.titleInput?.nativeElement.select();
     });
-
   }
 
   private focusDescriptionInput(): void {
     setTimeout(() => {
       this.descriptionInput?.nativeElement.focus();
       this.descriptionInput?.nativeElement.select();
-    })
+    });
   }
 }

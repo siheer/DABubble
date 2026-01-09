@@ -2,15 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BehaviorSubject, Observable, combineLatest, map, of, switchMap } from 'rxjs';
-import { Channel, FirestoreService } from '../../../services/firestore.service';
+import { ChannelMembershipService } from '../../../services/membership.service';
+import type { Channel, SearchResult } from '../../../types';
 import { AppUser, UserService } from '../../../services/user.service';
 import { Router } from '@angular/router';
-
-type SearchResult = {
-  channels: Channel[];
-  users: Array<AppUser & { displayName: string; isCurrentUser: boolean }>;
-  hasQuery: boolean;
-};
 
 @Component({
   selector: 'app-new-message-panel',
@@ -21,7 +16,7 @@ type SearchResult = {
   styleUrl: './new-massage-panel.scss',
 })
 export class NewMessagePanel {
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly membershipService = inject(ChannelMembershipService);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
 
@@ -33,7 +28,7 @@ export class NewMessagePanel {
   protected searchTerm = '';
 
   private readonly channels$: Observable<Channel[]> = this.currentUser$.pipe(
-    switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of([])))
+    switchMap((user) => (user ? this.membershipService.getChannelsForUser(user.uid) : of([])))
   );
 
   private readonly users$ = this.userService.getAllUsers();

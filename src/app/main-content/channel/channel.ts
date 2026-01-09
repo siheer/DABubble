@@ -17,56 +17,30 @@ import {
   take,
   tap,
 } from 'rxjs';
-import {
+import { ChannelService } from '../../services/channel.service';
+import { MessageReactionsService } from '../../services/message-reactions.service';
+import { ChannelMembershipService } from '../../services/membership.service';
+import type {
   Channel,
   ChannelAttachment,
   ChannelMessage,
   ChannelMember,
-  FirestoreService,
-} from '../../services/firestore.service';
+  ChannelMemberView,
+  ChannelDay,
+  ChannelMessageView,
+} from '../../types';
 import { OverlayService } from '../../services/overlay.service';
 import { ChannelDescription } from '../messages/channel-description/channel-description';
 import { AppUser, UserService } from '../../services/user.service';
 import { ChannelMembers } from './channel-members/channel-members';
 import { AddToChannel } from './add-to-channel/add-to-channel';
 import { ThreadService } from '../../services/thread.service';
-import { ThreadCloseService } from '../../services/thread-close.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from './tooltip/tooltip';
-
-type ChannelDay = {
-  label: string;
-  sortKey: number;
-  messages: ChannelMessageView[];
-};
-
-export type ChannelMessageView = {
-  id?: string;
-  authorId: string;
-  author: string;
-  avatar: string;
-  createdAt: Date;
-  time: string;
-  text: string;
-  replies?: number;
-  lastReplyAt?: Date;
-  lastReplyTime?: string;
-  tag?: string;
-  attachment?: ChannelAttachment;
-  isOwn?: boolean;
-  reactions?: {
-    [emoji: string]: string[];
-  };
-};
-
-type ChannelMemberView = ChannelMember & {
-  isCurrentUser?: boolean;
-  user?: AppUser;
-};
 
 @Component({
   selector: 'app-channel',
@@ -77,11 +51,12 @@ type ChannelMemberView = ChannelMember & {
   styleUrls: ['./channel.scss'],
 })
 export class ChannelComponent {
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly channelService = inject(ChannelService);
+  private readonly membershipService = inject(ChannelMembershipService);
+  private readonly messageReactionsService = inject(MessageReactionsService);
   private readonly overlayService = inject(OverlayService);
   private readonly userService = inject(UserService);
   private readonly threadService = inject(ThreadService);
-  private readonly threadCloseService = inject(ThreadCloseService);
   private readonly screenService = inject(ScreenService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
@@ -114,7 +89,7 @@ export class ChannelComponent {
   );
 
   private readonly channels$ = this.currentUser$.pipe(
-    switchMap((user) => (user ? this.firestoreService.getChannelsForUser(user.uid) : of(null))),
+    switchMap((user) => (user ? this.membershipService.getChannelsForUser(user.uid) : of(null))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -186,7 +161,7 @@ export class ChannelComponent {
         return of<ChannelMemberView[]>([]);
       }
 
-      return combineLatest([this.firestoreService.getChannelMembers(channel.id), this.allUsers$]).pipe(
+      return combineLatest([this.membershipService.getChannelMembers(channel.id), this.allUsers$]).pipe(
         map(([members, users]) => {
           const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
@@ -226,7 +201,7 @@ export class ChannelComponent {
         return of<ChannelDay[]>([]);
       }
 
-      return this.firestoreService
+      return this.channelService
         .getChannelMessagesResolved(channel.id, this.allUsers$)
         .pipe(map((messages) => this.groupMessagesByDay(messages)));
     })
@@ -278,7 +253,7 @@ export class ChannelComponent {
       )
       .subscribe();
 
-    this.threadCloseService.closeRequests$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.threadService.closeRequests$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       if (!this.hasThreadChild()) return;
       if (this.threadSidenav) {
         void this.threadSidenav.close();
@@ -298,9 +273,9 @@ export class ChannelComponent {
         switchMap((channelId) => {
           if (!channelId) return of(null);
 
-          return combineLatest([this.allUsers$, this.firestoreService.getChannelMembers(channelId)]).pipe(
+          return combineLatest([this.allUsers$, this.membershipService.getChannelMembers(channelId)]).pipe(
             switchMap(([users, members]) =>
-              from(this.firestoreService.syncPublicChannelMembers(channelId, users, members)).pipe(
+              from(this.membershipService.syncPublicChannelMembers(channelId, users, members)).pipe(
                 catchError((error: unknown) => {
                   console.error(error);
                   return of(null);
@@ -444,7 +419,7 @@ export class ChannelComponent {
             return of(null);
           }
           return from(
-            this.firestoreService.addChannelMessage(channel.id, {
+            this.channelService.addChannelMessage(channel.id, {
               text,
               authorId: currentUser.uid,
             })
@@ -619,7 +594,7 @@ export class ChannelComponent {
           }
 
           return from(
-            this.firestoreService.updateChannelMessage(channel.id, messageId, {
+            this.channelService.updateChannelMessage(channel.id, messageId, {
               text: trimmed,
             })
           );
@@ -672,7 +647,7 @@ export class ChannelComponent {
     const reactions = message.reactions ?? {};
     const hasReacted = reactions[emoji]?.includes(this.currentUser.uid) ?? false;
 
-    this.firestoreService.toggleChannelMessageReaction(
+    this.messageReactionsService.toggleChannelMessageReaction(
       this.channelId,
       message.id,
       this.currentUser.uid,

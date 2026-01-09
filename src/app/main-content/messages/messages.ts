@@ -13,25 +13,16 @@ import {
   tap,
 } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
-import { FirestoreService } from '../../services/firestore.service';
+import { DirectMessagesService } from '../../services/direct-messages.service';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { AppUser, UserService } from '../../services/user.service';
-import { DirectMessageEntry } from '../../services/firestore.service';
+import type { DirectMessageEntry, MessageBubble } from '../../types';
 import { Timestamp } from '@angular/fire/firestore';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { EMOJI_CHOICES } from '../../texts';
-
-type MessageBubble = {
-  id?: string;
-  author: string;
-  avatar: string;
-  content: string;
-  timestamp: Timestamp | undefined;
-  isOwn?: boolean;
-};
 
 @Component({
   selector: 'app-messages',
@@ -42,7 +33,7 @@ type MessageBubble = {
   styleUrl: './messages.scss',
 })
 export class Messages {
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly directMessagesService = inject(DirectMessagesService);
   private readonly userService = inject(UserService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
@@ -70,7 +61,7 @@ export class Messages {
         return of([]);
       }
 
-      return this.firestoreService
+      return this.directMessagesService
         .getDirectConversationMessages(currentUser.uid, recipient.uid)
         .pipe(map((messages) => messages.map((message) => this.mapMessage(message, currentUser))));
     }),
@@ -139,7 +130,7 @@ export class Messages {
     if (!trimmed || !this.currentUser || !this.selectedRecipient) return;
 
     this.isSending = true;
-    this.firestoreService
+    this.directMessagesService
       .sendDirectMessage(
         {
           authorId: this.currentUser.uid,
@@ -252,7 +243,7 @@ export class Messages {
     if (this.isSavingEdit) return;
 
     this.isSavingEdit = true;
-    this.firestoreService
+    this.directMessagesService
       .updateDirectMessage(this.currentUser.uid, this.selectedRecipient.uid, messageId, { text: trimmed })
       .finally(() => {
         this.isSavingEdit = false;

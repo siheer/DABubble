@@ -1,30 +1,24 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  collection,
-  collectionGroup,
   deleteDoc,
-  deleteField,
   doc,
   DocumentReference,
   Firestore,
   getDoc,
   runTransaction,
-  getDocs,
-  query,
-  serverTimestamp,
   setDoc,
   Timestamp,
   Transaction,
-  updateDoc,
-  where,
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { NOTIFICATIONS } from '../notifications';
 import { type AppUser } from './user.service';
 import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
 import { GuestRegistryData } from '../types';
-import { FirestoreService } from './firestore.service';
+import { ChannelService } from './channel.service';
+import { ChannelMembershipService } from './membership.service';
 import { DirectMessagesService } from './direct-messages.service';
+import { MessageReactionsService } from './message-reactions.service';
 
 const GUEST_FALLBACK_NUMBER = 999;
 
@@ -32,8 +26,10 @@ const GUEST_FALLBACK_NUMBER = 999;
 export class GuestService {
   private authService = inject(AuthService);
   private firestore = inject(Firestore);
-  private firestoreService = inject(FirestoreService);
+  private channelService = inject(ChannelService);
+  private membershipService = inject(ChannelMembershipService);
   private directMessagesService = inject(DirectMessagesService);
+  private messageReactionsService = inject(MessageReactionsService);
 
   /** Builds the initial guest user payload. */
   async buildGuestUserDocData() {
@@ -118,7 +114,7 @@ export class GuestService {
     }
 
     try {
-      await this.removeGuestFromAllChannels(user.uid);
+      await this.membershipService.removeUserFromAllChannels(user.uid);
     } catch (error) {
       console.error('Gast: ' + NOTIFICATIONS.CHANNEL_MEMBERSHIPS_REMOVE_FAILED, error);
       isSuccessful = false;
@@ -190,70 +186,13 @@ export class GuestService {
 
   /** Removes channel and DM messages written by the user. */
   private async deleteAllMessagesByAuthor(userId: string): Promise<void> {
-    const db = this.firestore;
-
-    const channelsSnap = await getDocs(collection(db, 'channels'));
-
-    for (const channel of channelsSnap.docs) {
-      const messagesSnap = await getDocs(
-        query(collection(db, `channels/${channel.id}/messages`), where('authorId', '==', userId))
-      );
-
-      for (const message of messagesSnap.docs) {
-        const threadsSnap = await getDocs(collection(message.ref, 'threads'));
-        for (const reply of threadsSnap.docs) {
-          await deleteDoc(reply.ref);
-        }
-
-        await deleteDoc(message.ref);
-      }
-    }
-
-    const dmMessagesSnap = await getDocs(query(collectionGroup(db, 'messages'), where('authorId', '==', userId)));
-
-    for (const dm of dmMessagesSnap.docs) {
-      await deleteDoc(dm.ref);
-    }
+    await this.channelService.deleteAllChannelMessagesByAuthor(userId);
+    await this.directMessagesService.deleteAllDirectMessagesByParticipant(userId);
   }
 
   /** Removes the user from all reactions in channels. */
   private async removeReactionsByUser(userId: string): Promise<void> {
-    const db = this.firestore;
-
-    const channelsSnap = await getDocs(collection(db, 'channels'));
-
-    for (const channel of channelsSnap.docs) {
-      const messagesSnap = await getDocs(collection(db, `channels/${channel.id}/messages`));
-
-      for (const message of messagesSnap.docs) {
-        const data = message.data();
-        const reactions = data['reactions'] as Record<string, string[]> | undefined;
-
-        if (!reactions) continue;
-
-        let changed = false;
-        const updatedReactions: Record<string, string[]> = {};
-
-        for (const [emoji, users] of Object.entries(reactions)) {
-          const filtered = (users as string[]).filter((id) => id !== userId);
-
-          if (filtered.length > 0) {
-            updatedReactions[emoji] = filtered;
-          }
-
-          if (filtered.length !== users.length) {
-            changed = true;
-          }
-        }
-
-        if (changed) {
-          await updateDoc(message.ref, {
-            reactions: Object.keys(updatedReactions).length ? updatedReactions : deleteField(),
-            updatedAt: serverTimestamp(),
-          });
-        }
-      }
-    }
+    await this.messageReactionsService.removeReactionsByUser(userId);
   }
 
   /** Picks a random unused guest number. */
@@ -343,40 +282,5 @@ export class GuestService {
       return null;
     }
     return Number(numberMatch[0]);
-  }
-
-  private async removeGuestFromAllChannels(userId: string): Promise<void> {
-    const membersQuery = query(
-      collectionGroup(this.firestore, 'members'),
-      where('scope', '==', 'channel'),
-      where('id', '==', userId)
-    );
-
-    const membersSnap = await getDocs(membersQuery);
-
-    const channelIds = new Set<string>();
-    for (const memberDoc of membersSnap.docs) {
-      const channelId = memberDoc.data()['channelId'] as string | undefined;
-      if (channelId) {
-        channelIds.add(channelId);
-      } else {
-        await deleteDoc(memberDoc.ref);
-      }
-    }
-
-    await this.leaveAllChannels(channelIds, userId);
-  }
-
-  private async leaveAllChannels(channelIds: Set<string>, userId: string): Promise<void> {
-    const results = await Promise.allSettled(
-      [...channelIds].map((channelId) => this.firestoreService.leaveChannel(channelId, userId))
-    );
-
-    const failures = results.filter((result) => result.status === 'rejected');
-    results.forEach((result) => console.error(NOTIFICATIONS.LEAVE_CHANNEL_FAILED, result));
-
-    if (failures.length) {
-      throw new Error(NOTIFICATIONS.LEAVE_CHANNEL_FAILED);
-    }
   }
 }

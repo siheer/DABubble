@@ -6,7 +6,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../services/user.service';
 import { take } from 'rxjs';
-import { FirestoreService } from '../../../services/firestore.service';
+import { ChannelMembershipService } from '../../../services/membership.service';
 
 type ChannelMember = {
   id: string;
@@ -42,7 +42,7 @@ type SuggestedMember = {
 export class AddToChannel implements OnInit {
   private readonly overlayService = inject(OverlayService);
   private readonly userService = inject(UserService);
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly membershipService = inject(ChannelMembershipService);
 
   @Input() channelId?: string;
   @Input() channelTitle = 'Entwicklerteam';
@@ -90,14 +90,11 @@ export class AddToChannel implements OnInit {
     const search = term.trim().toLowerCase();
 
     if (!search) {
-      return this.suggestedMembers.filter(
-        (member) => !this.isAlreadySelected(member.id)
-      );
+      return this.suggestedMembers.filter((member) => !this.isAlreadySelected(member.id));
     }
 
-    return this.suggestedMembers.filter((member) =>
-      member.name.toLowerCase().includes(search) &&
-      !this.isAlreadySelected(member.id)
+    return this.suggestedMembers.filter(
+      (member) => member.name.toLowerCase().includes(search) && !this.isAlreadySelected(member.id)
     );
   }
 
@@ -112,13 +109,11 @@ export class AddToChannel implements OnInit {
   }
 
   protected removeSelectedMember(memberId: string): void {
-    this.selectedMembers = this.selectedMembers.filter(
-      (member) => member.id !== memberId
-    );
+    this.selectedMembers = this.selectedMembers.filter((member) => member.id !== memberId);
     this.filteredMembers = this.filterMembers(this.searchTerm);
   }
 
- protected confirmSuggestions(): void {
+  protected confirmSuggestions(): void {
     this.showSuggestions = false;
   }
   protected onSubmit(event?: Event): void {
@@ -139,7 +134,7 @@ export class AddToChannel implements OnInit {
     try {
       await Promise.all(
         this.selectedMembers.map((member) =>
-          this.firestoreService.upsertChannelMember(this.channelId!, {
+          this.membershipService.upsertChannelMember(this.channelId!, {
             id: member.id,
             name: member.name,
             avatar: member.avatar,

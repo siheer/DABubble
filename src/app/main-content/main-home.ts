@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Workspace } from './workspace/workspace';
 import { ScreenService } from '../services/screen.service';
-import { FirestoreService } from '../services/firestore.service';
+import { ChannelMembershipService } from '../services/membership.service';
 import { UserService } from '../services/user.service';
 import { catchError, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
 
@@ -44,7 +44,7 @@ export class MainHome {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly screenService = inject(ScreenService);
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly membershipService = inject(ChannelMembershipService);
   private readonly userService = inject(UserService);
 
   private readonly currentUser$ = this.userService.currentUser$;
@@ -66,7 +66,7 @@ export class MainHome {
         }),
         switchMap((uid) => {
           if (!uid) return of(null);
-          return this.firestoreService.getChannelsForUser(uid).pipe(
+          return this.membershipService.getChannelsForUser(uid).pipe(
             catchError((error) => {
               console.error(error);
               return of([]);

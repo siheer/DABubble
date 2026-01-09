@@ -5,7 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, combineLatest, map, shareReplay } from 'rxjs';
-import { ThreadContext, ThreadService } from '../../services/thread.service';
+import { ThreadService } from '../../services/thread.service';
+import type { ThreadContext } from '../../types';
 import { UserService } from '../../services/user.service';
 import { EMOJI_CHOICES } from '../../texts';
 

@@ -2,14 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { ActivatedRouteSnapshot, Router, ViewTransitionInfo } from '@angular/router';
 import { ScreenService } from './screen.service';
 import { BrandStateService } from './brand-state.service';
-
-export type MobileRouteDirection = 'forward' | 'back';
-
-export type ViewTransitionSkipRule = {
-  route: string;
-  from: boolean;
-  to: boolean;
-};
+import { MobileRouteDirection, ViewTransitionSkipRule } from '../types';
 
 @Injectable({ providedIn: 'root' })
 export class ViewTransitionService {

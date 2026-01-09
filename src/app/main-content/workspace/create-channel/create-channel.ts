@@ -1,7 +1,8 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { FirestoreService } from '../../../services/firestore.service';
+import { ChannelService } from '../../../services/channel.service';
+import { ChannelMembershipService } from '../../../services/membership.service';
 import { UserService } from '../../../services/user.service';
 @Component({
   selector: 'app-create-channel',
@@ -14,7 +15,8 @@ export class CreateChannel {
   // for sending modal to parent component
   @Output() readonly close = new EventEmitter<void>();
 
-  private readonly firestoreService = inject(FirestoreService);
+  private readonly channelService = inject(ChannelService);
+  private readonly membershipService = inject(ChannelMembershipService);
   private readonly userService = inject(UserService);
   protected title = '';
   protected description = '';
@@ -42,12 +44,12 @@ export class CreateChannel {
       const title = this.title.trim();
       const description = this.description.trim();
 
-      const channelId = await this.firestoreService.createChannel(title, description, this.isAdmin() && this.isPublic);
+      const channelId = await this.channelService.createChannel(title, description, this.isAdmin() && this.isPublic);
 
       const currentUser = this.userService.currentUser();
 
       if (currentUser) {
-        await this.firestoreService.upsertChannelMember(channelId, {
+        await this.membershipService.upsertChannelMember(channelId, {
           id: currentUser.uid,
           name: currentUser.name,
           avatar: currentUser.photoUrl,
