@@ -36,6 +36,8 @@ export const NOTIFICATIONS = {
   GUEST_USER_DOCUMENT_DELETE_FAILED: 'Gast-User-Dokument konnte nicht gelöscht werden.',
   GUEST_CLEANUP_SCHEDULE_FAILED: 'Gastdaten-Bereinigung konnte nicht gestartet werden.',
   GUEST_CLEANUP_EXPIRED_FAILED: 'Es ist ein Fehler in der Bereinigung der Gastdaten aufgetreten.',
+  GUEST_CHANNEL_MEMBERSHIPS_REMOVE_FAILED: 'Fehler beim Entfernen der Gast-Mitgliedschaften.',
+  GUEST_LEAVE_CHANNEL_FAILED: 'Fehler beim leaveChannel von Gast-Mitgliedschaften.',
 
   TOAST_LOGIN_SUCCESS: 'Anmeldung erfolgreich',
   TOAST_LOGOUT_SUCCESS: 'Du wurdest abgemeldet',
