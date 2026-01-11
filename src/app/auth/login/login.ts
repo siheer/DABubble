@@ -64,6 +64,7 @@ export class Login {
       this.completed.emit('login');
     } catch (error: any) {
       this.errorMessage = error?.message ?? NOTIFICATIONS.SIGNUP_ERROR;
+      this.toastService.error(NOTIFICATIONS.TOAST_LOGIN_FAILURE);
     } finally {
       this.isSubmitting = false;
     }

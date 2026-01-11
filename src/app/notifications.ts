@@ -36,13 +36,16 @@ export const NOTIFICATIONS = {
   LEAVE_CHANNEL_FAILED: 'Fehler beim Verlassen des Channels',
   DIRECT_MESSAGES_DELETE_FAILED: 'Fehler beim Löschen der Direct Message.',
 
+  GUEST_WRONG_IDENTITY: 'User ist nicht Gast.',
   GUEST_CLEANUP_FAILED: 'Gastdaten konnten nicht gelöscht werden.',
   GUEST_NUMBER_RELEASE_FAILED: 'Gastnummer konnte nicht freigegeben werden.',
   GUEST_CLEANUP_SCHEDULE_FAILED: 'Gastdaten-Bereinigung konnte nicht gestartet werden.',
   GUEST_CLEANUP_EXPIRED_FAILED: 'Es ist ein Fehler in der Bereinigung der Gastdaten aufgetreten.',
 
   TOAST_LOGIN_SUCCESS: 'Anmeldung erfolgreich',
+  TOAST_LOGIN_FAILURE: 'Anmeldung fehlgeschlagen',
   TOAST_LOGOUT_SUCCESS: 'Du wurdest abgemeldet',
+  TOAST_LOGOUT_FAILURE: 'Abmeldung fehlgeschlagen',
   TOAST_SIGNUP_SUCCESS: 'Konto erfolgreich erstellt!',
   TOAST_EMAIL_SENT: 'E-Mail gesendet',
   TOAST_PASSWORD_RESET_SUCCESS: 'Passwort geändert',

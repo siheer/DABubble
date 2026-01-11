@@ -19,6 +19,8 @@ import { AuthService } from './auth.service';
 import { GuestService } from './guest.service';
 import { TEXTS } from '../texts';
 import { Router } from '@angular/router';
+import { ToastService } from '../toast/toast.service';
+import { NOTIFICATIONS } from '../notifications';
 
 export interface AppUser {
   uid: string;
@@ -40,6 +42,8 @@ export class UserService {
   private guestService = inject(GuestService);
   private firestore = inject(Firestore);
   private router = inject(Router);
+  private toastService = inject(ToastService);
+
   private userDocSubscription?: Subscription;
   private allUsers$?: Observable<AppUser[]>;
   private userDocCache = new Map<string, Observable<AppUser | null>>();
@@ -281,10 +285,14 @@ export class UserService {
   async logout(): Promise<void> {
     const user = this.currentUser();
 
-    if (user?.isGuest) {
-      await this.guestService.signOutGuest(user);
-    } else {
-      await this.authService.signOut();
+    try {
+      if (user?.isGuest) {
+        await this.guestService.signOutGuest(user);
+      } else {
+        await this.authService.signOut();
+      }
+    } catch (error: any) {
+      this.toastService.error(error.message ?? NOTIFICATIONS.TOAST_LOGOUT_FAILURE);
     }
   }
 }

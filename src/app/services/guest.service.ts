@@ -45,23 +45,26 @@ export class GuestService {
 
   /** Signs out and schedules cleanup for a guest account. */
   async signOutGuest(user: AppUser | null): Promise<void> {
+    try {
+      await this.deleteGuestAuthRecord(user);
+      this.scheduleGuestCleanup(user!);
+    } catch (_) {
+      throw new Error(NOTIFICATIONS.TOAST_LOGOUT_FAILURE);
+    }
+  }
+
+  async deleteGuestAuthRecord(user: AppUser | null): Promise<void> {
     const firebaseUser = this.authService.auth.currentUser;
 
-    if (!user || !firebaseUser) return;
-    if (!user.isGuest || !firebaseUser.isAnonymous) return;
+    if (!user || !firebaseUser) throw new Error(NOTIFICATIONS.GUEST_WRONG_IDENTITY);
+    if (!user.isGuest || !firebaseUser.isAnonymous) throw new Error(NOTIFICATIONS.GUEST_WRONG_IDENTITY);
 
-    let deleted = false;
     try {
       await this.authService.deleteCurrentUser();
-      deleted = true;
     } catch (error) {
       console.error(error);
-      console.error(NOTIFICATIONS.ACCOUNT_DELETION_FAILURE);
+      throw new Error(NOTIFICATIONS.ACCOUNT_DELETION_FAILURE);
     }
-
-    if (!deleted) return;
-
-    this.scheduleGuestCleanup(user);
   }
 
   /** Runs cleanup for a guest without blocking the caller. */
@@ -98,6 +101,12 @@ export class GuestService {
   /** Deletes all guest data across collections. */
   async cleanupGuestUserData(user: AppUser): Promise<boolean> {
     let isSuccessful = true;
+
+    try {
+      await this.deleteGuestAuthRecord(user);
+    } catch (error) {
+      console.error('Gast: ' + NOTIFICATIONS.ACCOUNT_DELETION_FAILURE);
+    }
 
     try {
       await this.deleteAllMessagesByAuthor(user.uid);
