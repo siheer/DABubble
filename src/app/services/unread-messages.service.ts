@@ -179,9 +179,6 @@ export class UnreadMessagesService {
       if (aTime !== bTime) {
         return bTime - aTime;
       }
-      if (a.unreadCount !== b.unreadCount) {
-        return b.unreadCount - a.unreadCount;
-      }
       return a.name.localeCompare(b.name);
     });
   }

@@ -293,6 +293,7 @@ export class Thread {
       data: { user: fallbackUser },
     });
   }
+  
   private insertComposerText(text: string): void {
     const textarea = this.replyTextarea?.nativeElement;
     if (!textarea) {

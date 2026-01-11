@@ -164,6 +164,11 @@
           <mat-icon>sentiment_satisfied</mat-icon>
         </button>
       </div>
+      <div class="message-board__composer-end">
+        <button type="submit" aria-label="Nachricht senden" [disabled]="!draftMessage.trim() || isSending">
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
     </div>
   </form>
 </section>
