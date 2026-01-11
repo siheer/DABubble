@@ -40,9 +40,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
-import { ReactionTooltipComponent  } from '../tooltip/tooltip';
+import { ReactionTooltipComponent } from '../tooltip/tooltip';
 import { MessageReactions } from '../message-reactions/message-reactions';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
+import { ProfilePictureService } from '../../services/profile-picture.service';
 
 @Component({
   selector: 'app-channel',
@@ -67,6 +68,7 @@ export class ChannelComponent {
   private readonly reactionTooltipService = inject(ReactionTooltipService);
   private readonly currentUser$ = this.userService.currentUser$;
   private readonly allUsers$ = this.userService.getAllUsers();
+  private readonly profilePictureService = inject(ProfilePictureService);
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
 
@@ -76,13 +78,6 @@ export class ChannelComponent {
     name: 'Entwicklerteam',
     summary: 'Gruppe zum Austausch über technische Fragen und das laufende Redesign des Devspace.',
   };
-
-  protected readonly memberAvatars = [
-    'imgs/users/Property 1=Frederik Beck.svg',
-    'imgs/users/Property 1=Noah Braun.svg',
-    'imgs/users/Property 1=Sofia Müller.svg',
-    'imgs/users/Property 1=Elias Neumann.svg',
-  ];
 
   protected allUsersSnapshot: AppUser[] = [];
 
@@ -171,7 +166,7 @@ export class ChannelComponent {
 
           return members.map((member) => {
             const user = userMap.get(member.id);
-            const avatar = user?.photoUrl ?? member.avatar ?? 'imgs/users/placeholder.svg';
+            const avatar = this.profilePictureService.getUrl(user?.profilePictureKey ?? member.profilePictureKey);
             const name = user?.name ?? member.name;
 
             return {
@@ -184,7 +179,7 @@ export class ChannelComponent {
                 uid: member.id,
                 name,
                 email: null,
-                photoUrl: avatar,
+                profilePictureKey: member.profilePictureKey ?? 'default',
                 onlineStatus: false,
                 lastSeen: undefined,
                 updatedAt: undefined,
@@ -452,7 +447,7 @@ export class ChannelComponent {
       id: message.id,
       authorId: message.authorId,
       author: message.author?.name ?? 'Unbekannter Nutzer',
-      avatar: message.author?.photoUrl ?? this.memberAvatars[0] ?? 'imgs/users/placeholder.svg',
+      avatar: this.profilePictureService.getUrl(message.author?.profilePictureKey),
 
       createdAt,
       time: this.formatTime(createdAt),

@@ -21,12 +21,14 @@ import { TEXTS } from '../texts';
 import { Router } from '@angular/router';
 import { ToastService } from '../toast/toast.service';
 import { NOTIFICATIONS } from '../notifications';
+import { ProfilePictureKey } from '../types';
 
 export interface AppUser {
   uid: string;
   email: string | null;
   name: string;
-  photoUrl: string;
+  profilePictureKey?: ProfilePictureKey;
+  photoUrl?: string;
   onlineStatus: boolean;
   lastSeen?: unknown;
   updatedAt?: unknown;
@@ -294,5 +296,19 @@ export class UserService {
     } catch (error: any) {
       this.toastService.error(error.message ?? NOTIFICATIONS.TOAST_LOGOUT_FAILURE);
     }
+  }
+
+  getProfilePictureUrl(user: AppUser | null): string {
+    if (!user) return PROFILE_PICTURE_URLS.default;
+
+    if (user.profilePictureKey) {
+      return PROFILE_PICTURE_URLS[user.profilePictureKey];
+    }
+
+    if (user.photoUrl) {
+      return user.photoUrl;
+    }
+
+    return PROFILE_PICTURE_URLS.default;
   }
 }

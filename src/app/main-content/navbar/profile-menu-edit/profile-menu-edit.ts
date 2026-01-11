@@ -5,6 +5,9 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../../services/user.service';
 import { FormsModule } from '@angular/forms';
+import { AvatarOverlay } from '../avatar-overlay/avatar-overlay';
+import { ProfilePictureService } from '../../../services/profile-picture.service';
+import { ProfilePictureKey } from '../../../types';
 
 @Component({
   selector: 'app-profile-menu-edit',
@@ -21,6 +24,7 @@ import { FormsModule } from '@angular/forms';
 export class ProfileMenuEdit {
   private overlayService = inject(OverlayService);
   private userService = inject(UserService);
+  readonly profilePictureService = inject(ProfilePictureService);
 
   @Output() closed = new EventEmitter<void>();
 
@@ -55,5 +59,13 @@ export class ProfileMenuEdit {
   get canEditName(): boolean {
     const user = this.currentUser();
     return !!user && !!user.email;
+  }
+
+  openAvatarOverlay() {
+    const overlayRef = this.overlayService.getLastOverlay();
+    if (!overlayRef) return;
+    overlayRef.replaceComponent(AvatarOverlay, {
+      target: this.overlayRef.target,
+    });
   }
 }

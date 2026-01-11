@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, Input, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProfilePicture, ProfilePictureKey } from '../../types';
 
@@ -19,6 +19,7 @@ export const PROFILE_PICTURE_URLS = {
   styleUrls: ['./set-profile-picture.scss'],
 })
 export class SetProfilePicture {
+  @Input() variant: 'auth' | 'overlay' = 'auth';
   readonly displayName = input.required<string>();
   readonly selectedProfilePictureKey = input<ProfilePictureKey>('default');
   readonly actionLabel = input<string>('Speichern');

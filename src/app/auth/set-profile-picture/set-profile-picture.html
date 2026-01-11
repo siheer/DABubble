@@ -1,35 +1,37 @@
-<button type="button" aria-label="Zurück" class="dab-ui-item back-btn" (click)="onBackClick()">
-  <span class="material-icons">arrow_back</span>
-</button>
+<section [class.profile-picture--overlay]="variant === 'overlay'">
+  <button type="button" aria-label="Zurück" class="dab-ui-item back-btn close" (click)="onBackClick()">
+    <span class="material-icons">arrow_back</span>
+  </button>
 
-<h1 class="mb-6">Wähle deinen Avatar</h1>
+  <h1 class="mb-6">Wähle deinen Avatar</h1>
 
-<img
-  class="dab-avatar-img mx-auto mb-3 block size-36"
-  [src]="selectedProfilePicture().path"
-  alt="Aktuelles Profilbild" />
+  <img
+    class="dab-avatar-img mx-auto mb-3 block size-36"
+    [src]="selectedProfilePicture().path"
+    alt="Aktuelles Profilbild" />
 
-<div class="mb-6 text-center text-2xl font-bold sm:text-3xl">
-  {{ displayName() }}
-</div>
+  <div class="mb-6 text-center text-2xl font-bold sm:text-3xl">
+    {{ displayName() }}
+  </div>
 
-<div class="paragraph-20 mb-3">Aus der Liste wählen</div>
+  <div class="paragraph-20 mb-3">Aus der Liste wählen</div>
 
-<div class="mb-6 flex flex-wrap justify-center gap-3">
-  @for (picture of profilePictureOptions; track picture.key) {
-    @if (picture.key !== 'default') {
-      <button
-        type="button"
-        class="rounded-full transition outline-none hover:ring-3 hover:not-[.selected]:ring-dab-purple-2 focus-visible:ring-3 focus-visible:ring-dab-purple-2"
-        [ngClass]="{ 'selected ring-3 ring-dab-purple-1 ring-offset-3 ring-offset-white': isSelected(picture.key) }"
-        (click)="selectProfilePicture(picture.key)"
-        [attr.aria-pressed]="isSelected(picture.key)">
-        <img class="dab-avatar-img size-14" [src]="picture.path" [alt]="'Profilbild ' + picture.key" />
-      </button>
+  <div class="mb-6 flex flex-wrap justify-center gap-3">
+    @for (picture of profilePictureOptions; track picture.key) {
+      @if (picture.key !== 'default') {
+        <button
+          type="button"
+          class="rounded-full transition outline-none hover:ring-3 hover:not-[.selected]:ring-dab-purple-2 focus-visible:ring-3 focus-visible:ring-dab-purple-2"
+          [ngClass]="{ 'selected ring-3 ring-dab-purple-1 ring-offset-3 ring-offset-white': isSelected(picture.key) }"
+          (click)="selectProfilePicture(picture.key)"
+          [attr.aria-pressed]="isSelected(picture.key)">
+          <img class="dab-avatar-img size-14" [src]="picture.path" [alt]="'Profilbild ' + picture.key" />
+        </button>
+      }
     }
-  }
-</div>
+  </div>
 
-<button type="button" class="dab-btn-primary ml-auto block" [disabled]="isActionDisabled()" (click)="onActionClick()">
-  {{ actionLabel() }}
-</button>
+  <button type="button" class="dab-btn-primary ml-auto block" [disabled]="isActionDisabled()" (click)="onActionClick()">
+    {{ actionLabel() }}
+  </button>
+</section>

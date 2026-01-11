@@ -7,15 +7,7 @@ import { AddToChannel } from '../add-to-channel/add-to-channel';
 import { MatDialog, matDialogAnimations } from '@angular/material/dialog';
 import { AppUser } from '../../../services/user.service';
 import { MemberDialog } from '../../member-dialog/member-dialog';
-
-type ChannelMember = {
-  id: string; // <-- hinzugefügt
-  name: string;
-  avatar: string;
-  subtitle?: string;
-  isCurrentUser?: boolean;
-  user?: AppUser;
-};
+import { ChannelMemberView } from '../../../types';
 
 @Component({
   selector: 'app-channel-members',
@@ -39,7 +31,7 @@ export class ChannelMembers {
   private readonly overlayService = inject(OverlayService);
   private readonly dialog = inject(MatDialog);
 
-  @Input() members: ChannelMember[] = [];
+  @Input() members: ChannelMemberView[] = [];
   @Input() title = 'Mitglieder';
   @Input() channelId?: string;
 
@@ -66,7 +58,7 @@ export class ChannelMembers {
     });
   }
 
-  protected openMemberProfile(member: ChannelMember): void {
+  protected openMemberProfile(member: ChannelMemberView): void {
     if (member.isCurrentUser) {
       return;
     }
@@ -75,7 +67,7 @@ export class ChannelMembers {
       uid: member.id,
       name: member.name,
       email: null,
-      photoUrl: member.avatar || 'imgs/default-profile-picture.png',
+      profilePictureKey: undefined,
       onlineStatus: false,
       lastSeen: undefined,
       updatedAt: undefined,

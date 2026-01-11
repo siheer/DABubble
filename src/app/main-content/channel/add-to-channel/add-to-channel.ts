@@ -7,6 +7,8 @@ import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../services/user.service';
 import { take } from 'rxjs';
 import { ChannelMembershipService } from '../../../services/membership.service';
+import { ProfilePictureKey } from '../../../types';
+import { ProfilePictureService } from '../../../services/profile-picture.service';
 
 type ChannelMember = {
   id: string;
@@ -19,6 +21,7 @@ type SuggestedMember = {
   avatar: string;
   subtitle?: string;
   status?: 'online' | 'offline';
+  profilePictureKey?: ProfilePictureKey;
 };
 
 @Component({
@@ -43,6 +46,7 @@ export class AddToChannel implements OnInit {
   private readonly overlayService = inject(OverlayService);
   private readonly userService = inject(UserService);
   private readonly membershipService = inject(ChannelMembershipService);
+  private readonly profilePictureService = inject(ProfilePictureService);
 
   @Input() channelId?: string;
   @Input() channelTitle = 'Entwicklerteam';
@@ -67,7 +71,8 @@ export class AddToChannel implements OnInit {
           .map((user) => ({
             id: user.uid,
             name: user.name,
-            avatar: user.photoUrl || 'imgs/users/placeholder.svg',
+            avatar: this.profilePictureService.getUrl(user.profilePictureKey),
+            profilePictureKey: user.profilePictureKey ?? 'default',
             subtitle: user.email ?? undefined,
             status: user.onlineStatus ? 'online' : 'offline',
           }));
@@ -137,7 +142,7 @@ export class AddToChannel implements OnInit {
           this.membershipService.upsertChannelMember(this.channelId!, {
             id: member.id,
             name: member.name,
-            avatar: member.avatar,
+            profilePictureKey: member.profilePictureKey ?? 'default',
             subtitle: member.subtitle,
           })
         )

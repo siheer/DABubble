@@ -52,7 +52,7 @@ export class CreateChannel {
         await this.membershipService.upsertChannelMember(channelId, {
           id: currentUser.uid,
           name: currentUser.name,
-          avatar: currentUser.photoUrl,
+          profilePictureKey: currentUser.profilePictureKey ?? 'default',
           subtitle: currentUser.email ?? undefined,
         });
       }

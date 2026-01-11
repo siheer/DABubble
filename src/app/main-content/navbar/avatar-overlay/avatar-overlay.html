@@ -1,0 +1,10 @@
+<section class="avatar-overlay">
+  <app-set-profile-picture
+    variant="overlay"
+    [displayName]="displayName"
+    [selectedProfilePictureKey]="selectedKey"
+    [isActionDisabled]="saving"
+    (profilePictureChange)="onSelect($event)"
+    (back)="close()"
+    (action)="save()" />
+</section>

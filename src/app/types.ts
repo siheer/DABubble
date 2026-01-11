@@ -1,5 +1,4 @@
 import { Timestamp } from '@angular/fire/firestore';
-import { PROFILE_PICTURE_URLS } from './auth/set-profile-picture/set-profile-picture';
 import type { AppUser } from './services/user.service';
 
 // Auth and profile
@@ -20,10 +19,17 @@ export interface PendingRegistrationData {
   emailAddress: string;
   password: string;
   privacyAccepted: boolean;
-  profilePicture: ProfilePicture;
+  profilePictureKey: ProfilePictureKey;
 }
 
-export type ProfilePictureKey = keyof typeof PROFILE_PICTURE_URLS;
+export type ProfilePictureKey =
+  | 'default'
+  | 'female1'
+  | 'female2'
+  | 'male1'
+  | 'male2'
+  | 'male3'
+  | 'male4';
 
 export interface ProfilePicture {
   key: ProfilePictureKey;
@@ -69,7 +75,7 @@ export interface ChannelMessage {
 export interface ChannelMember {
   id: string;
   name: string;
-  avatar: string;
+  profilePictureKey?: ProfilePictureKey;
   subtitle?: string;
   addedAt?: Timestamp;
   channelId?: string;
@@ -186,7 +192,11 @@ export type ChannelDay = {
   messages: ChannelMessageView[];
 };
 
-export type ChannelMemberView = ChannelMember & {
+export type ChannelMemberView = {
+  id: string;
+  name: string;
+  avatar: string;
+  subtitle?: string;
   isCurrentUser?: boolean;
   user?: AppUser;
 };

@@ -7,7 +7,11 @@
     <h2>Dein Profil bearbeiten</h2>
     <button (click)="closeOverlay()"><mat-icon class="close">close</mat-icon></button>
   </div>
-  <img class="size-40 rounded-full" [src]="currentUser()?.photoUrl || 'imgs/default-profile-picture.png'" alt="" />
+  <img
+    class="size-40 rounded-full"
+    [src]="profilePictureService.getUrl(currentUser()?.profilePictureKey)"
+    alt="Profilbild ändern"
+    (click)="openAvatarOverlay()" />
   <div class="flex w-full flex-col px-6">
     <div class="flex items-center gap-4">
       <img src="imgs/direktnachrichten img.svg" alt="" />
@@ -19,7 +23,7 @@
       [(ngModel)]="newName"
       placeholder="{{ currentUser()?.name || 'Gast' }}"
       [disabled]="!canEditName"
-      [class.input-disabled]="!canEditName" />  
+      [class.input-disabled]="!canEditName" />
     <span *ngIf="!canEditName" class="text-xs text-red-400">Nur für registrierte User möglich!</span>
   </div>
   <div class="flex items-center gap-10 pt-6">

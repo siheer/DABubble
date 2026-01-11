@@ -104,16 +104,13 @@ export class ChannelMembershipService {
     return this.channelMembersCache.get(channelId)!;
   }
 
-  async upsertChannelMember(
-    channelId: string,
-    member: Pick<ChannelMember, 'id' | 'name' | 'avatar' | 'subtitle'>
-  ): Promise<void> {
+  async upsertChannelMember(channelId: string, member: ChannelMember): Promise<void> {
     const memberDoc = doc(this.firestore, `channels/${channelId}/members/${member.id}`);
 
     const payload: Record<string, unknown> = {
       id: member.id,
       name: member.name,
-      avatar: member.avatar,
+      profilePictureKey: member.profilePictureKey ?? 'default',
       channelId,
       scope: 'channel',
       addedAt: serverTimestamp(),
