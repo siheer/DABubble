@@ -13,7 +13,7 @@ import {
   updateDoc,
 } from '@angular/fire/firestore';
 import { User as FirebaseUser, UserCredential } from 'firebase/auth';
-import { Observable, Subscription, catchError, map, of, shareReplay } from 'rxjs';
+import { Observable, Subscription, map, shareReplay } from 'rxjs';
 import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
 import { AuthService } from './auth.service';
 import { GuestService } from './guest.service';
@@ -21,6 +21,7 @@ import { TEXTS } from '../texts';
 import { Router } from '@angular/router';
 import { ToastService } from '../toast/toast.service';
 import { NOTIFICATIONS } from '../notifications';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 export interface AppUser {
   uid: string;
@@ -179,25 +180,30 @@ export class UserService {
   getAllUsers(): Observable<AppUser[]> {
     if (!this.allUsers$) {
       this.allUsers$ = runInInjectionContext(this.injector, () => {
-        const usersCollection = collection(this.firestore, 'users');
-
-        return collectionData(usersCollection, { idField: 'uid' }).pipe(
-          map((users) =>
-            (users as Array<Partial<AppUser> & { uid?: string }>).map((user) => ({
-              uid: user.uid ?? 'unbekannt',
-              name: user.name ?? 'Unbenannter Nutzer',
-              email: user.email ?? null,
-              photoUrl: user.photoUrl || 'imgs/default-profile-picture.png',
-              onlineStatus: user.onlineStatus ?? false,
-              lastSeen: user.lastSeen,
-              updatedAt: user.updatedAt,
-              createdAt: user.createdAt,
-              role: user.role,
-              isGuest: user.isGuest ?? false,
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<AppUser[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () => {
+            const usersCollection = collection(this.firestore, 'users');
+            return collectionData(usersCollection, { idField: 'uid' }).pipe(
+              map((users) =>
+                (users as Array<Partial<AppUser> & { uid?: string }>).map((user) => ({
+                  uid: user.uid ?? 'unbekannt',
+                  name: user.name ?? 'Unbenannter Nutzer',
+                  email: user.email ?? null,
+                  photoUrl: user.photoUrl || 'imgs/default-profile-picture.png',
+                  onlineStatus: user.onlineStatus ?? false,
+                  lastSeen: user.lastSeen,
+                  updatedAt: user.updatedAt,
+                  createdAt: user.createdAt,
+                  role: user.role,
+                  isGuest: user.isGuest ?? false,
+                }))
+              )
+            );
+          },
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
     }
 
@@ -235,16 +241,13 @@ export class UserService {
       const stream$ = runInInjectionContext(this.injector, () => {
         const userDoc = doc(this.firestore, `users/${uid}`);
 
-        return docData(userDoc).pipe(
-          map((data) => (data as AppUser) ?? null),
-          catchError((error) => {
-            if (this.authService.auth.currentUser) {
-              console.error(error);
-            }
-            return of(null);
-          }),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<AppUser | null>({
+          authState$: this.authService.authState$,
+          fallbackValue: null,
+          isUserAllowed: (currentUser) => currentUser.uid === uid,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () => docData(userDoc).pipe(map((data) => (data as AppUser) ?? null)),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
       });
 
       this.userDocCache.set(uid, stream$);

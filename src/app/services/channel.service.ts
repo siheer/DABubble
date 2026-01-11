@@ -15,10 +15,11 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, combineLatest, map, of, shareReplay } from 'rxjs';
+import { Observable, combineLatest, map, shareReplay } from 'rxjs';
 import type { AppUser } from './user.service';
 import type { Channel, ChannelAttachment, ChannelMessage } from '../types';
 import { AuthService } from './auth.service';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class ChannelService {
@@ -34,11 +35,15 @@ export class ChannelService {
   getChannels(): Observable<Channel[]> {
     if (!this.channels$) {
       this.channels$ = runInInjectionContext(this.injector, () => {
-        const channelsCollection = collection(this.firestore, 'channels');
-        return collectionData(channelsCollection, { idField: 'id' }).pipe(
-          map((channels) => channels as Channel[]),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<Channel[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () => {
+            const channelsCollection = collection(this.firestore, 'channels');
+            return collectionData(channelsCollection, { idField: 'id' }).pipe(map((channels) => channels as Channel[]));
+          },
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
     }
 
@@ -50,16 +55,12 @@ export class ChannelService {
       const stream$ = runInInjectionContext(this.injector, () => {
         const channelDoc = doc(this.firestore, `channels/${channelId}`);
 
-        return docData(channelDoc).pipe(
-          map((data) => (data as Channel) ?? null),
-          catchError((error) => {
-            if (this.authService.auth.currentUser) {
-              console.error(error);
-            }
-            return of(null);
-          }),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<Channel | null>({
+          authState$: this.authService.authState$,
+          fallbackValue: null,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () => docData(channelDoc).pipe(map((data) => (data as Channel) ?? null)),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.channelCache.set(channelId, stream$);
@@ -73,23 +74,28 @@ export class ChannelService {
       const stream$ = runInInjectionContext(this.injector, () => {
         const messagesCollection = collection(this.firestore, `channels/${channelId}/messages`);
 
-        return collectionData(messagesCollection, { idField: 'id' }).pipe(
-          map((messages) =>
-            (messages as any[]).map((message) => ({
-              id: message.id,
-              authorId: message.authorId,
-              text: message.text ?? '',
-              createdAt: message.createdAt,
-              replies: message.replies ?? 0,
-              lastReplyAt: message.lastReplyAt,
-              tag: message.tag,
-              attachment: message.attachment,
-              updatedAt: message.updatedAt,
-              reactions: message.reactions ?? {},
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<ChannelMessage[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(messagesCollection, { idField: 'id' }).pipe(
+              map((messages) =>
+                (messages as any[]).map((message) => ({
+                  id: message.id,
+                  authorId: message.authorId,
+                  text: message.text ?? '',
+                  createdAt: message.createdAt,
+                  replies: message.replies ?? 0,
+                  lastReplyAt: message.lastReplyAt,
+                  tag: message.tag,
+                  attachment: message.attachment,
+                  updatedAt: message.updatedAt,
+                  reactions: message.reactions ?? {},
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.channelMessagesCache.set(channelId, stream$);
@@ -201,28 +207,29 @@ export class ChannelService {
       const stream$ = runInInjectionContext(this.injector, () => {
         const messageDoc = doc(this.firestore, `channels/${channelId}/messages/${messageId}`);
 
-        return docData(messageDoc).pipe(
-          map((data) => {
-            if (!data) return null;
+        return createAuthenticatedFirestoreStream<ChannelMessage | null>({
+          authState$: this.authService.authState$,
+          fallbackValue: null,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            docData(messageDoc).pipe(
+              map((data) => {
+                if (!data) return null;
 
-            return {
-              id: messageId,
-              authorId: data['authorId'] as string,
-              text: (data['text'] as string) ?? '',
-              createdAt: data['createdAt'] as Timestamp,
-              replies: (data['replies'] as number) ?? 0,
-              lastReplyAt: data['lastReplyAt'] as Timestamp | undefined,
-              tag: data['tag'] as string | undefined,
-              attachment: data['attachment'] as ChannelAttachment | undefined,
-              updatedAt: data['updatedAt'] as Timestamp | undefined,
-            } as ChannelMessage;
-          }),
-          catchError((error) => {
-            console.error(error);
-            return of(null);
-          }),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+                return {
+                  id: messageId,
+                  authorId: data['authorId'] as string,
+                  text: (data['text'] as string) ?? '',
+                  createdAt: data['createdAt'] as Timestamp,
+                  replies: (data['replies'] as number) ?? 0,
+                  lastReplyAt: data['lastReplyAt'] as Timestamp | undefined,
+                  tag: data['tag'] as string | undefined,
+                  attachment: data['attachment'] as ChannelAttachment | undefined,
+                  updatedAt: data['updatedAt'] as Timestamp | undefined,
+                } as ChannelMessage;
+              })
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.channelMessageCache.set(key, stream$);

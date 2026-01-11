@@ -17,7 +17,6 @@ import {
   BehaviorSubject,
   Observable,
   Subject,
-  catchError,
   combineLatest,
   filter,
   map,
@@ -31,6 +30,7 @@ import { UserService } from './user.service';
 import { AuthService } from './auth.service';
 import type { ChannelMessage, ThreadDocument, ThreadReply, ThreadContext, ThreadSource, ThreadMessage } from '../types';
 import type { User } from '@angular/fire/auth';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class ThreadService {
@@ -202,18 +202,23 @@ export class ThreadService {
 
         const repliesQuery = query(repliesCollection, orderBy('createdAt', 'asc'));
 
-        return collectionData(repliesQuery, { idField: 'id' }).pipe(
-          map((replies) =>
-            (replies as any[]).map((reply) => ({
-              id: reply.id,
-              authorId: reply.authorId,
-              text: reply.text ?? '',
-              createdAt: reply.createdAt,
-              reactions: reply.reactions ?? {},
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<ThreadReply[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(repliesQuery, { idField: 'id' }).pipe(
+              map((replies) =>
+                (replies as any[]).map((reply) => ({
+                  id: reply.id,
+                  authorId: reply.authorId,
+                  text: reply.text ?? '',
+                  createdAt: reply.createdAt,
+                  reactions: reply.reactions ?? {},
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.threadRepliesCache.set(key, stream$);
@@ -307,14 +312,13 @@ export class ThreadService {
           `channels/${channelId}/messages/${messageId}/thread/${ThreadService.THREAD_DOC_ID}`
         );
 
-        return docData(threadDocRef, { idField: 'id' }).pipe(
-          map((data) => (data as ThreadDocument) ?? null),
-          catchError((error) => {
-            console.error(error);
-            return of(null);
-          }),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<ThreadDocument | null>({
+          authState$: this.authService.authState$,
+          fallbackValue: null,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            docData(threadDocRef, { idField: 'id' }).pipe(map((data) => (data as ThreadDocument) ?? null)),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.threadCache.set(key, stream$);

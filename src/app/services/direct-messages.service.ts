@@ -16,9 +16,11 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, map, of, shareReplay } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 import { NOTIFICATIONS } from '../notifications';
 import type { DirectMessage, DirectMessageEntry, DirectMessageMeta } from '../types';
+import { AuthService } from './auth.service';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
@@ -26,25 +28,31 @@ export class DirectMessagesService {
   private directMessages$?: Observable<DirectMessage[]>;
   private directMessageMetaCache = new Map<string, Observable<DirectMessageMeta[]>>();
 
+  private authService = inject(AuthService);
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
 
   getDirectMessages(): Observable<DirectMessage[]> {
     if (!this.directMessages$) {
       this.directMessages$ = runInInjectionContext(this.injector, () => {
-        const usersCollection = collection(this.firestore, 'users');
-
-        return collectionData(usersCollection, { idField: 'id' }).pipe(
-          map((users) =>
-            (users as any[]).map((user) => ({
-              id: user.id ?? 'unbekannt',
-              name: user.name ?? 'Unbenannter Nutzer',
-              email: user.email ?? null,
-              photoUrl: user.photoUrl ?? null,
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<DirectMessage[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () => {
+            const usersCollection = collection(this.firestore, 'users');
+            return collectionData(usersCollection, { idField: 'id' }).pipe(
+              map((users) =>
+                (users as any[]).map((user) => ({
+                  id: user.id ?? 'unbekannt',
+                  name: user.name ?? 'Unbenannter Nutzer',
+                  email: user.email ?? null,
+                  photoUrl: user.photoUrl ?? null,
+                }))
+              )
+            );
+          },
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
     }
 
@@ -57,18 +65,24 @@ export class DirectMessagesService {
         const metaCollection = collection(this.firestore, 'directMessages');
         const metaQuery = query(metaCollection, where('participants', 'array-contains', userId));
 
-        return collectionData(metaQuery, { idField: 'id' }).pipe(
-          map((metas) =>
-            (metas as Array<Record<string, unknown>>).map((meta) => ({
-              id: meta['id'] as string,
-              participants: (meta['participants'] as string[]) ?? [],
-              messageCount: (meta['messageCount'] as number) ?? 0,
-              lastMessageAt: meta['lastMessageAt'] as Timestamp | undefined,
-              lastMessageAuthorId: meta['lastMessageAuthorId'] as string | undefined,
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<DirectMessageMeta[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          isUserAllowed: (currentUser) => currentUser.uid === userId,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(metaQuery, { idField: 'id' }).pipe(
+              map((metas) =>
+                (metas as Array<Record<string, unknown>>).map((meta) => ({
+                  id: meta['id'] as string,
+                  participants: (meta['participants'] as string[]) ?? [],
+                  messageCount: (meta['messageCount'] as number) ?? 0,
+                  lastMessageAt: meta['lastMessageAt'] as Timestamp | undefined,
+                  lastMessageAuthorId: meta['lastMessageAuthorId'] as string | undefined,
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
       });
 
       this.directMessageMetaCache.set(userId, stream$);
@@ -85,24 +99,26 @@ export class DirectMessagesService {
       const messagesQuery = query(messagesCollection, orderBy('createdAt', 'asc'));
 
       const stream$ = runInInjectionContext(this.injector, () =>
-        collectionData(messagesQuery, { idField: 'id' }).pipe(
-          map((messages) =>
-            (messages as Array<Record<string, unknown>>).map((message) => ({
-              id: message['id'] as string,
-              authorId: message['authorId'] as string,
-              authorName: (message['authorName'] as string) ?? 'Unbekannter Nutzer',
-              authorAvatar: (message['authorAvatar'] as string) ?? 'imgs/default-profile-picture.png',
-              text: (message['text'] as string) ?? '',
-              createdAt: message['createdAt'] as Timestamp,
-              reactions: (message['reactions'] as Record<string, string[]>) ?? {},
-            }))
-          ),
-          catchError((error) => {
-            console.error(error);
-            return of([]);
-          }),
-          shareReplay({ bufferSize: 1, refCount: false })
-        )
+        createAuthenticatedFirestoreStream<DirectMessageEntry[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          isUserAllowed: (currentUser) => currentUser.uid === currentUserId,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(messagesQuery, { idField: 'id' }).pipe(
+              map((messages) =>
+                (messages as Array<Record<string, unknown>>).map((message) => ({
+                  id: message['id'] as string,
+                  authorId: message['authorId'] as string,
+                  authorName: (message['authorName'] as string) ?? 'Unbekannter Nutzer',
+                  authorAvatar: (message['authorAvatar'] as string) ?? 'imgs/default-profile-picture.png',
+                  text: (message['text'] as string) ?? '',
+                  createdAt: message['createdAt'] as Timestamp,
+                  reactions: (message['reactions'] as Record<string, string[]>) ?? {},
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: true }))
       );
 
       this.directMessagesCache.set(conversationId, stream$);

@@ -27,7 +27,9 @@ import { AppUser, UserService } from './user.service';
 import { ChannelService } from './channel.service';
 import { DirectMessagesService } from './direct-messages.service';
 import { ChannelMembershipService } from './membership.service';
+import { AuthService } from './auth.service';
 import type { Channel, ChannelListItem, DirectMessageMeta, DirectMessageUser, ReadStatusEntry } from '../types';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class UnreadMessagesService {
@@ -35,6 +37,7 @@ export class UnreadMessagesService {
   private readonly membershipService = inject(ChannelMembershipService);
   private readonly directMessagesService = inject(DirectMessagesService);
   private readonly userService = inject(UserService);
+  private readonly authService = inject(AuthService);
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
 
@@ -293,20 +296,26 @@ export class UnreadMessagesService {
         const readStatusCollection = collectionGroup(this.firestore, 'readStatus');
         const readStatusQuery = query(readStatusCollection, where('userId', '==', userId));
 
-        return collectionData(readStatusQuery).pipe(
-          map((statuses) =>
-            (statuses as Array<Record<string, unknown>>).map((status) => ({
-              userId: status['userId'] as string,
-              conversationId: status['conversationId'] as string | undefined,
-              channelId: status['channelId'] as string | undefined,
-              lastReadAt: status['lastReadAt'] as Timestamp | undefined,
-              lastReadCount: (status['lastReadCount'] as number) ?? 0,
-              updatedAt: status['updatedAt'] as Timestamp | undefined,
-              scope: status['scope'] as 'channel' | 'dm' | undefined,
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<ReadStatusEntry[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          isUserAllowed: (currentUser) => currentUser.uid === userId,
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(readStatusQuery).pipe(
+              map((statuses) =>
+                (statuses as Array<Record<string, unknown>>).map((status) => ({
+                  userId: status['userId'] as string,
+                  conversationId: status['conversationId'] as string | undefined,
+                  channelId: status['channelId'] as string | undefined,
+                  lastReadAt: status['lastReadAt'] as Timestamp | undefined,
+                  lastReadCount: (status['lastReadCount'] as number) ?? 0,
+                  updatedAt: status['updatedAt'] as Timestamp | undefined,
+                  scope: status['scope'] as 'channel' | 'dm' | undefined,
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
       });
 
       this.readStatusEntriesByUserCache.set(userId, stream$);

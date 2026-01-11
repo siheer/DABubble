@@ -15,14 +15,17 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { ChannelService } from './channel.service';
+import { AuthService } from './auth.service';
 import type { AppUser } from './user.service';
 import { Observable, combineLatest, map, of, shareReplay, switchMap } from 'rxjs';
 import { NOTIFICATIONS } from '../notifications';
 import type { Channel, ChannelMember } from '../types';
+import { createAuthenticatedFirestoreStream } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class ChannelMembershipService {
   private channelService = inject(ChannelService);
+  private authService = inject(AuthService);
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
 
@@ -83,19 +86,24 @@ export class ChannelMembershipService {
       const stream$ = runInInjectionContext(this.injector, () => {
         const membersCollection = collection(this.firestore, `channels/${channelId}/members`);
 
-        return collectionData(membersCollection, { idField: 'id' }).pipe(
-          map((members) =>
-            (members as Array<Record<string, unknown>>).map((member) => ({
-              id: (member['id'] as string) ?? 'unbekannt',
-              name: (member['name'] as string) ?? 'Unbekannter Nutzer',
-              avatar: (member['avatar'] as string) ?? 'imgs/users/placeholder.svg',
-              subtitle: member['subtitle'] as string | undefined,
-              addedAt: member['addedAt'] as Timestamp | undefined,
-              channelId: (member['channelId'] as string) ?? channelId,
-            }))
-          ),
-          shareReplay({ bufferSize: 1, refCount: false })
-        );
+        return createAuthenticatedFirestoreStream<ChannelMember[]>({
+          authState$: this.authService.authState$,
+          fallbackValue: [],
+          shouldLogError: () => Boolean(this.authService.auth.currentUser),
+          createStream: () =>
+            collectionData(membersCollection, { idField: 'id' }).pipe(
+              map((members) =>
+                (members as Array<Record<string, unknown>>).map((member) => ({
+                  id: (member['id'] as string) ?? 'unbekannt',
+                  name: (member['name'] as string) ?? 'Unbekannter Nutzer',
+                  avatar: (member['avatar'] as string) ?? 'imgs/users/placeholder.svg',
+                  subtitle: member['subtitle'] as string | undefined,
+                  addedAt: member['addedAt'] as Timestamp | undefined,
+                  channelId: (member['channelId'] as string) ?? channelId,
+                }))
+              )
+            ),
+        }).pipe(shareReplay({ bufferSize: 1, refCount: false }));
       });
 
       this.channelMembersCache.set(channelId, stream$);
