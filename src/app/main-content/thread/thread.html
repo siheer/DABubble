@@ -54,7 +54,16 @@
           <time>{{ thread.root.timestamp }}</time>
         </div>
         <ng-container *ngIf="editingMessageId !== thread.root.id; else editRootMessage">
-          <p class="thread__text">{{ thread.root.text }}</p>
+          <p class="thread__text">
+            <ng-container *ngFor="let segment of buildMessageSegments(thread.root.text)">
+              <ng-container *ngIf="segment.member; else plainRootText">
+                <button type="button" class="thread__mention-link" (click)="openMemberProfile(segment.member)">
+                  {{ segment.text }}
+                </button>
+              </ng-container>
+              <ng-template #plainRootText>{{ segment.text }}</ng-template>
+            </ng-container>
+          </p>
         </ng-container>
         <ng-template #editRootMessage>
           <div class="thread__edit">
@@ -121,7 +130,16 @@
             <time>{{ reply.timestamp }}</time>
           </div>
           <ng-container *ngIf="editingMessageId !== reply.id; else editReplyMessage">
-            <p class="thread__text">{{ reply.text }}</p>
+            <p class="thread__text">
+              <ng-container *ngFor="let segment of buildMessageSegments(reply.text)">
+                <ng-container *ngIf="segment.member; else plainReplyText">
+                  <button type="button" class="thread__mention-link" (click)="openMemberProfile(segment.member)">
+                    {{ segment.text }}
+                  </button>
+                </ng-container>
+                <ng-template #plainReplyText>{{ segment.text }}</ng-template>
+              </ng-container>
+            </p>
           </ng-container>
           <ng-template #editReplyMessage>
             <div class="thread__edit">
@@ -152,17 +170,50 @@
 
   <form class="thread__composer" (ngSubmit)="sendReply()" #replyForm="ngForm">
     <img class="thread__avatar" [src]="currentUser.avatar" [alt]="currentUser.name" />
-    <textarea
-      name="reply"
-      required
-      [(ngModel)]="draftReply"
-      #replyTextarea
-      placeholder="Antworten"
-      aria-label="Antwort zum Thread schreiben"
-      (keydown.enter)="onReplyKeydown($event)"></textarea>
-    <button type="submit" [disabled]="replyForm.invalid">
-      <mat-icon>send</mat-icon>
-    </button>
+    <div class="thread__composer-input">
+      <textarea
+        name="reply"
+        required
+        [(ngModel)]="draftReply"
+        #replyTextarea
+        placeholder="Antworten"
+        aria-label="Antwort zum Thread schreiben"
+        (input)="onReplyInput($event)"
+        (click)="onReplyInput($event)"
+        (keydown.enter)="onReplyKeydown($event)"></textarea>
+      <div *ngIf="isMentionListVisible" class="thread__mention-suggestions">
+        <button type="button" *ngFor="let member of mentionSuggestions" (click)="insertMention(member)">
+          <img [src]="member.avatar" [alt]="member.name" />
+          <span>{{ member.name }}</span>
+        </button>
+      </div>
+    </div>
+    <div class="thread__composer-picker" *ngIf="isComposerEmojiPickerOpen">
+      <button type="button" *ngFor="let emoji of emojiChoices" (click)="addComposerEmoji(emoji)">
+        {{ emoji }}
+      </button>
+    </div>
+    <div class="thread__composer-actions">
+      <div class="thread__composer-start">
+        <button
+          type="button"
+          class="thread__composer-button"
+          aria-label="Emoji einfügen"
+          (click)="toggleComposerEmojiPicker()">
+          <mat-icon>sentiment_satisfied</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="thread__composer-button"
+          aria-label="Benutzer und Mentions"
+          (click)="insertComposerMention()">
+          <mat-icon>alternate_email</mat-icon>
+        </button>
+      </div>
+      <button type="submit" class="thread__composer-send" [disabled]="replyForm.invalid">
+        <mat-icon>send</mat-icon>
+      </button>
+    </div>
   </form>
 </section>
 

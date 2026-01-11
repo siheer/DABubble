@@ -110,7 +110,7 @@ export class UnreadMessagesService {
         .map((status) => [status.channelId ?? '', status])
     );
 
-    return channels.map((channel) => {
+    const mapped = channels.map((channel) => {
       const channelId = channel.id;
       if (!channelId) return { ...channel, unreadCount: 0 };
 
@@ -120,6 +120,19 @@ export class UnreadMessagesService {
       const isActive = activeChannelId === channelId;
 
       return { ...channel, unreadCount: isActive ? 0 : unreadCount };
+    });
+    return [...mapped].sort((a, b) => {
+      const aUnread = a.unreadCount ?? 0;
+      const bUnread = b.unreadCount ?? 0;
+
+      if (aUnread !== bUnread) {
+        return bUnread - aUnread;
+      }
+
+      const aTitle = a.title ?? '';
+      const bTitle = b.title ?? '';
+
+      return aTitle.localeCompare(bTitle);
     });
   }
 
@@ -140,7 +153,7 @@ export class UnreadMessagesService {
     const directMessageUsers = users.map((user) => {
       const displayName = user.uid === currentUserId ? `${user.name} (Du)` : user.name;
       if (user.uid === currentUserId) {
-        return { ...user, displayName, unreadCount: 0 };
+        return { ...user, displayName, unreadCount: 0, lastMessageAt: undefined };
       }
 
       const conversationId = this.directMessagesService.buildConversationId(currentUserId, user.uid);
@@ -151,17 +164,24 @@ export class UnreadMessagesService {
       const unreadCount = Math.max(0, messageCount - lastReadCount);
       const isActive = activeDmId === user.uid;
 
-      return { ...user, displayName, unreadCount: isActive ? 0 : unreadCount };
+      return {
+        ...user,
+        displayName,
+        unreadCount: isActive ? 0 : unreadCount,
+        lastMessageAt: meta?.lastMessageAt,
+      };
     });
 
     return [...directMessageUsers].sort((a, b) => {
+      const aTime = a.lastMessageAt?.toDate?.().getTime() ?? 0;
+      const bTime = b.lastMessageAt?.toDate?.().getTime() ?? 0;
+
+      if (aTime !== bTime) {
+        return bTime - aTime;
+      }
       if (a.unreadCount !== b.unreadCount) {
         return b.unreadCount - a.unreadCount;
       }
-
-      if (a.uid === currentUserId) return -1;
-      if (b.uid === currentUserId) return 1;
-
       return a.name.localeCompare(b.name);
     });
   }

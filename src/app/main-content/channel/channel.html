@@ -126,7 +126,19 @@
                       </div>
                     </header>
                     <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
-                      <p class="channel__message-text">{{ message.text }}</p>
+                      <p class="channel__message-text">
+                        <ng-container *ngFor="let segment of buildMessageSegments(message.text)">
+                          <ng-container *ngIf="segment.member; else plainText">
+                            <button
+                              type="button"
+                              class="channel__mention-link"
+                              (click)="openMemberProfile(segment.member)">
+                              {{ segment.text }}
+                            </button>
+                          </ng-container>
+                          <ng-template #plainText>{{ segment.text }}</ng-template>
+                        </ng-container>
+                      </p>
                     </ng-container>
                     <ng-template #editChannelMessage>
                       <div class="channel__message-edit">
@@ -203,6 +215,11 @@
               (click)="onMessageInput($event)"
               (keydown.enter)="onComposerKeydown($event)"
               [placeholder]="'Nachricht an #' + ((channelTitle$ | async) ?? channelDefaults.name)"></textarea>
+            <div class="channel__composer-picker" *ngIf="isComposerEmojiPickerOpen">
+              <button type="button" *ngFor="let emoji of emojiChoices" (click)="addComposerEmoji(emoji)">
+                {{ emoji }}
+              </button>
+            </div>
             <div *ngIf="isMentionListVisible" class="channel__mention-suggestions">
               <button type="button" *ngFor="let member of mentionSuggestions" (click)="insertMention(member)">
                 <img [src]="member.avatar" [alt]="member.name" />
@@ -211,7 +228,27 @@
             </div>
           </div>
           <div class="channel__composer-actions">
-            <button type="submit" aria-label="Nachricht senden" [disabled]="!messageText.trim() || isSending">
+            <div class="channel__composer-start">
+              <button
+                type="button"
+                class="channel__composer-button"
+                aria-label="Emoji einfügen"
+                (click)="toggleComposerEmojiPicker()">
+                <mat-icon>sentiment_satisfied</mat-icon>
+              </button>
+              <button
+                type="button"
+                class="channel__composer-button"
+                aria-label="Benutzer und Mentions"
+                (click)="insertComposerMention()">
+                <mat-icon>alternate_email</mat-icon>
+              </button>
+            </div>
+            <button
+              type="submit"
+              class="channel__composer-button channel__send"
+              aria-label="Nachricht senden"
+              [disabled]="!messageText.trim() || isSending">
               <img src="imgs/channels/send.svg" alt="" />
             </button>
           </div>

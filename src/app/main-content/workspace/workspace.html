@@ -96,7 +96,8 @@
           </li>
         </ul>
         <button class="workspace__add-btn" type="button" (click)="openCreateChannel()">
-          <img src="imgs/workspace/add new channel.png" alt="Neuen Channel anlegen" />
+          <img class="desktop"src="imgs/workspace/add new channel.png" alt="Neuen Channel anlegen" />
+          <img class="mobile" src="imgs/workspace/add-circle-mobile.svg" alt="Mobile neuen Channel anlegen">
           <span>Channel hinzufügen</span>
         </button>
       </ng-container>
@@ -174,7 +175,7 @@
   aria-label="Neue Nachricht"
   (click)="startNewMessage()">
   <div
-    class="-mt-0.5 grid size-12 place-items-center rounded-full bg-dab-purple-1 hover:bg-dab-purple-3 focus-visible:bg-dab-purple-3">
+    class="-mt-0.5 grid size-16 place-items-center rounded-full bg-dab-purple-1 hover:bg-dab-purple-3 focus-visible:bg-dab-purple-3">
     <svg
       width="21"
       height="21"

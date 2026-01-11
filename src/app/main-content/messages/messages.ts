@@ -81,11 +81,13 @@ export class Messages {
   protected draftMessage = '';
   protected isSending = false;
   protected openEmojiPickerFor: string | null = null;
+  protected isComposerEmojiPickerOpen = false;
   protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
   private messageStream?: ElementRef<HTMLElement>;
+  @ViewChild('composerTextarea') private composerTextarea?: ElementRef<HTMLTextAreaElement>;
 
   @ViewChild('messageStream')
   set messageStreamRef(ref: ElementRef<HTMLElement> | undefined) {
@@ -147,6 +149,7 @@ export class Messages {
       .finally(() => {
         this.isSending = false;
         this.draftMessage = '';
+        this.isComposerEmojiPickerOpen = false;
         this.scrollToBottom();
       });
   }
@@ -156,6 +159,20 @@ export class Messages {
     if (keyboardEvent.key !== 'Enter' || keyboardEvent.shiftKey) return;
     keyboardEvent.preventDefault();
     this.sendMessage();
+  }
+
+  protected toggleComposerEmojiPicker(): void {
+    this.isComposerEmojiPickerOpen = !this.isComposerEmojiPickerOpen;
+    this.focusComposer();
+  }
+
+  protected addComposerEmoji(emoji: string): void {
+    this.insertComposerText(emoji);
+    this.isComposerEmojiPickerOpen = false;
+  }
+
+  protected insertComposerMention(): void {
+    this.insertComposerText('@');
   }
 
   protected openRecipientProfile(recipient: AppUser): void {
@@ -246,6 +263,30 @@ export class Messages {
     if (!messageId) return;
 
     this.openEmojiPickerFor = this.openEmojiPickerFor === messageId ? null : messageId;
+  }
+
+  private focusComposer(): void {
+    this.composerTextarea?.nativeElement.focus();
+  }
+
+  private insertComposerText(text: string): void {
+    const textarea = this.composerTextarea?.nativeElement;
+    if (!textarea) {
+      this.draftMessage = `${this.draftMessage}${text}`;
+      return;
+    }
+
+    const start = textarea.selectionStart ?? this.draftMessage.length;
+    const end = textarea.selectionEnd ?? start;
+    const before = this.draftMessage.slice(0, start);
+    const after = this.draftMessage.slice(end);
+    this.draftMessage = `${before}${text}${after}`;
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCaret = start + text.length;
+      textarea.setSelectionRange(newCaret, newCaret);
+    });
   }
 
   private scrollToBottom(): void {

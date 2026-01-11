@@ -144,6 +144,7 @@
   <!-- Message composer with icon-only helper buttons. -->
   <form class="message-board__composer" (ngSubmit)="sendMessage()" #messageForm="ngForm">
     <textarea
+      #composerTextarea
       name="message"
       required
       [(ngModel)]="draftMessage"
@@ -151,27 +152,16 @@
       [disabled]="isSending"
       aria-label="Neue Nachricht verfassen"
       (keydown.enter)="onComposerKeydown($event)"></textarea>
+    <div class="message-board__composer-picker" *ngIf="isComposerEmojiPickerOpen">
+      <button type="button" *ngFor="let emoji of emojiChoices" (click)="addComposerEmoji(emoji)">
+        {{ emoji }}
+      </button>
+    </div>
 
     <div class="message-board__composer-actions">
       <div class="message-board__composer-start">
-        <button type="button" aria-label="Datei hinzufügen">
-          <mat-icon>attach_file</mat-icon>
-        </button>
-
-        <button type="button" aria-label="Emoji einfügen">
+        <button type="button" aria-label="Emoji einfügen" (click)="toggleComposerEmojiPicker()">
           <mat-icon>sentiment_satisfied</mat-icon>
-        </button>
-      </div>
-      <div class="message-board__composer-end">
-        <button type="button" aria-label="Benutzer und Mentions">
-          <mat-icon>alternate_email</mat-icon>
-        </button>
-        <button type="button" aria-label="Sofortnachricht aufklappen">
-          <mat-icon>expand_more</mat-icon>
-        </button>
-        <button type="submit" [disabled]="messageForm.invalid || isSending">
-          <mat-icon>send</mat-icon>
-          Senden
         </button>
       </div>
     </div>

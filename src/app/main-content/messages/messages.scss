@@ -422,6 +422,31 @@
   width: 100%;
 }
 
+.message-board__composer-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.message-board__composer-picker button {
+  border: none;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.message-board__composer-picker button:hover,
+.message-board__composer-picker button:focus-visible {
+  background: #eef2ff;
+}
+
 .message-board__composer-actions {
   display: flex;
   align-items: center;
