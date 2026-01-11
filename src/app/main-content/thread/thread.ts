@@ -16,6 +16,7 @@ import { ChannelMembershipService } from '../../services/membership.service';
 import { DirectMessagesService } from '../../services/direct-messages.service';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
+import { ProfilePictureService } from '../../services/profile-picture.service';
 
 type MentionSegment = {
   text: string;
@@ -31,7 +32,7 @@ type MentionSegment = {
 })
 export class Thread {
   private static readonly SYSTEM_MENTION_AVATAR = 'imgs/default-profile-picture.png';
-  private static readonly SYSTEM_AUTHOR_NAME = 'System'
+  private static readonly SYSTEM_AUTHOR_NAME = 'System';
   private readonly threadService = inject(ThreadService);
   private readonly userService = inject(UserService);
   private readonly membershipService = inject(ChannelMembershipService);
@@ -42,6 +43,7 @@ export class Thread {
   private readonly router = inject(Router);
   private readonly messageReactionsService = inject(MessageReactionsService);
   private readonly reactionTooltipService = inject(ReactionTooltipService);
+  private readonly profilePictureService = inject(ProfilePictureService);
 
   protected readonly thread$: Observable<ThreadContext | null> = this.threadService.thread$;
 
@@ -68,7 +70,9 @@ export class Thread {
 
           return members.map((member) => {
             const user = userMap.get(member.id);
-            const avatar = user?.photoUrl ?? member.avatar ?? 'imgs/users/placeholder.svg';
+            const profilePictureKey = user?.profilePictureKey ?? member.profilePictureKey ?? 'default';
+
+            const avatar = this.profilePictureService.getUrl(profilePictureKey);
             const name = user?.name ?? member.name;
 
             return {
@@ -94,7 +98,6 @@ export class Thread {
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
-
 
   @ViewChild('replyTextarea') replyTextarea?: ElementRef<HTMLTextAreaElement>;
 
@@ -125,7 +128,7 @@ export class Thread {
     return {
       uid: user?.uid,
       name: user?.name ?? 'Gast',
-      avatar: user?.photoUrl ?? 'imgs/default-profile-picture.png',
+      avatar: this.profilePictureService.getUrl(user?.profilePictureKey),
     };
   }
 
@@ -282,7 +285,7 @@ export class Thread {
       uid: member.id,
       name: member.name,
       email: null,
-      photoUrl: member.avatar || 'imgs/default-profile-picture.png',
+      profilePictureKey: 'default',
       onlineStatus: false,
       lastSeen: undefined,
       updatedAt: undefined,
@@ -293,7 +296,7 @@ export class Thread {
       data: { user: fallbackUser },
     });
   }
-  
+
   private insertComposerText(text: string): void {
     const textarea = this.replyTextarea?.nativeElement;
     if (!textarea) {
@@ -423,7 +426,6 @@ export class Thread {
       )
     );
   }
-
 
   protected startEditing(message: { id?: string; text: string; isOwn?: boolean }): void {
     if (!message.id || !message.isOwn) return;
