@@ -186,6 +186,11 @@
   z-index: 5;
 }
 
+.thread__emoji-picker--own {
+  right: auto;
+  left: 0;
+}
+
 .thread__emoji-picker button {
   border: none;
   background: transparent;

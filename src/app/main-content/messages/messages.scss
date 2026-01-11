@@ -328,6 +328,11 @@
   z-index: 5;
 }
 
+.message-board__emoji-picker--own {
+  right: auto;
+  left: 0;
+}
+
 .message-board__emoji-picker button {
   border: none;
   background: transparent;

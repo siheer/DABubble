@@ -36,7 +36,10 @@
             <mat-icon>more_vert</mat-icon>
           </button>
 
-          <div class="thread__emoji-picker" *ngIf="openEmojiPickerFor === thread.root.id">
+          <div
+            class="thread__emoji-picker"
+            [class.thread__emoji-picker--own]="thread.root.isOwn"
+            *ngIf="openEmojiPickerFor === thread.root.id">
             <button
               type="button"
               *ngFor="let emoji of emojiChoices"
@@ -100,7 +103,10 @@
               <mat-icon>more_vert</mat-icon>
             </button>
 
-            <div class="thread__emoji-picker" *ngIf="openEmojiPickerFor === reply.id">
+            <div
+              class="thread__emoji-picker"
+              [class.thread__emoji-picker--own]="reply.isOwn"
+              *ngIf="openEmojiPickerFor === reply.id">
               <button
                 type="button"
                 *ngFor="let emoji of emojiChoices"

@@ -104,7 +104,10 @@
                         (click)="startEditingMessage(message)">
                         <mat-icon>more_vert</mat-icon>
                       </button>
-                      <div class="channel__emoji-picker" *ngIf="openEmojiPickerFor === message.id">
+                      <div
+                        class="channel__emoji-picker"
+                        [class.channel__emoji-picker--own]="message.isOwn"
+                        *ngIf="openEmojiPickerFor === message.id">
                         <button
                           type="button"
                           *ngFor="let emoji of emojiChoices"

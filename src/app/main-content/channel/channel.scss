@@ -337,6 +337,11 @@
   z-index: 5;
 }
 
+.channel__emoji-picker--own {
+  right: auto;
+  left: 0;
+}
+
 .channel__emoji-picker button {
   border: none;
   background: transparent;
