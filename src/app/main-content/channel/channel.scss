@@ -430,6 +430,20 @@
   text-align: left;
 }
 
+.channel__mention-link {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.channel__mention-link:hover,
+.channel__mention-link:focus-visible {
+  color: #1d4ed8;
+}
 .channel__message-edit {
   display: flex;
   flex-direction: column;
@@ -596,10 +610,10 @@
   height: 100%;
 }
 .channel__composer-picker {
-   position: absolute;
+  position: absolute;
   left: 0;
   right: 0;
-  bottom: calc( 8px);
+  bottom: calc(8px);
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
@@ -695,7 +709,8 @@
 .channel__composer-start {
   display: flex;
   align-items: center;
-  gap: 8px;}
+  gap: 8px;
+}
 
 .channel__send mat-icon {
   font-size: 18px;

@@ -122,7 +122,19 @@
                       </div>
                     </header>
                     <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
-                      <p class="channel__message-text">{{ message.text }}</p>
+                      <p class="channel__message-text">
+                        <ng-container *ngFor="let segment of buildMessageSegments(message.text)">
+                          <ng-container *ngIf="segment.member; else plainText">
+                            <button
+                              type="button"
+                              class="channel__mention-link"
+                              (click)="openMemberProfile(segment.member)">
+                              {{ segment.text }}
+                            </button>
+                          </ng-container>
+                          <ng-template #plainText>{{ segment.text }}</ng-template>
+                        </ng-container>
+                      </p>
                     </ng-container>
                     <ng-template #editChannelMessage>
                       <div class="channel__message-edit">

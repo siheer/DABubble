@@ -41,6 +41,14 @@ import { EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from './tooltip/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { MemberDialog } from '../member-dialog/member-dialog';
+import { DirectMessagesService } from '../../services/direct-messages.service';
+
+type MentionSegment = {
+  text: string;
+  member?: ChannelMemberView;
+};
 
 @Component({
   selector: 'app-channel',
@@ -51,12 +59,16 @@ import { ReactionTooltipComponent } from './tooltip/tooltip';
   styleUrls: ['./channel.scss'],
 })
 export class ChannelComponent {
+  private static readonly SYSTEM_MENTION_AVATAR = 'imgs/default-profile-picture.png';
+  private static readonly SYSTEM_AUTHOR_NAME = 'System';
   private readonly channelService = inject(ChannelService);
   private readonly membershipService = inject(ChannelMembershipService);
   private readonly messageReactionsService = inject(MessageReactionsService);
   private readonly overlayService = inject(OverlayService);
   private readonly userService = inject(UserService);
   private readonly threadService = inject(ThreadService);
+  private readonly directMessagesService = inject(DirectMessagesService);
+  private readonly dialog = inject(MatDialog)
   private readonly screenService = inject(ScreenService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
@@ -377,6 +389,88 @@ export class ChannelComponent {
 
     this.resetMentionSuggestions();
   }
+
+  protected buildMessageSegments(text: string): MentionSegment[] {
+    if (!text) return [{ text: '' }];
+    const regex = this.buildMentionRegex();
+    if (!regex) return [{ text }];
+
+    const segments: MentionSegment[] = [];
+    let lastIndex = 0;
+    regex.lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+      const matchStart = match.index;
+      const matchEnd = regex.lastIndex;
+      if (matchStart > lastIndex) {
+        segments.push({ text: text.slice(lastIndex, matchStart) });
+      }
+
+      const mentionName = match[1] ?? '';
+      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
+      segments.push({ text: match[0], member });
+      lastIndex = matchEnd;
+    }
+
+    if (lastIndex < text.length) {
+      segments.push({ text: text.slice(lastIndex) });
+    }
+
+    return segments.length ? segments : [{ text }];
+  }
+
+  protected openMemberProfile(member?: ChannelMemberView): void {
+    if (!member || member.isCurrentUser) return;
+
+    const fallbackUser: AppUser = member.user ?? {
+      uid: member.id,
+      name: member.name,
+      email: null,
+      photoUrl: member.avatar || 'imgs/default-profile-picture.png',
+      onlineStatus: false,
+      lastSeen: undefined,
+      updatedAt: undefined,
+      createdAt: undefined,
+    };
+
+    this.dialog.open(MemberDialog, {
+      data: { user: fallbackUser },
+    });
+  }
+
+  private buildMentionRegex(): RegExp | null {
+    if (!this.cachedMembers.length) return null;
+    const names = this.cachedMembers
+      .map((member) => member.name)
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map((name) => this.escapeRegex(name));
+
+    if (!names.length) return null;
+    return new RegExp(`@(${names.join('|')})`, 'gi');
+  }
+
+  private escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private getMentionedMembers(text: string): ChannelMemberView[] {
+    const regex = this.buildMentionRegex();
+    if (!regex) return [];
+    const found = new Map<string, ChannelMemberView>();
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+      const mentionName = match[1] ?? '';
+      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
+      if (member) {
+        found.set(member.id, member);
+      }
+    }
+
+    return Array.from(found.values());
+  }
   private focusComposer(): void {
     this.messageTextarea?.nativeElement.focus();
   }
@@ -443,6 +537,35 @@ export class ChannelComponent {
     this.mentionTriggerIndex = null;
     this.mentionCaretIndex = null;
   }
+
+  private async notifyMentionedMembers(text: string, channelTitle: string): Promise<void> {
+    const currentUser = this.userService.currentUser();
+    if (!currentUser) return;
+
+    const mentionedMembers = this.getMentionedMembers(text).filter((member) => member.id !== currentUser.uid);
+    if (!mentionedMembers.length) return;
+
+    const formattedTime = new Intl.DateTimeFormat('de-DE', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date());
+
+    const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle} erwähnt.`;
+
+    await Promise.all(
+      mentionedMembers.map((member) =>
+        this.directMessagesService.sendDirectMessage(
+          {
+            authorId: currentUser.uid,
+            authorName: ChannelComponent.SYSTEM_AUTHOR_NAME,
+            authorAvatar: ChannelComponent.SYSTEM_MENTION_AVATAR,
+            text: messageText,
+          },
+          member.id
+        )
+      )
+    );
+  }
   protected sendMessage(): void {
     const text = this.messageText.trim();
     if (!text || this.isSending) return;
@@ -459,11 +582,21 @@ export class ChannelComponent {
           if (!channel?.id) {
             return of(null);
           }
+          const channelTitle = channel.title ?? this.channelDefaults.name;
           return from(
             this.channelService.addChannelMessage(channel.id, {
               text,
               authorId: currentUser.uid,
             })
+          ).pipe(
+            switchMap(() =>
+              from(this.notifyMentionedMembers(text, channelTitle)).pipe(
+                catchError((error) => {
+                  console.error('Fehler beim Versenden der Mention-Benachrichtigung', error);
+                  return of(null);
+                })
+              )
+            )
           );
         })
       )
