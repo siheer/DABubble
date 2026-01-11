@@ -76,7 +76,7 @@ export class ThreadService {
             };
           };
 
-          const root = this.toRootMessage(context, storedThread, rootMessage);
+          const root = this.toRootMessage(context, storedThread, rootMessage, authUser.uid);
 
           const isOwn = root.authorId === authUser.uid;
 
@@ -209,6 +209,7 @@ export class ThreadService {
               authorId: reply.authorId,
               text: reply.text ?? '',
               createdAt: reply.createdAt,
+              reactions: reply.reactions ?? {},
             }))
           ),
           shareReplay({ bufferSize: 1, refCount: false })
@@ -234,6 +235,7 @@ export class ThreadService {
       authorId: reply.authorId,
       text: reply.text,
       createdAt: serverTimestamp(),
+      reactions: {},
     });
 
     const messageDoc = doc(this.firestore, `channels/${channelId}/messages/${messageId}`);
@@ -324,7 +326,8 @@ export class ThreadService {
   private toRootMessage(
     context: ThreadContext,
     storedThread: ThreadDocument | null,
-    channelMessage: ChannelMessage | null
+    channelMessage: ChannelMessage | null,
+    authUserId: string
   ): ThreadMessage {
     const authorId = channelMessage?.authorId ?? storedThread?.authorId ?? context.root.authorId;
     const text = channelMessage?.text ?? storedThread?.text ?? context.root.text;
@@ -337,7 +340,8 @@ export class ThreadService {
       authorId,
       timestamp: hasServerTimestamp ? this.formatTime(createdAt) : context.root.timestamp,
       text,
-      isOwn: context.root.isOwn,
+      isOwn: authorId === authUserId,
+      reactions: { ...(channelMessage?.reactions ?? {}) },
     };
   }
 
@@ -348,6 +352,7 @@ export class ThreadService {
       authorId: reply.authorId,
       timestamp: this.formatTime(createdAt),
       text: reply.text ?? '',
+      reactions: reply.reactions ?? {},
     };
   }
 
@@ -377,5 +382,9 @@ export class ThreadService {
     }
 
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  threadSnapshot(): ThreadContext | null {
+    return this.threadSubject.value;
   }
 }

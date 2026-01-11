@@ -37,16 +37,16 @@
               type="button"
               class="message-board__bubble-action"
               aria-label="Daumen hoch geben"
-              [class.message-board__bubble-action--active]="message.id && messageReactions[message.id] === '👍'"
-              (click)="react(message.id, '👍')">
+              [class.message-board__bubble-action--active]="message.reactions?.['👍']?.includes(currentUser?.uid ?? '')"
+              (click)="reactToDmMessage(message.id, '👍')">
               👍
             </button>
             <button
               type="button"
               class="message-board__bubble-action"
               aria-label="Grünen Haken setzen"
-              [class.message-board__bubble-action--active]="message.id && messageReactions[message.id] === '✅'"
-              (click)="react(message.id, '✅')">
+              [class.message-board__bubble-action--active]="message.reactions?.['✅']?.includes(currentUser?.uid ?? '')"
+              (click)="reactToDmMessage(message.id, '✅')">
               ✅
             </button>
             <button
@@ -69,7 +69,7 @@
               <button
                 type="button"
                 *ngFor="let emoji of emojiChoices"
-                (click)="react(message.id, emoji)"
+                (click)="reactToDmMessage(message.id, emoji)"
                 aria-label="Emoji auswählen">
                 {{ emoji }}
               </button>
@@ -110,9 +110,14 @@
                 </ng-template>
               </div>
               <ng-container *ngIf="message.id as messageId">
-                <div class="message-board__bubble-reaction" *ngIf="messageReactions[messageId] as reaction">
-                  {{ reaction }}
-                </div>
+                <app-message-reactions
+                  *ngIf="message.reactions"
+                  [reactions]="message.reactions"
+                  [currentUserId]="currentUser?.uid"
+                  (react)="reactToDmMessage(message.id, $event)"
+                  (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
+                  (hideTooltip)="hideReactionTooltip()">
+                </app-message-reactions>
               </ng-container>
             </div>
           </div>

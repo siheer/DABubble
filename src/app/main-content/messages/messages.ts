@@ -23,11 +23,14 @@ import { Timestamp } from '@angular/fire/firestore';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { EMOJI_CHOICES } from '../../texts';
+import { MessageReactions } from '../message-reactions/message-reactions';
+import { MessageReactionsService } from '../../services/message-reactions.service';
+import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions],
 
   templateUrl: './messages.html',
   styleUrl: './messages.scss',
@@ -38,6 +41,8 @@ export class Messages {
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly messageReactionsService = inject(MessageReactionsService);
+  private readonly reactionTooltipService = inject(ReactionTooltipService);
 
   private readonly currentUser$ = this.userService.currentUser$;
 
@@ -75,7 +80,6 @@ export class Messages {
 
   protected draftMessage = '';
   protected isSending = false;
-  protected messageReactions: Record<string, string> = {};
   protected openEmojiPickerFor: string | null = null;
   protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
@@ -209,21 +213,8 @@ export class Messages {
       content: message.text ?? '',
       timestamp: message.createdAt,
       isOwn,
+      reactions: message.reactions ?? {},
     };
-  }
-
-  react(messageId: string | undefined, reaction: string): void {
-    if (!messageId) return;
-    if (this.messageReactions[messageId] === reaction) {
-      const { [messageId]: _removed, ...rest } = this.messageReactions;
-      this.messageReactions = rest;
-    } else {
-      this.messageReactions = {
-        ...this.messageReactions,
-        [messageId]: reaction,
-      };
-    }
-    this.openEmojiPickerFor = null;
   }
 
   protected startEditing(message: MessageBubble): void {
@@ -278,5 +269,30 @@ export class Messages {
       left.getMonth() === right.getMonth() &&
       left.getDate() === right.getDate()
     );
+  }
+
+  protected reactToDmMessage(messageId: string | undefined, emoji: string): void {
+    if (!messageId || !this.currentUser || !this.selectedRecipient) return;
+
+    const conversationId = this.directMessagesService.buildConversationId(
+      this.currentUser.uid,
+      this.selectedRecipient.uid
+    );
+
+    this.messageReactionsService.toggleReaction({
+      docPath: `directMessages/${conversationId}/messages/${messageId}`,
+      userId: this.currentUser.uid,
+      emoji,
+    });
+
+    this.openEmojiPickerFor = null;
+  }
+
+  showReactionTooltip(event: MouseEvent, emoji: string, userIds: string[]): void {
+    this.reactionTooltipService.show(event, emoji, userIds);
+  }
+
+  hideReactionTooltip(): void {
+    this.reactionTooltipService.hide();
   }
 }

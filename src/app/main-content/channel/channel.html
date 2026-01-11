@@ -142,20 +142,13 @@
                       </div>
                     </ng-template>
 
-                    <ng-container *ngIf="message.id as messageId">
-                      <div *ngIf="message.reactions && (message.reactions | keyvalue).length">
-                        <button
-                          type="button"
-                          class="channel__reaction"
-                          (mouseenter)="showReactionTooltip($event, r.key, r.value)"
-                          (mouseleave)="hideReactionTooltip()"
-                          *ngFor="let r of message.reactions | keyvalue"
-                          (click)="react(message, r.key)"
-                          [class.channel__reaction--own]="!!currentUser && r.value.includes(currentUser.uid)">
-                          {{ r.key }} {{ r.value.length }}
-                        </button>
-                      </div>
-                    </ng-container>
+                    <app-message-reactions
+                      *ngIf="message.reactions"
+                      [reactions]="message.reactions"
+                      [currentUserId]="currentUser?.uid"
+                      (react)="react(message, $event)"
+                      (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
+                      (hideTooltip)="hideReactionTooltip()"></app-message-reactions>
 
                     <ng-container *ngIf="message.attachment as attachment">
                       <div class="channel__attachment">

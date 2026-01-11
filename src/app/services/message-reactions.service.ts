@@ -1,7 +1,16 @@
-import { Injectable, inject } from '@angular/core';
+import {
+  EventEmitter,
+  Injectable,
+  OnDestroy,
+  Output,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import {
   Firestore,
   collection,
+  deleteDoc,
   deleteField,
   doc,
   getDocs,
@@ -11,76 +20,91 @@ import {
 } from '@angular/fire/firestore';
 
 @Injectable({ providedIn: 'root' })
-export class MessageReactionsService {
+export class MessageReactionsService implements OnDestroy {
+  @Output() hideTooltip = new EventEmitter<void>();
+
+  ngOnDestroy(): void {
+    this.hideTooltip.emit();
+  }
+
   private readonly firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
 
-  async toggleChannelMessageReaction(
-    channelId: string,
-    messageId: string,
-    userId: string,
-    emoji: string,
-    hasReacted: boolean
-  ): Promise<void> {
-    const messageRef = doc(this.firestore, `channels/${channelId}/messages/${messageId}`);
+  async toggleReaction(options: { docPath: string; userId: string; emoji: string }): Promise<void> {
+    const { docPath, userId, emoji } = options;
 
-    await runTransaction(this.firestore, async (tx) => {
-      const snap = await tx.get(messageRef);
-      if (!snap.exists()) return;
+    return runInInjectionContext(this.injector, async () => {
+      const messageRef = doc(this.firestore, docPath);
+      const userReactionRef = doc(
+        this.firestore,
+        `userReactions/${userId}/items/${encodeURIComponent(docPath + '|' + emoji)}`
+      );
 
-      const data = snap.data();
-      const reactions = { ...(data['reactions'] ?? {}) };
-      const users: string[] = reactions[emoji] ?? [];
+      await runTransaction(this.firestore, async (tx) => {
+        const snap = await tx.get(messageRef);
+        if (!snap.exists()) return;
 
-      if (hasReacted) {
-        reactions[emoji] = users.filter((id) => id !== userId);
-        if (reactions[emoji].length === 0) {
-          delete reactions[emoji];
+        const reactions: Record<string, string[]> = {
+          ...(snap.data()['reactions'] ?? {}),
+        };
+
+        const users = reactions[emoji] ?? [];
+        const hasReacted = users.includes(userId);
+
+        if (hasReacted) {
+          const filtered = users.filter((id) => id !== userId);
+          if (filtered.length) {
+            reactions[emoji] = filtered;
+          } else {
+            delete reactions[emoji];
+          }
+          tx.delete(userReactionRef);
+        } else {
+          reactions[emoji] = [...new Set([...users, userId])];
+          tx.set(userReactionRef, {
+            docPath,
+            emoji,
+            createdAt: serverTimestamp(),
+          });
         }
-      } else {
-        reactions[emoji] = [...new Set([...users, userId])];
-      }
 
-      tx.update(messageRef, {
-        reactions,
-        updatedAt: serverTimestamp(),
+        tx.update(messageRef, {
+          reactions,
+          updatedAt: serverTimestamp(),
+        });
       });
     });
   }
 
   async removeReactionsByUser(userId: string): Promise<void> {
-    const channelsSnap = await getDocs(collection(this.firestore, 'channels'));
+    const reactionsSnap = await getDocs(collection(this.firestore, `userReactions/${userId}/items`));
 
-    for (const channel of channelsSnap.docs) {
-      const messagesSnap = await getDocs(collection(this.firestore, `channels/${channel.id}/messages`));
+    for (const reaction of reactionsSnap.docs) {
+      const { docPath, emoji } = reaction.data();
+      const messageRef = doc(this.firestore, docPath);
 
-      for (const message of messagesSnap.docs) {
-        const data = message.data();
-        const reactions = data['reactions'] as Record<string, string[]> | undefined;
+      await runTransaction(this.firestore, async (tx) => {
+        const snap = await tx.get(messageRef);
+        if (!snap.exists()) return;
 
-        if (!reactions) continue;
+        const reactions: Record<string, string[]> = {
+          ...(snap.data()['reactions'] ?? {}),
+        };
 
-        let changed = false;
-        const updatedReactions: Record<string, string[]> = {};
+        const users: string[] = reactions[emoji] ?? [];
 
-        for (const [emoji, users] of Object.entries(reactions)) {
-          const filtered = (users as string[]).filter((id) => id !== userId);
+        const filtered = users.filter((id) => id !== userId);
 
-          if (filtered.length > 0) {
-            updatedReactions[emoji] = filtered;
-          }
-
-          if (filtered.length !== users.length) {
-            changed = true;
-          }
+        if (filtered.length) {
+          reactions[emoji] = filtered;
+        } else {
+          delete reactions[emoji];
         }
 
-        if (changed) {
-          await updateDoc(message.ref, {
-            reactions: Object.keys(updatedReactions).length ? updatedReactions : deleteField(),
-            updatedAt: serverTimestamp(),
-          });
-        }
-      }
+        tx.update(messageRef, { reactions });
+      });
+
+      await deleteDoc(reaction.ref);
     }
   }
 }

@@ -94,6 +94,7 @@ export class DirectMessagesService {
               authorAvatar: (message['authorAvatar'] as string) ?? 'imgs/default-profile-picture.png',
               text: (message['text'] as string) ?? '',
               createdAt: message['createdAt'] as Timestamp,
+              reactions: (message['reactions'] as Record<string, string[]>) ?? {},
             }))
           ),
           catchError((error) => {
@@ -122,6 +123,7 @@ export class DirectMessagesService {
       ...currentUser,
       text: currentUser.text,
       createdAt: serverTimestamp(),
+      reactions: {},
     });
 
     const metaDoc = doc(this.firestore, `directMessages/${conversationId}`);

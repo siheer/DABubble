@@ -40,12 +40,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
-import { ReactionTooltipComponent } from './tooltip/tooltip';
+import { ReactionTooltipComponent  } from '../tooltip/tooltip';
+import { MessageReactions } from '../message-reactions/message-reactions';
+import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 
 @Component({
   selector: 'app-channel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatSidenavModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, MatIconModule, MatSidenavModule, RouterOutlet, MessageReactions],
 
   templateUrl: './channel.html',
   styleUrls: ['./channel.scss'],
@@ -62,6 +64,7 @@ export class ChannelComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly overlay = inject(Overlay);
+  private readonly reactionTooltipService = inject(ReactionTooltipService);
   private readonly currentUser$ = this.userService.currentUser$;
   private readonly allUsers$ = this.userService.getAllUsers();
 
@@ -647,13 +650,11 @@ export class ChannelComponent {
     const reactions = message.reactions ?? {};
     const hasReacted = reactions[emoji]?.includes(this.currentUser.uid) ?? false;
 
-    this.messageReactionsService.toggleChannelMessageReaction(
-      this.channelId,
-      message.id,
-      this.currentUser.uid,
+    this.messageReactionsService.toggleReaction({
+      docPath: `channels/${this.channelId}/messages/${message.id}`,
+      userId: this.currentUser.uid,
       emoji,
-      hasReacted
-    );
+    });
 
     this.openEmojiPickerFor = null;
   }
@@ -745,85 +746,10 @@ export class ChannelComponent {
   );
 
   showReactionTooltip(event: MouseEvent, emoji: string, userIds: string[]): void {
-    if (!this.currentUser) return;
-
-    const currentUserId = this.currentUser.uid;
-
-    const isCurrentUserIncluded = userIds.includes(currentUserId);
-
-    const names = userIds
-      .filter((uid) => uid !== currentUserId)
-      .map((uid) => this.allUsersSnapshot.find((u) => u.uid === uid)?.name)
-      .filter(Boolean) as string[];
-
-    this.hideReactionTooltip();
-
-    const positionStrategy = this.overlay
-      .position()
-      .flexibleConnectedTo(event.target as HTMLElement)
-      .withPositions([
-        {
-          originX: 'center',
-          originY: 'top',
-          overlayX: 'center',
-          overlayY: 'bottom',
-          offsetY: 0,
-          offsetX: 75,
-        },
-      ]);
-
-    this.overlayRef = this.overlay.create({
-      positionStrategy,
-      scrollStrategy: this.overlay.scrollStrategies.reposition(),
-    });
-
-    const portal = new ComponentPortal(ReactionTooltipComponent);
-    const tooltipRef = this.overlayRef.attach(portal);
-
-    tooltipRef.instance.emoji = emoji;
-    tooltipRef.instance.users = names;
-    tooltipRef.instance.isCurrentUserIncluded = isCurrentUserIncluded;
-    const { users, verbText } = this.buildReactionTooltipData(names, isCurrentUserIncluded);
-
-    tooltipRef.instance.emoji = emoji;
-    tooltipRef.instance.users = users;
-    tooltipRef.instance.verbText = verbText;
+    this.reactionTooltipService.show(event, emoji, userIds);
   }
 
   hideReactionTooltip(): void {
-    this.overlayRef?.dispose();
-    this.overlayRef = undefined;
-  }
-
-  private buildReactionTooltipData(
-    names: string[],
-    isCurrentUserIncluded: boolean
-  ): { users: string[]; verbText: string } {
-    let users = isCurrentUserIncluded ? ['Du', ...names] : [...names];
-    users = this.moveDuToEnd(users);
-
-    if (users.length === 1 && users[0] === 'Du') {
-      return {
-        users,
-        verbText: 'hast reagiert',
-      };
-    }
-
-    if (users.length === 1) {
-      return {
-        users,
-        verbText: 'hat reagiert',
-      };
-    }
-
-    return {
-      users,
-      verbText: 'haben reagiert',
-    };
-  }
-
-  private moveDuToEnd(users: string[]): string[] {
-    const withoutDu = users.filter((u) => u !== 'Du');
-    return users.includes('Du') ? [...withoutDu, 'Du'] : users;
+    this.reactionTooltipService.hide();
   }
 }

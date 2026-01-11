@@ -9,11 +9,14 @@ import { ThreadService } from '../../services/thread.service';
 import type { ThreadContext } from '../../types';
 import { UserService } from '../../services/user.service';
 import { EMOJI_CHOICES } from '../../texts';
+import { MessageReactions } from '../message-reactions/message-reactions';
+import { MessageReactionsService } from '../../services/message-reactions.service';
+import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 
 @Component({
   selector: 'app-thread',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -23,6 +26,8 @@ export class Thread {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly messageReactionsService = inject(MessageReactionsService);
+  private readonly reactionTooltipService = inject(ReactionTooltipService);
 
   protected readonly thread$: Observable<ThreadContext | null> = this.threadService.thread$;
 
@@ -46,7 +51,6 @@ export class Thread {
     this.scrollToBottom();
   }
 
-  protected messageReactions: Record<string, string> = {};
   protected openEmojiPickerFor: string | null = null;
   protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
@@ -57,6 +61,7 @@ export class Thread {
     const user = this.userService.currentUser();
 
     return {
+      uid: user?.uid,
       name: user?.name ?? 'Gast',
       avatar: user?.photoUrl ?? 'imgs/default-profile-picture.png',
     };
@@ -109,22 +114,6 @@ export class Thread {
     this.sendReply();
   }
 
-  react(messageId: string | undefined, reaction: string): void {
-    if (!messageId) return;
-
-    if (this.messageReactions[messageId] === reaction) {
-      const { [messageId]: _removed, ...rest } = this.messageReactions;
-      this.messageReactions = rest;
-    } else {
-      this.messageReactions = {
-        ...this.messageReactions,
-        [messageId]: reaction,
-      };
-    }
-
-    this.openEmojiPickerFor = null;
-  }
-
   toggleEmojiPicker(messageId: string | undefined): void {
     if (!messageId) return;
 
@@ -175,5 +164,45 @@ export class Thread {
     requestAnimationFrame(() => {
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  protected reactToRootMessage(emoji: string): void {
+    const thread = this.threadService.threadSnapshot();
+    const user = this.userService.currentUser();
+
+    if (!thread || !user) return;
+
+    this.messageReactionsService.toggleReaction({
+      docPath: `channels/${thread.channelId}/messages/${thread.root.id}`,
+      userId: user.uid,
+      emoji,
+    });
+
+    this.openEmojiPickerFor = null;
+  }
+
+  protected reactToReply(replyId: string | undefined, emoji: string): void {
+    if (!replyId) return;
+
+    const thread = this.threadService.threadSnapshot();
+    const user = this.userService.currentUser();
+
+    if (!thread || !user) return;
+
+    this.messageReactionsService.toggleReaction({
+      docPath: `channels/${thread.channelId}/messages/${thread.root.id}/threads/${replyId}`,
+      userId: user.uid,
+      emoji,
+    });
+
+    this.openEmojiPickerFor = null;
+  }
+
+  showReactionTooltip(event: MouseEvent, emoji: string, userIds: string[]): void {
+    this.reactionTooltipService.show(event, emoji, userIds);
+  }
+
+  hideReactionTooltip(): void {
+    this.reactionTooltipService.hide();
   }
 }

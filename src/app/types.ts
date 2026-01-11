@@ -88,6 +88,7 @@ export interface ThreadReply {
   authorId: string;
   text: string;
   createdAt?: any;
+  reactions?: Record<string, string[]>; 
 }
 
 export interface ThreadMessage {
@@ -98,6 +99,7 @@ export interface ThreadMessage {
   timestamp: string;
   text: string;
   isOwn?: boolean;
+  reactions?: Record<string, string[]>;
 }
 
 export interface ThreadContext {
@@ -132,6 +134,7 @@ export interface DirectMessageEntry {
   authorAvatar?: string;
   text?: string;
   createdAt?: Timestamp;
+  reactions?: Record<string, string[]>;
 }
 
 export interface DirectMessageMeta {
@@ -196,6 +199,7 @@ export type MessageBubble = {
   content: string;
   timestamp: Timestamp | undefined;
   isOwn?: boolean;
+  reactions?: Record<string, string[]>;
 };
 
 // Search
