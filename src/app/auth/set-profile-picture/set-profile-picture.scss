@@ -26,12 +26,17 @@
     font-weight: 700;
     border: 1px solid #797ef3;
     padding: 8px 20px;
+    display: flex;
     &:hover {
       cursor: pointer;
       background-color: #535af1;
       color: white;
     }
   }
+}
+
+.cancel {
+  display: none;
 }
 
 @media (max-width: 1024px) {
