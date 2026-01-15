@@ -293,6 +293,10 @@ export class UserService {
     const user = this.currentUser();
 
     try {
+      if (user && !user.isGuest) {
+        await this.setOffline(user.uid);
+      }
+
       if (user?.isGuest) {
         document.body.style.cursor = 'wait';
         await this.guestService.signOutGuest(user);
@@ -308,5 +312,13 @@ export class UserService {
 
   getProfilePictureUrl(user: AppUser | null): string {
     return PROFILE_PICTURE_URLS[user?.profilePictureKey ?? 'default'];
+  }
+
+  private async setOffline(uid: string): Promise<void> {
+    await updateDoc(doc(this.firestore, `users/${uid}`), {
+      onlineStatus: false,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   }
 }
