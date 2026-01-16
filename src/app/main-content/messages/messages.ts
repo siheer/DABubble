@@ -149,7 +149,7 @@ export class Messages {
         {
           authorId: this.currentUser.uid,
           authorName: this.currentUser.name,
-          authorProfilePictureKey: Messages.SYSTEM_PROFILE_PICTURE_KEY,
+          authorProfilePictureKey: this.currentUser.profilePictureKey ?? 'default',
           text: trimmed,
         },
         this.selectedRecipient.uid
