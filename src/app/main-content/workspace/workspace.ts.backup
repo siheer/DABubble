@@ -10,7 +10,6 @@ import { FilterBox } from '../filter-box/filter-box';
 import { ClickOutsideDirective } from '../../classes/click-outside.class';
 import { ProfilePictureService } from '../../services/profile-picture.service';
 
-/** Workspace sidebar component for channel and direct message navigation. */
 @Component({
   selector: 'app-workspace',
   standalone: true,
@@ -45,75 +44,61 @@ export class Workspace {
   protected isChannelsHeaderHovered = false;
   protected isDirectMessagesHeaderHovered = false;
 
-  /** Navigates to new message composer. */
   protected startNewMessage(): void {
     void this.router.navigate(['/main/new-message']);
   }
 
-  /** Opens channel creation dialog. */
   protected openCreateChannel(): void {
     this.isCreateChannelOpen = true;
   }
 
-  /** Closes channel creation dialog. */
   protected closeCreateChannel(): void {
     this.isCreateChannelOpen = false;
   }
 
-  /** Toggles channels section collapse state. */
   protected toggleChannels(): void {
     this.areChannelsCollapsed = !this.areChannelsCollapsed;
   }
 
-  /** Navigates to selected channel. */
   protected selectChannel(channel: ChannelListItem): void {
     if (!channel?.id) return;
     void this.router.navigate(['/main/channels', channel.id]);
   }
 
-  /** Toggles direct messages section collapse state. */
   protected toggleDirectMessages(): void {
     this.areDirectMessagesCollapsed = !this.areDirectMessagesCollapsed;
   }
 
-  /** Navigates to direct message conversation with user. */
   protected openDirectMessage(user: DirectMessageUser): void {
     if (!user?.uid) return;
     void this.router.navigate(['/main/dms', user.uid]);
   }
 
-  /** Tracks channel by ID for ngFor optimization. */
   protected trackChannel(index: number, channel: ChannelListItem): string {
     return channel.id ?? `${index}`;
   }
 
-  /** Tracks direct message user by UID for ngFor optimization. */
   protected trackDirectUser(index: number, user: DirectMessageUser): string {
     return user.uid ?? `${index}`;
   }
 
-  /** Gets avatar URL for profile picture key. */
   protected getAvatarUrl(key?: ProfilePictureKey): string {
     return this.profilePictureService.getUrl(key);
   }
 
-  /** Handles search input change. */
   onSearchInput(event: Event) {
     this.searchTerm = (event.target as HTMLInputElement).value;
   }
 
-  /** Handles search focus. */
   onFocus() {
     this.isSearchFocused = true;
     this.dropdownOpen = true;
   }
 
-  /** Handles search blur. */
   onBlur() {
     this.isSearchFocused = false;
   }
 
-  /** Closes search dropdown. */
   closeDropdown() {
     this.searchTerm = '';
     this.dropdownOpen = false;

@@ -1,28 +1,27 @@
-import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, ElementRef, NgZone, ViewChild, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, combineLatest, distinctUntilChanged, filter, map, of, shareReplay, switchMap, tap } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+
 import { ThreadService } from '../../services/thread.service';
-import type { ChannelMemberView, ProfilePictureKey, ThreadContext } from '../../types';
 import { AppUser, UserService } from '../../services/user.service';
-import { EMOJI_CHOICES } from '../../texts';
-import { MessageReactions } from '../message-reactions/message-reactions';
-import { MessageReactionsService } from '../../services/message-reactions.service';
-import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ChannelMembershipService } from '../../services/membership.service';
 import { DirectMessagesService } from '../../services/direct-messages.service';
-import { MatDialog } from '@angular/material/dialog';
-import { MemberDialog } from '../member-dialog/member-dialog';
+import { MessageReactionsService } from '../../services/message-reactions.service';
+import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ProfilePictureService } from '../../services/profile-picture.service';
+import type { ChannelMemberView, ProfilePictureKey, ThreadContext } from '../../types';
+import { EMOJI_CHOICES } from '../../texts';
+import { MessageReactions } from '../message-reactions/message-reactions';
+import { MemberDialog } from '../member-dialog/member-dialog';
+import { buildMessageSegments, getMentionedMembers, updateMentionSuggestions } from '../channel/channel-mention.helper';
+import type { MentionSegment, MentionState } from './thread.types';
 
-type MentionSegment = {
-  text: string;
-  member?: ChannelMemberView;
-};
-
+/** Thread component for displaying and managing threaded replies. */
 @Component({
   selector: 'app-thread',
   standalone: true,
@@ -33,512 +32,319 @@ type MentionSegment = {
 export class Thread {
   private static readonly SYSTEM_PROFILE_PICTURE_KEY: ProfilePictureKey = 'default';
   private static readonly SYSTEM_AUTHOR_NAME = 'System';
-  private readonly threadService = inject(ThreadService);
-  private readonly userService = inject(UserService);
-  private readonly membershipService = inject(ChannelMembershipService);
-  private readonly directMessagesService = inject(DirectMessagesService);
-  private readonly dialog = inject(MatDialog);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly ngZone = inject(NgZone);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly messageReactionsService = inject(MessageReactionsService);
-  private readonly reactionTooltipService = inject(ReactionTooltipService);
-  private readonly profilePictureService = inject(ProfilePictureService);
 
+  // Services
+  private readonly threadService = inject(ThreadService); private readonly userService = inject(UserService);
+  private readonly membershipService = inject(ChannelMembershipService); private readonly directMessagesService = inject(DirectMessagesService);
+  private readonly dialog = inject(MatDialog); private readonly destroyRef = inject(DestroyRef);
+  private readonly ngZone = inject(NgZone); private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router); private readonly messageReactionsService = inject(MessageReactionsService);
+  private readonly reactionTooltipService = inject(ReactionTooltipService); private readonly profilePictureService = inject(ProfilePictureService);
+
+  // Observables
   protected readonly thread$: Observable<ThreadContext | null> = this.threadService.thread$;
+  private readonly channelId$: Observable<string | null> = this.route.parent!.paramMap.pipe(map((p) => p.get('channelId')), shareReplay({ bufferSize: 1, refCount: true }));
+  private readonly threadId$: Observable<string | null> = this.route.paramMap.pipe(map((p) => p.get('threadId')), shareReplay({ bufferSize: 1, refCount: true }));
+  protected readonly members$ = this.createMembersObservable();
 
-  private readonly channelId$: Observable<string | null> = this.route.parent!.paramMap.pipe(
-    map((params) => params.get('channelId')),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
-
-  private readonly threadId$: Observable<string | null> = this.route.paramMap.pipe(
-    map((params) => params.get('threadId')),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
-
-  protected readonly members$: Observable<ChannelMemberView[]> = this.channelId$.pipe(
-    switchMap((channelId) => {
-      if (!channelId) {
-        return of<ChannelMemberView[]>([]);
-      }
-
-      return combineLatest([this.membershipService.getChannelMembers(channelId), this.userService.getAllUsers()]).pipe(
-        map(([members, users]) => {
-          const currentUserId = this.userService.currentUser()?.uid;
-          const userMap = new Map(users.map((user) => [user.uid, user]));
-
-          return members.map((member) => {
-            const user = userMap.get(member.id);
-            const profilePictureKey = user?.profilePictureKey ?? member.profilePictureKey ?? 'default';
-
-            const avatar = this.profilePictureService.getUrl(profilePictureKey);
-            const name = user?.name ?? member.name;
-
-            return {
-              id: member.id,
-              name,
-              avatar,
-              subtitle: member.subtitle,
-              isCurrentUser: member.id === currentUserId,
-              user: user ?? {
-                uid: member.id,
-                name,
-                email: null,
-                profilePictureKey,
-                onlineStatus: false,
-                lastSeen: undefined,
-                updatedAt: undefined,
-                createdAt: undefined,
-              },
-            };
-          });
-        })
-      );
-    }),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
-
+  // ViewChild
   @ViewChild('replyTextarea') replyTextarea?: ElementRef<HTMLTextAreaElement>;
-
-  private threadScrollArea?: ElementRef<HTMLElement>;
-
-  @ViewChild('threadScrollArea')
-  set threadScrollAreaRef(ref: ElementRef<HTMLElement> | undefined) {
+  @ViewChild('threadScrollArea') set threadScrollAreaRef(ref: ElementRef<HTMLElement> | undefined) {
     this.threadScrollArea = ref;
     this.scrollToBottom();
   }
+  private threadScrollArea?: ElementRef<HTMLElement>;
 
+  // State
   protected openEmojiPickerFor: string | null = null;
   protected isComposerEmojiPickerOpen = false;
   protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
-  protected mentionSuggestions: ChannelMemberView[] = [];
-  protected isMentionListVisible = false;
-  private mentionTriggerIndex: number | null = null;
-  private mentionCaretIndex: number | null = null;
+  protected draftReply = '';
+
+  // Mention state
+  private mentionState: MentionState = { suggestions: [], isVisible: false, triggerIndex: null, caretIndex: null };
+  protected get mentionSuggestions() { return this.mentionState.suggestions; }
+  protected get isMentionListVisible() { return this.mentionState.isVisible; }
+
+  // Cached data
   private cachedMembers: ChannelMemberView[] = [];
   private threadSnapshot: ThreadContext | null = null;
 
+  /** Gets current user. */
   protected get currentUser() {
-    const user = this.userService.currentUser();
-
-    return {
-      uid: user?.uid,
-      name: user?.name ?? 'Gast',
-      profilePictureKey: user?.profilePictureKey ?? 'default',
-    };
+    const u = this.userService.currentUser();
+    return { uid: u?.uid, name: u?.name ?? 'Gast', profilePictureKey: u?.profilePictureKey ?? 'default' };
   }
-
-  protected getAvatarUrl(key?: ProfilePictureKey): string {
-    return this.profilePictureService.getUrl(key);
-  }
-
-  protected draftReply = '';
 
   constructor() {
-    combineLatest([this.channelId$, this.threadId$])
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([channelId, threadId]) => {
-        if (channelId && threadId) {
-          this.threadService.loadThread(channelId, threadId);
-        } else {
-          this.threadService.reset();
-        }
-      });
-
-    this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((members) => {
-      this.cachedMembers = members;
-      this.updateMentionSuggestions();
+    combineLatest([this.channelId$, this.threadId$]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(([cId, tId]) => {
+      if (cId && tId) this.threadService.loadThread(cId, tId);
+      else this.threadService.reset();
     });
-
-    this.thread$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((thread) => {
-      this.threadSnapshot = thread;
-    });
-
-    this.thread$
-      .pipe(
-        map((thread) => ({
-          rootId: thread?.root?.id ?? null,
-          repliesCount: thread?.replies.length ?? 0,
-        })),
-        distinctUntilChanged(
-          (previous, current) =>
-            previous.rootId === current.rootId && previous.repliesCount === current.repliesCount
-        ),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => this.scrollToBottom());
-
-    const threadId$ = this.thread$.pipe(
-      map((thread) => thread?.root?.id ?? null),
-      distinctUntilChanged()
-    );
-
-    combineLatest([threadId$, this.threadService.threadPanelOpen$])
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter(([threadId, isOpen]) => Boolean(threadId) && isOpen),
-        tap(() => requestAnimationFrame(() => this.focusComposer()))
-      )
+    this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((m) => { this.cachedMembers = m; this.updateMentionState(); });
+    this.thread$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((t) => (this.threadSnapshot = t));
+    this.thread$.pipe(
+      map((t) => ({ rootId: t?.root?.id ?? null, repliesCount: t?.replies.length ?? 0 })),
+      distinctUntilChanged((p, c) => p.rootId === c.rootId && p.repliesCount === c.repliesCount),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => this.scrollToBottom());
+    combineLatest([this.thread$.pipe(map((t) => t?.root?.id ?? null), distinctUntilChanged()), this.threadService.threadPanelOpen$])
+      .pipe(takeUntilDestroyed(this.destroyRef), filter(([tId, isOpen]) => Boolean(tId) && isOpen), tap(() => requestAnimationFrame(() => this.focusComposer())))
       .subscribe();
   }
 
-  protected async closeThread(): Promise<void> {
-    const channelId =
-      this.route.parent?.snapshot.paramMap.get('channelId') ?? this.route.snapshot.paramMap.get('channelId');
-    this.threadService.reset();
-
-    if (channelId) {
-      await this.router.navigate(['/main/channels', channelId]);
-    } else {
-      await this.router.navigate(['/main']);
-    }
+  /** Creates members observable. */
+  private createMembersObservable(): Observable<ChannelMemberView[]> {
+    return this.channelId$.pipe(
+      switchMap((cId) => !cId ? of<ChannelMemberView[]>([]) : combineLatest([this.membershipService.getChannelMembers(cId), this.userService.getAllUsers()]).pipe(
+        map(([members, users]) => this.enrichMembers(members, users))
+      )),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
   }
 
+  /** Enriches members with user data. */
+  private enrichMembers(members: ChannelMemberView[], users: AppUser[]): ChannelMemberView[] {
+    const currentUserId = this.userService.currentUser()?.uid;
+    const userMap = new Map(users.map((u) => [u.uid, u]));
+    return members.map((m) => {
+      const user = userMap.get(m.id);
+      const ppk = user?.profilePictureKey ?? m.profilePictureKey ?? 'default';
+      return {
+        id: m.id,
+        name: user?.name ?? m.name,
+        avatar: this.profilePictureService.getUrl(ppk),
+        subtitle: m.subtitle,
+        isCurrentUser: m.id === currentUserId,
+        user: user ?? { uid: m.id, name: m.name, email: null, profilePictureKey: ppk, onlineStatus: false, lastSeen: undefined, updatedAt: undefined, createdAt: undefined },
+      };
+    });
+  }
+
+  /** Closes thread. */
+  protected async closeThread(): Promise<void> {
+    const cId = this.route.parent?.snapshot.paramMap.get('channelId') ?? this.route.snapshot.paramMap.get('channelId');
+    this.threadService.reset();
+    await this.router.navigate(cId ? ['/main/channels', cId] : ['/main']);
+  }
+
+  /** Sends reply to thread. */
   protected async sendReply(): Promise<void> {
     const trimmed = this.draftReply.trim();
     if (!trimmed) return;
-
     try {
       await this.threadService.addReply(trimmed);
       try {
         await this.notifyMentionedMembers(trimmed);
-      } catch (error) {
-        console.error('Fehler beim Versenden der Mention-Benachrichtigung', error);
+      } catch (e) {
+        console.error('Fehler beim Versenden der Mention-Benachrichtigung', e);
       }
       this.draftReply = '';
       this.isComposerEmojiPickerOpen = false;
-      this.resetMentionSuggestions();
-    } catch (error) {
-      console.error('Reply konnte nicht gespeichert werden', error);
+      this.resetMentionState();
+    } catch (e) {
+      console.error('Reply konnte nicht gespeichert werden', e);
     }
   }
 
+  /** Handles reply input. */
   protected onReplyInput(event: Event): void {
-    const textarea = event.target as HTMLTextAreaElement | null;
-    this.draftReply = textarea?.value ?? this.draftReply;
-    this.mentionCaretIndex = textarea?.selectionStart ?? null;
-    this.updateMentionSuggestions();
+    const ta = event.target as HTMLTextAreaElement | null;
+    this.draftReply = ta?.value ?? this.draftReply;
+    this.mentionState.caretIndex = ta?.selectionStart ?? null;
+    this.updateMentionState();
   }
 
+  /** Toggles emoji picker. */
   protected toggleComposerEmojiPicker(): void {
     this.isComposerEmojiPickerOpen = !this.isComposerEmojiPickerOpen;
     this.focusComposer();
   }
 
+  /** Adds emoji to composer. */
   protected addComposerEmoji(emoji: string): void {
-    this.insertComposerText(emoji);
+    this.insertText(emoji);
     this.isComposerEmojiPickerOpen = false;
   }
 
+  /** Inserts @ for mention. */
   protected insertComposerMention(): void {
-    this.insertComposerText('@');
-    this.updateMentionSuggestions();
+    this.insertText('@');
+    this.updateMentionState();
   }
 
+  /** Inserts member mention. */
   protected insertMention(member: ChannelMemberView): void {
-    if (this.mentionTriggerIndex === null) return;
-
-    const caret = this.mentionCaretIndex ?? this.draftReply.length;
-    const before = this.draftReply.slice(0, this.mentionTriggerIndex);
+    if (this.mentionState.triggerIndex === null) return;
+    const caret = this.mentionState.caretIndex ?? this.draftReply.length;
+    const before = this.draftReply.slice(0, this.mentionState.triggerIndex);
     const after = this.draftReply.slice(caret);
-    const mentionText = `@${member.name} `;
-
-    this.draftReply = `${before}${mentionText}${after}`;
-    const newCaret = before.length + mentionText.length;
-
+    const mention = `@${member.name} `;
+    this.draftReply = `${before}${mention}${after}`;
+    const newCaret = before.length + mention.length;
     queueMicrotask(() => {
-      const textarea = this.replyTextarea?.nativeElement;
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(newCaret, newCaret);
+      const ta = this.replyTextarea?.nativeElement;
+      if (ta) {
+        ta.focus();
+        ta.setSelectionRange(newCaret, newCaret);
       }
     });
-
-    this.resetMentionSuggestions();
+    this.resetMentionState();
   }
 
+  /** Handles Enter key. */
   protected onReplyKeydown(event: Event): void {
-    const keyboardEvent = event as KeyboardEvent;
-    if (keyboardEvent.key !== 'Enter' || keyboardEvent.shiftKey) return;
-    keyboardEvent.preventDefault();
+    const ke = event as KeyboardEvent;
+    if (ke.key !== 'Enter' || ke.shiftKey) return;
+    ke.preventDefault();
     this.sendReply();
   }
 
+  /** Toggles emoji picker for message. */
   toggleEmojiPicker(messageId: string | undefined): void {
     if (!messageId) return;
-
     this.openEmojiPickerFor = this.openEmojiPickerFor === messageId ? null : messageId;
   }
 
+  /** Focuses composer. */
   protected focusComposer(): void {
     this.replyTextarea?.nativeElement.focus();
   }
 
+  /** Builds message segments. */
   protected buildMessageSegments(text: string): MentionSegment[] {
-    if (!text) return [{ text: '' }];
-    const regex = this.buildMentionRegex();
-    if (!regex) return [{ text }];
-
-    const segments: MentionSegment[] = [];
-    let lastIndex = 0;
-    regex.lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = regex.exec(text)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-      if (matchStart > lastIndex) {
-        segments.push({ text: text.slice(lastIndex, matchStart) });
-      }
-
-      const mentionName = match[1] ?? '';
-      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
-      segments.push({ text: match[0], member });
-      lastIndex = matchEnd;
-    }
-
-    if (lastIndex < text.length) {
-      segments.push({ text: text.slice(lastIndex) });
-    }
-
-    return segments.length ? segments : [{ text }];
+    return buildMessageSegments(text, this.cachedMembers);
   }
 
+  /** Opens member profile. */
   protected openMemberProfile(member?: ChannelMemberView): void {
     if (!member || member.isCurrentUser) return;
-
-    const fallbackUser: AppUser = member.user ?? {
-      uid: member.id,
-      name: member.name,
-      email: null,
-      profilePictureKey: 'default',
-      onlineStatus: false,
-      lastSeen: undefined,
-      updatedAt: undefined,
-      createdAt: undefined,
-    };
-
     this.dialog.open(MemberDialog, {
-      data: { user: fallbackUser },
+      data: { user: member.user ?? { uid: member.id, name: member.name, email: null, profilePictureKey: 'default', onlineStatus: false, lastSeen: undefined, updatedAt: undefined, createdAt: undefined } },
     });
   }
 
-  private insertComposerText(text: string): void {
-    const textarea = this.replyTextarea?.nativeElement;
-    if (!textarea) {
+  /** Inserts text at cursor. */
+  private insertText(text: string): void {
+    const ta = this.replyTextarea?.nativeElement;
+    if (!ta) {
       this.draftReply = `${this.draftReply}${text}`;
-      this.mentionCaretIndex = this.draftReply.length;
+      this.mentionState.caretIndex = this.draftReply.length;
       return;
     }
-
-    const start = textarea.selectionStart ?? this.draftReply.length;
-    const end = textarea.selectionEnd ?? start;
-    const before = this.draftReply.slice(0, start);
-    const after = this.draftReply.slice(end);
-    this.draftReply = `${before}${text}${after}`;
-    this.mentionCaretIndex = start + text.length;
-
+    const start = ta.selectionStart ?? this.draftReply.length;
+    const end = ta.selectionEnd ?? start;
+    this.draftReply = `${this.draftReply.slice(0, start)}${text}${this.draftReply.slice(end)}`;
+    this.mentionState.caretIndex = start + text.length;
     requestAnimationFrame(() => {
-      textarea.focus();
-      const newCaret = start + text.length;
-      textarea.setSelectionRange(newCaret, newCaret);
+      ta.focus();
+      ta.setSelectionRange(start + text.length, start + text.length);
     });
   }
 
-  private updateMentionSuggestions(): void {
-    const caret = this.mentionCaretIndex ?? this.draftReply.length;
-    const textUpToCaret = this.draftReply.slice(0, caret);
-    const atIndex = textUpToCaret.lastIndexOf('@');
-
-    if (atIndex === -1) {
-      this.resetMentionSuggestions();
-      return;
-    }
-
-    if (atIndex > 0) {
-      const charBefore = textUpToCaret[atIndex - 1];
-      if (!/\s/.test(charBefore)) {
-        this.resetMentionSuggestions();
-        return;
-      }
-    }
-
-    const query = textUpToCaret.slice(atIndex + 1);
-
-    if (/\s/.test(query)) {
-      this.resetMentionSuggestions();
-      return;
-    }
-
-    const normalizedQuery = query.toLowerCase();
-
-    this.mentionTriggerIndex = atIndex;
-    this.mentionSuggestions = this.cachedMembers.filter((member) =>
-      member.name.toLowerCase().includes(normalizedQuery)
-    );
-    this.isMentionListVisible = this.mentionSuggestions.length > 0;
+  /** Updates mention state. */
+  private updateMentionState(): void {
+    const result = updateMentionSuggestions(this.draftReply, this.mentionState.caretIndex, this.cachedMembers);
+    this.mentionState = { ...this.mentionState, ...result };
   }
 
-  private resetMentionSuggestions(): void {
-    this.isMentionListVisible = false;
-    this.mentionSuggestions = [];
-    this.mentionTriggerIndex = null;
-    this.mentionCaretIndex = null;
+  /** Resets mention state. */
+  private resetMentionState(): void {
+    this.mentionState = { suggestions: [], isVisible: false, triggerIndex: null, caretIndex: null };
   }
 
-  private buildMentionRegex(): RegExp | null {
-    if (!this.cachedMembers.length) return null;
-    const names = this.cachedMembers
-      .map((member) => member.name)
-      .filter(Boolean)
-      .sort((a, b) => b.length - a.length)
-      .map((name) => this.escapeRegex(name));
-
-    if (!names.length) return null;
-    return new RegExp(`@(${names.join('|')})`, 'gi');
-  }
-
-  private escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private getMentionedMembers(text: string): ChannelMemberView[] {
-    const regex = this.buildMentionRegex();
-    if (!regex) return [];
-    const found = new Map<string, ChannelMemberView>();
-    let match: RegExpExecArray | null;
-
-    while ((match = regex.exec(text)) !== null) {
-      const mentionName = match[1] ?? '';
-      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
-      if (member) {
-        found.set(member.id, member);
-      }
-    }
-
-    return Array.from(found.values());
-  }
-
+  /** Notifies mentioned members. */
   private async notifyMentionedMembers(text: string): Promise<void> {
-    const currentUser = this.userService.currentUser();
-    if (!currentUser) return;
-
-    const mentionedMembers = this.getMentionedMembers(text).filter((member) => member.id !== currentUser.uid);
-    if (!mentionedMembers.length) return;
-
-    const formattedTime = new Intl.DateTimeFormat('de-DE', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date());
-
+    const user = this.userService.currentUser();
+    if (!user) return;
+    const mentioned = getMentionedMembers(text, this.cachedMembers).filter((m) => m.id !== user.uid);
+    if (!mentioned.length) return;
+    const formattedTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
     const channelTitle = this.threadSnapshot?.channelTitle ?? 'Unbekannter Channel';
-    const threadLabel = this.threadSnapshot?.root?.text
-      ? ` im Thread „${this.threadSnapshot.root.text.slice(0, 80)}${this.threadSnapshot.root.text.length > 80 ? '…' : ''}“`
-      : '';
-
-    const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
-
-    await Promise.all(
-      mentionedMembers.map((member) =>
-        this.directMessagesService.sendDirectMessage(
-          {
-            authorId: member.id,
-            authorName: Thread.SYSTEM_AUTHOR_NAME,
-            authorProfilePictureKey: Thread.SYSTEM_PROFILE_PICTURE_KEY,
-            text: messageText,
-          },
-          member.id
-        )
-      )
-    );
+    const threadLabel = this.threadSnapshot?.root?.text ? ` im Thread „${this.threadSnapshot.root.text.slice(0, 80)}${this.threadSnapshot.root.text.length > 80 ? '…' : ''}"` : '';
+    const messageText = `Du wurdest von ${user.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
+    await Promise.all(mentioned.map((m) => this.directMessagesService.sendDirectMessage({ authorId: m.id, authorName: Thread.SYSTEM_AUTHOR_NAME, authorProfilePictureKey: Thread.SYSTEM_PROFILE_PICTURE_KEY, text: messageText }, m.id)));
   }
 
+  /** Starts editing message. */
   protected startEditing(message: { id?: string; text: string; isOwn?: boolean }): void {
     if (!message.id || !message.isOwn) return;
     this.editingMessageId = message.id;
     this.editMessageText = message.text;
   }
 
+  /** Starts editing root message. */
   protected startEditingRoot(message: { text: string; isOwn?: boolean; id?: string }): void {
     if (!message.isOwn) return;
     this.editingMessageId = message.id ?? 'root';
     this.editMessageText = message.text;
   }
 
+  /** Cancels editing. */
   protected cancelEditing(): void {
     this.editingMessageId = null;
     this.editMessageText = '';
   }
 
+  /** Saves edited message. */
   protected async saveEditing(message: { id?: string; isOwn?: boolean }, isRoot = false): Promise<void> {
     const trimmed = this.editMessageText.trim();
     if (!trimmed || this.isSavingEdit) return;
     this.isSavingEdit = true;
-
     try {
-      if (isRoot) {
-        await this.threadService.updateRootMessage(trimmed);
-      } else if (message.id) {
-        await this.threadService.updateReply(message.id, trimmed);
-      }
+      if (isRoot) await this.threadService.updateRootMessage(trimmed);
+      else if (message.id) await this.threadService.updateReply(message.id, trimmed);
       this.cancelEditing();
     } finally {
       this.isSavingEdit = false;
     }
   }
 
+  /** Scrolls to bottom. */
   private scrollToBottom(): void {
-    const element = this.threadScrollArea?.nativeElement;
-    if (!element) return;
+    const el = this.threadScrollArea?.nativeElement;
+    if (!el) return;
     this.ngZone.runOutsideAngular(() => {
       requestAnimationFrame(() => {
-        element.scrollTop = element.scrollHeight;
+        el.scrollTop = el.scrollHeight;
       });
     });
   }
 
+  /** Reacts to root message. */
   protected reactToRootMessage(emoji: string): void {
     const thread = this.threadService.threadSnapshot();
     const user = this.userService.currentUser();
-
     if (!thread || !user) return;
-
-    this.messageReactionsService.toggleReaction({
-      docPath: `channels/${thread.channelId}/messages/${thread.root.id}`,
-      userId: user.uid,
-      emoji,
-    });
-
+    this.messageReactionsService.toggleReaction({ docPath: `channels/${thread.channelId}/messages/${thread.root.id}`, userId: user.uid, emoji });
     this.openEmojiPickerFor = null;
   }
 
+  /** Reacts to reply. */
   protected reactToReply(replyId: string | undefined, emoji: string): void {
     if (!replyId) return;
-
     const thread = this.threadService.threadSnapshot();
     const user = this.userService.currentUser();
-
     if (!thread || !user) return;
-
-    this.messageReactionsService.toggleReaction({
-      docPath: `channels/${thread.channelId}/messages/${thread.root.id}/threads/${replyId}`,
-      userId: user.uid,
-      emoji,
-    });
-
+    this.messageReactionsService.toggleReaction({ docPath: `channels/${thread.channelId}/messages/${thread.root.id}/threads/${replyId}`, userId: user.uid, emoji });
     this.openEmojiPickerFor = null;
   }
 
+  /** Shows reaction tooltip. */
   showReactionTooltip(event: MouseEvent, emoji: string, userIds: string[]): void {
     this.reactionTooltipService.show(event, emoji, userIds);
   }
 
+  /** Hides reaction tooltip. */
   hideReactionTooltip(): void {
     this.reactionTooltipService.hide();
+  }
+
+  /** Gets avatar URL. */
+  protected getAvatarUrl(key?: ProfilePictureKey): string {
+    return this.profilePictureService.getUrl(key);
   }
 }
