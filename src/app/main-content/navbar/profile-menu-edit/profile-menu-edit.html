@@ -14,7 +14,8 @@
         [src]="profilePictureService.getUrl(currentUser()?.profilePictureKey)"
         alt="Profilbild ändern" />
     </button>
-    <span class="avatar-hint" [class.visible]="showAvatarHint">Klick mich zum Ändern</span>
+    <span class="avatar-hint" [class.visible]="showAvatarHint">
+      {{ canEditName ? 'Klick mich zum Ändern' : 'Nur als User möglich' }}</span>
   </div>
 
   <div class="flex w-full flex-col px-6">
