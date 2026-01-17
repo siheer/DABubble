@@ -191,7 +191,7 @@ export class UserService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () => {
             const usersCollection = collection(this.firestore, 'users');
-            return collectionData(usersCollection, { idField: 'uid' }).pipe(
+            return collectionData(usersCollection, { idField: 'uid', serverTimestamps: 'estimate' }).pipe(
               map((users) =>
                 (users as Array<Partial<AppUser> & { uid?: string }>).map((user) => ({
                   uid: user.uid ?? 'unbekannt',
