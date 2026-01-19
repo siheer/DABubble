@@ -34,26 +34,35 @@ export class Thread {
   private static readonly SYSTEM_AUTHOR_NAME = 'System';
 
   // Services
-  private readonly threadService = inject(ThreadService); private readonly userService = inject(UserService);
-  private readonly membershipService = inject(ChannelMembershipService); private readonly directMessagesService = inject(DirectMessagesService);
-  private readonly dialog = inject(MatDialog); private readonly destroyRef = inject(DestroyRef);
-  private readonly ngZone = inject(NgZone); private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router); private readonly messageReactionsService = inject(MessageReactionsService);
-  private readonly reactionTooltipService = inject(ReactionTooltipService); private readonly profilePictureService = inject(ProfilePictureService);
+  private readonly threadService = inject(ThreadService);
+  private readonly userService = inject(UserService);
+  private readonly membershipService = inject(ChannelMembershipService);
+  private readonly directMessagesService = inject(DirectMessagesService);
+  private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly ngZone = inject(NgZone);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly messageReactionsService = inject(MessageReactionsService);
+  private readonly reactionTooltipService = inject(ReactionTooltipService);
+  private readonly profilePictureService = inject(ProfilePictureService);
 
   // Observables
   protected readonly thread$: Observable<ThreadContext | null> = this.threadService.thread$;
-  private readonly channelId$: Observable<string | null> = this.route.parent!.paramMap.pipe(map((p) => p.get('channelId')), shareReplay({ bufferSize: 1, refCount: true }));
-  private readonly threadId$: Observable<string | null> = this.route.paramMap.pipe(map((p) => p.get('threadId')), shareReplay({ bufferSize: 1, refCount: true }));
+  private readonly channelId$: Observable<string | null> = this.route.parent!.paramMap.pipe(
+    map((p) => p.get('channelId')),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+  private readonly threadId$: Observable<string | null> = this.route.paramMap.pipe(
+    map((p) => p.get('threadId')),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
   protected readonly members$ = this.createMembersObservable();
 
   // ViewChild
   @ViewChild('replyTextarea') replyTextarea?: ElementRef<HTMLTextAreaElement>;
-  @ViewChild('threadScrollArea') set threadScrollAreaRef(ref: ElementRef<HTMLElement> | undefined) {
-    this.threadScrollArea = ref;
-    this.scrollToBottom();
-  }
-  private threadScrollArea?: ElementRef<HTMLElement>;
+  @ViewChild('threadScrollArea')
+  threadScrollArea?: ElementRef<HTMLElement>;
 
   // State
   protected openEmojiPickerFor: string | null = null;
@@ -66,8 +75,12 @@ export class Thread {
 
   // Mention state
   private mentionState: MentionState = { suggestions: [], isVisible: false, triggerIndex: null, caretIndex: null };
-  protected get mentionSuggestions() { return this.mentionState.suggestions; }
-  protected get isMentionListVisible() { return this.mentionState.isVisible; }
+  protected get mentionSuggestions() {
+    return this.mentionState.suggestions;
+  }
+  protected get isMentionListVisible() {
+    return this.mentionState.isVisible;
+  }
 
   // Cached data
   private cachedMembers: ChannelMemberView[] = [];
@@ -80,28 +93,45 @@ export class Thread {
   }
 
   constructor() {
-    combineLatest([this.channelId$, this.threadId$]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(([cId, tId]) => {
-      if (cId && tId) this.threadService.loadThread(cId, tId);
-      else this.threadService.reset();
+    combineLatest([this.channelId$, this.threadId$])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(([cId, tId]) => {
+        if (cId && tId) this.threadService.loadThread(cId, tId);
+        else this.threadService.reset();
+      });
+    this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((m) => {
+      this.cachedMembers = m;
+      this.updateMentionState();
     });
-    this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((m) => { this.cachedMembers = m; this.updateMentionState(); });
     this.thread$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((t) => (this.threadSnapshot = t));
-    this.thread$.pipe(
-      map((t) => ({ rootId: t?.root?.id ?? null, repliesCount: t?.replies.length ?? 0 })),
-      distinctUntilChanged((p, c) => p.rootId === c.rootId && p.repliesCount === c.repliesCount),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.scrollToBottom());
-    combineLatest([this.thread$.pipe(map((t) => t?.root?.id ?? null), distinctUntilChanged()), this.threadService.threadPanelOpen$])
-      .pipe(takeUntilDestroyed(this.destroyRef), filter(([tId, isOpen]) => Boolean(tId) && isOpen), tap(() => requestAnimationFrame(() => this.focusComposer())))
-      .subscribe();
+    this.thread$
+      .pipe(
+        map((t) => t?.replies.length ?? 0),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => this.scrollToBottom());
+    combineLatest([this.thread$.pipe(map((t) => t?.root?.id ?? null)), this.threadService.threadPanelOpen$])
+      .pipe(
+        filter(([rootId, isOpen]) => !!rootId && isOpen),
+        distinctUntilChanged(([prevId, prevOpen], [currId, currOpen]) => prevId === currId && prevOpen === currOpen),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        requestAnimationFrame(() => this.scrollToBottom());
+      });
   }
 
   /** Creates members observable. */
   private createMembersObservable(): Observable<ChannelMemberView[]> {
     return this.channelId$.pipe(
-      switchMap((cId) => !cId ? of<ChannelMemberView[]>([]) : combineLatest([this.membershipService.getChannelMembers(cId), this.userService.getAllUsers()]).pipe(
-        map(([members, users]) => this.enrichMembers(members, users))
-      )),
+      switchMap((cId) =>
+        !cId
+          ? of<ChannelMemberView[]>([])
+          : combineLatest([this.membershipService.getChannelMembers(cId), this.userService.getAllUsers()]).pipe(
+              map(([members, users]) => this.enrichMembers(members, users))
+            )
+      ),
       shareReplay({ bufferSize: 1, refCount: true })
     );
   }
@@ -119,7 +149,16 @@ export class Thread {
         avatar: this.profilePictureService.getUrl(ppk),
         subtitle: m.subtitle,
         isCurrentUser: m.id === currentUserId,
-        user: user ?? { uid: m.id, name: m.name, email: null, profilePictureKey: ppk, onlineStatus: false, lastSeen: undefined, updatedAt: undefined, createdAt: undefined },
+        user: user ?? {
+          uid: m.id,
+          name: m.name,
+          email: null,
+          profilePictureKey: ppk,
+          onlineStatus: false,
+          lastSeen: undefined,
+          updatedAt: undefined,
+          createdAt: undefined,
+        },
       };
     });
   }
@@ -223,7 +262,18 @@ export class Thread {
   protected openMemberProfile(member?: ChannelMemberView): void {
     if (!member || member.isCurrentUser) return;
     this.dialog.open(MemberDialog, {
-      data: { user: member.user ?? { uid: member.id, name: member.name, email: null, profilePictureKey: 'default', onlineStatus: false, lastSeen: undefined, updatedAt: undefined, createdAt: undefined } },
+      data: {
+        user: member.user ?? {
+          uid: member.id,
+          name: member.name,
+          email: null,
+          profilePictureKey: 'default',
+          onlineStatus: false,
+          lastSeen: undefined,
+          updatedAt: undefined,
+          createdAt: undefined,
+        },
+      },
     });
   }
 
@@ -262,11 +312,27 @@ export class Thread {
     if (!user) return;
     const mentioned = getMentionedMembers(text, this.cachedMembers).filter((m) => m.id !== user.uid);
     if (!mentioned.length) return;
-    const formattedTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+    const formattedTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date()
+    );
     const channelTitle = this.threadSnapshot?.channelTitle ?? 'Unbekannter Channel';
-    const threadLabel = this.threadSnapshot?.root?.text ? ` im Thread „${this.threadSnapshot.root.text.slice(0, 80)}${this.threadSnapshot.root.text.length > 80 ? '…' : ''}"` : '';
+    const threadLabel = this.threadSnapshot?.root?.text
+      ? ` im Thread „${this.threadSnapshot.root.text.slice(0, 80)}${this.threadSnapshot.root.text.length > 80 ? '…' : ''}"`
+      : '';
     const messageText = `Du wurdest von ${user.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
-    await Promise.all(mentioned.map((m) => this.directMessagesService.sendDirectMessage({ authorId: m.id, authorName: Thread.SYSTEM_AUTHOR_NAME, authorProfilePictureKey: Thread.SYSTEM_PROFILE_PICTURE_KEY, text: messageText }, m.id)));
+    await Promise.all(
+      mentioned.map((m) =>
+        this.directMessagesService.sendDirectMessage(
+          {
+            authorId: m.id,
+            authorName: Thread.SYSTEM_AUTHOR_NAME,
+            authorProfilePictureKey: Thread.SYSTEM_PROFILE_PICTURE_KEY,
+            text: messageText,
+          },
+          m.id
+        )
+      )
+    );
   }
 
   /** Starts editing message. */
@@ -307,10 +373,9 @@ export class Thread {
   private scrollToBottom(): void {
     const el = this.threadScrollArea?.nativeElement;
     if (!el) return;
-    this.ngZone.runOutsideAngular(() => {
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
     });
   }
 
@@ -319,7 +384,11 @@ export class Thread {
     const thread = this.threadService.threadSnapshot();
     const user = this.userService.currentUser();
     if (!thread || !user) return;
-    this.messageReactionsService.toggleReaction({ docPath: `channels/${thread.channelId}/messages/${thread.root.id}`, userId: user.uid, emoji });
+    this.messageReactionsService.toggleReaction({
+      docPath: `channels/${thread.channelId}/messages/${thread.root.id}`,
+      userId: user.uid,
+      emoji,
+    });
     this.openEmojiPickerFor = null;
   }
 
@@ -329,7 +398,11 @@ export class Thread {
     const thread = this.threadService.threadSnapshot();
     const user = this.userService.currentUser();
     if (!thread || !user) return;
-    this.messageReactionsService.toggleReaction({ docPath: `channels/${thread.channelId}/messages/${thread.root.id}/threads/${replyId}`, userId: user.uid, emoji });
+    this.messageReactionsService.toggleReaction({
+      docPath: `channels/${thread.channelId}/messages/${thread.root.id}/threads/${replyId}`,
+      userId: user.uid,
+      emoji,
+    });
     this.openEmojiPickerFor = null;
   }
 
