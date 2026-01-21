@@ -16,16 +16,26 @@ import { ToastOutletComponent } from './toast/toast-outlet';
 export class App implements OnDestroy {
   private router = inject(Router);
   private destroy$ = new Subject<void>();
+  private previousUrl: string | null = null;
+  private readonly NO_SPLASH_RETURN_ROUTES = new Set(['/legal-notice', '/privacy-policy', '/signup']);
 
   constructor(public brandState: BrandStateService) {
     this.router.events
       .pipe(
-        filter((event): event is NavigationStart => event instanceof NavigationStart && event.url === '/login'),
+        filter((e): e is NavigationStart => e instanceof NavigationStart),
         takeUntil(this.destroy$)
       )
-      .subscribe(() => {
-        this.brandState.resetSplash();
+      .subscribe((event) => {
+        if (event.url === '/login' && !this.isInternalReturn()) {
+          this.brandState.resetSplash();
+        }
+
+        this.previousUrl = event.url;
       });
+  }
+
+  private isInternalReturn(): boolean {
+    return this.previousUrl ? this.NO_SPLASH_RETURN_ROUTES.has(this.previousUrl) : false;
   }
 
   ngOnDestroy() {
