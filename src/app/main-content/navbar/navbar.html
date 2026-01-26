@@ -34,8 +34,9 @@
       (close)="closeDropdown()"></app-filter-box>
   </div>
   <div class="hover-me flex items-center gap-1 lg:gap-4" (click)="openUserMenu()">
-    <p class="font-nunito hidden max-w-[150px] text-2xl font-bold md:block lg:max-w-[400px] lg:text-3xl">
-      {{ currentUser()?.name || 'Gast' }}
+    <p class="font-nunito hidden max-w-[140px] flex-1 text-2xl font-bold md:block lg:max-w-[400px] lg:text-3xl truncate"
+    [title]="currentUser()?.name || 'Gast'">
+      {{ currentUser()?.name | displayName }}
     </p>
     <div class="relative">
       <img class="size-10 rounded-full md:size-14 lg:size-16" [src]="profilePictureUrl()" />

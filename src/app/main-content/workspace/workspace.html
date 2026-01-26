@@ -88,7 +88,9 @@
               [class.workspace__list-item--unread]="channel.unreadCount > 0"
               (click)="selectChannel(channel)">
               <span class="workspace__hash">#</span>
-              <span class="workspace__channel-name">{{ channel.title || 'Unbenannter Channel' }}</span>
+              <span class="workspace__channel-name truncate" [title]="channel.title || 'Unbenannter Channel'">{{
+                channel.title || 'Unbenannter Channel'
+              }}</span>
               <span *ngIf="channel.unreadCount > 0" class="workspace__unread-badge">
                 {{ channel.unreadCount }}
               </span>
@@ -155,7 +157,7 @@
                 </span>
               </div>
               <div class="workspace__user-details">
-                <span class="workspace__user-name">{{ user.displayName }}</span>
+                <span class="workspace__user-name truncate" [title]="user.displayName">{{ user.displayName }}</span>
               </div>
               <span *ngIf="user.unreadCount > 0" class="workspace__unread-badge">{{ user.unreadCount }}</span>
             </button>

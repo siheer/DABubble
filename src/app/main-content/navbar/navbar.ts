@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FilterBox } from '../filter-box/filter-box';
 import { FormsModule } from '@angular/forms';
 import { ClickOutsideDirective } from '../../classes/click-outside.class';
+import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 
 @Component({
   selector: 'app-navbar',
@@ -21,6 +22,7 @@ import { ClickOutsideDirective } from '../../classes/click-outside.class';
     FilterBox,
     FormsModule,
     ClickOutsideDirective,
+    DisplayNamePipe,
   ],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.scss'],

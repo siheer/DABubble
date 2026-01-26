@@ -288,6 +288,7 @@
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
+  overflow: hidden;
 }
 
 .workspace__list-item:hover {
@@ -319,6 +320,8 @@
 
 .workspace__channel-name {
   color: #0f172a;
+  flex: 1;
+  min-width: 0;
 }
 
 .workspace__list-item--active .workspace__channel-name,
@@ -338,7 +341,7 @@
   display: flex;
   flex-direction: column;
   gap: 0px;
-  min-width: 0;
+  max-width: 200px;
   justify-content: center;
 }
 
@@ -485,6 +488,8 @@
   .workspace__channel-name,
   .workspace__user-name {
     font-size: 24px;
+    flex: 1;
+    min-width: 0;
   }
   .workspace__avatar {
     width: 70px;

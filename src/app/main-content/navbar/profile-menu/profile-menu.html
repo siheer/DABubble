@@ -7,18 +7,21 @@
     <h2>Profil</h2>
     <button (click)="closeOverlay()"><mat-icon class="close">close</mat-icon></button>
   </div>
-  <img class="size-40 rounded-full mb-10 sm:mb-5" [src]="getAvatarUrl(currentUser()?.profilePictureKey)" />
+  <img class="mb-10 size-40 rounded-full sm:mb-5" [src]="getAvatarUrl(currentUser()?.profilePictureKey)" />
   <div class="flex w-full flex-col gap-2 px-6">
-    <div class="flex items-center justify-between">
-      <h3>{{ currentUser()?.name || 'Gast' }}</h3>
-      <button type="button" class="edit-btn lg:hidden" (click)="editProfile()">
+    <div class="flex items-center gap-3">
+      <h3 class="min-w-0 flex-1 truncate">
+        {{ currentUser()?.name || 'Gast' }}
+      </h3>
+
+      <button type="button" class="edit-btn shrink-0 lg:hidden" (click)="editProfile()">
         <div class="icon-wrapper">
           <img class="icon icon-default" src="/imgs/edit.png" alt="Profil bearbeiten" />
           <img class="icon icon-active" src="/imgs/edit_focus.png" alt="" />
         </div>
       </button>
 
-      <button class="edit hidden lg:block" (click)="editProfile()">Bearbeiten</button>
+      <button class="edit hidden shrink-0 lg:block" (click)="editProfile()">Bearbeiten</button>
     </div>
     <div class="flex items-center gap-2">
       <div class="status"></div>
