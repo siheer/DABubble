@@ -289,6 +289,7 @@
     background-color 0.2s ease,
     color 0.2s ease;
   overflow: hidden;
+  text-align: justify;
 }
 
 .workspace__list-item:hover {
@@ -413,6 +414,10 @@
 }
 
 @media (max-width: 1024px) {
+  .workspace__user-details {
+    max-width: 70vw;
+  }
+
   .mobile {
     display: flex;
   }

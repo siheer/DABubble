@@ -149,7 +149,7 @@
               [class.workspace__list-item--active]="activeDmId() === user.uid"
               [class.workspace__list-item--unread]="user.unreadCount > 0"
               (click)="openDirectMessage(user)">
-              <div class="relative">
+              <div class="relative shrink-0">
                 <img class="workspace__avatar" [src]="getAvatarUrl(user.profilePictureKey)" [alt]="user.name" />
                 <span
                   class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white"

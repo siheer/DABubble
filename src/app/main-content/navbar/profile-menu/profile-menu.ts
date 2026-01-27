@@ -52,8 +52,6 @@ export class ProfileMenu {
     if (!overlayRef) return;
     overlayRef.replaceComponent(ProfileMenuEdit, {
       target: this.originTarget,
-      offsetX: -225,
-      offsetY: -72,
     });
   }
 

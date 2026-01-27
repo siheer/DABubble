@@ -8,14 +8,11 @@
       (click)="openRecipientProfile(recipient)"
       (keydown.enter)="openRecipientProfile(recipient)"
       (keydown.space)="openRecipientProfile(recipient)">
-      <img
-        class="message-board__avatar"
-        [src]="getAvatarUrl(recipient.profilePictureKey)"
-        [alt]="recipient.name" />
+      <img class="message-board__avatar" [src]="getAvatarUrl(recipient.profilePictureKey)" [alt]="recipient.name" />
       <div>
         <div class="message-board__name-row">
-          <h1>{{ recipient.name }}</h1>
-          <span class="message-board__status-dot" aria-hidden="true"></span>
+          <h1 class="truncate">{{ recipient.name }}</h1>
+          <span class="message-board__status-dot shrink-0" aria-hidden="true"></span>
         </div>
         <p>{{ recipient.email || 'Direktnachricht' }}</p>
       </div>
@@ -81,7 +78,10 @@
           </div>
 
           <div class="message-board__bubble-main">
-            <img class="message-board__bubble-avatar" [src]="getAvatarUrl(message.profilePictureKey)" [alt]="message.author" />
+            <img
+              class="message-board__bubble-avatar"
+              [src]="getAvatarUrl(message.profilePictureKey)"
+              [alt]="message.author" />
             <div class="message-board__bubble-body">
               <div class="message-board__bubble-header">
                 <strong class="message-board__bubble-author">{{ message.author }}</strong>
@@ -135,8 +135,8 @@
         [src]="getAvatarUrl(recipient.profilePictureKey)"
         [alt]="recipient.name" />
       <div class="message-board__intro-text">
-        <p class="message-board__intro-name">{{ recipient.name }}</p>
-        <p>Diese Unterhaltung findet nur zwischen {{ recipient.name }} und dir statt.</p>
+        <p class="message-board__intro-name truncate" [title]="recipient.name">{{ recipient.name | displayName }}</p>
+        <p class="message-board__intro-description">Diese Unterhaltung findet nur zwischen {{ recipient.name }} und dir statt.</p>
       </div>
     </div>
   </ng-container>

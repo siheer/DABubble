@@ -20,3 +20,14 @@
 .filter-color {
   color: #444df2;
 }
+
+.filter-bg {
+  min-width: 0;
+  > span {
+    min-width: 0;
+  }
+}
+
+.filter-bg > * {
+  min-width: 0;
+}

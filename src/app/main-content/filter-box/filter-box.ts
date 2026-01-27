@@ -25,7 +25,7 @@ export class FilterBox implements OnInit, OnChanges {
   constructor(
     private searchService: SearchService,
     private dialog: MatDialog,
-    private userService: UserService,
+    public userService: UserService,
     private router: Router
   ) {}
 
@@ -189,5 +189,9 @@ export class FilterBox implements OnInit, OnChanges {
     this.emptyStateTimer = window.setTimeout(() => {
       this.showEmptyState = true;
     }, 400);
+  }
+
+  getProfileUrl(user: SearchResult): string {
+    return this.userService.getProfilePictureUrl(user.data as AppUser);
   }
 }

@@ -17,12 +17,13 @@ import { MessageReactionsService } from '../../services/message-reactions.servic
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ProfilePictureService } from '../../services/profile-picture.service';
 import { formatTimestamp, formatDateLabel, getDateKey, hasMention } from './messages.helper';
+import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 
 /** Direct messages component for 1-on-1 conversations. */
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions],
+  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions, DisplayNamePipe],
   templateUrl: './messages.html',
   styleUrl: './messages.scss',
 })
