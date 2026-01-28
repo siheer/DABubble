@@ -29,8 +29,8 @@
         <img [src]="getAvatarUrl(member.profilePictureKey)" [alt]="member.name" class="channel-members__avatar" />
         <div class="channel-members__meta">
           <div class="channel-members__name-row">
-            <span class="channel-members__name">{{ member.name }}</span>
-            <span *ngIf="member.isCurrentUser" class="channel-members__pill">Du</span>
+            <span class="channel-members__name truncate">{{ member.name }}</span>
+            <span *ngIf="member.isCurrentUser" class="channel-members__pill flex-shrink-0">Du</span>
           </div>
           <span *ngIf="member.subtitle" class="channel-members__subtitle">{{ member.subtitle }}</span>
         </div>

@@ -1,6 +1,7 @@
 .add-to-channel {
-  min-width: 420px;
-  width: 100%;
+  width: 420px;
+  max-width: 420px;
+  box-sizing: border-box;
   background: #ffffff;
   border-bottom-left-radius: 18px;
   border-bottom-right-radius: 18px;
@@ -111,6 +112,8 @@
   flex-direction: column;
   max-height: 280px;
   overflow-y: auto;
+  width: 100%;
+  max-width: 100%;
 }
 
 .add-to-channel__option {
@@ -143,6 +146,7 @@
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  min-width: 0;
 }
 
 .add-to-channel__option-name {
@@ -161,6 +165,7 @@
   border-radius: 50%;
   background: #22c55e;
   border: 2px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .add-to-channel__empty {
@@ -208,6 +213,7 @@
   border-radius: 16px;
   padding: 6px 10px;
   border: 1px solid #e0e7ff;
+  max-width: 300px;
 }
 
 .add-to-channel__chip img {

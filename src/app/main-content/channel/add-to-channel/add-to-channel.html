@@ -35,7 +35,7 @@
     <div *ngIf="selectedMembers.length" class="add-to-channel__chips" aria-live="polite">
       <div *ngFor="let member of selectedMembers" class="add-to-channel__chip">
         <img [src]="member.avatar" [alt]="member.name" />
-        <span>{{ member.name }}</span>
+        <span class="truncate">{{ member.name }}</span>
         <button type="button" aria-label="{{ member.name }} entfernen" (click)="removeSelectedMember(member.id)">
           <mat-icon>close</mat-icon>
         </button>
@@ -55,8 +55,8 @@
         aria-label="{{ member.name }} zum Channel hinzufügen">
         <img [src]="member.avatar" [alt]="member.name" />
         <div class="add-to-channel__option-meta">
-          <span class="add-to-channel__option-name">{{ member.name }}</span>
-          <span *ngIf="member.subtitle" class="add-to-channel__option-subtitle">{{ member.subtitle }}</span>
+          <span class="add-to-channel__option-name truncate">{{ member.name }}</span>
+          <span *ngIf="member.subtitle" class="add-to-channel__option-subtitle truncate">{{ member.subtitle }}</span>
         </div>
         <span *ngIf="member.status === 'online'" class="add-to-channel__status" aria-label="Online"></span>
       </button>
