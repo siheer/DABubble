@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { MentionState, MentionType } from '../classes/mentions.types';
+import { ChannelMentionSuggestion, MentionState, MentionType, UserMentionSuggestion } from '../classes/mentions.types';
 import { updateTagSuggestions } from '../main-content/channel/channel-mention.helper';
 
 @Injectable({ providedIn: 'root' })
@@ -8,8 +8,8 @@ export class MentionsService {
   update(
     text: string,
     caretIndex: number | null,
-    members: any[],
-    channels: { id: string; name: string }[]
+    members: UserMentionSuggestion[],
+    channels: ChannelMentionSuggestion[]
   ): MentionState {
     const caret = caretIndex ?? text.length;
 

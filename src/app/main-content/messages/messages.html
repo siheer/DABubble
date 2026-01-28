@@ -136,7 +136,9 @@
         [alt]="recipient.name" />
       <div class="message-board__intro-text">
         <p class="message-board__intro-name truncate" [title]="recipient.name">{{ recipient.name | displayName }}</p>
-        <p class="message-board__intro-description">Diese Unterhaltung findet nur zwischen {{ recipient.name }} und dir statt.</p>
+        <p class="message-board__intro-description">
+          Diese Unterhaltung findet nur zwischen {{ recipient.name }} und dir statt.
+        </p>
       </div>
     </div>
   </ng-container>
@@ -151,11 +153,27 @@
       placeholder="Nachricht an {{ recipient.name }}"
       [disabled]="isSending"
       aria-label="Neue Nachricht verfassen"
+      (input)="onComposerInput($event)"
       (keydown.enter)="onComposerKeydown($event)"></textarea>
     <div class="message-board__composer-picker" *ngIf="isComposerEmojiPickerOpen">
       <button type="button" *ngFor="let emoji of emojiChoices" (click)="addComposerEmoji(emoji)">
         {{ emoji }}
       </button>
+    </div>
+
+    <div *ngIf="isMentionListVisible" class="message-board__mention-suggestions">
+      <ng-container *ngIf="mentionType === 'user'">
+        <button type="button" *ngFor="let user of userMentionSuggestions" (click)="insertMention(user)">
+          <img [src]="getAvatarUrl(user.profilePictureKey)" />
+          <span class="truncate">{{ user.name }}</span>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="mentionType === 'channel'">
+        <button type="button" *ngFor="let channel of channelMentionSuggestions" (click)="insertChannel(channel)">
+          <span class="truncate">#{{ channel.name }}</span>
+        </button>
+      </ng-container>
     </div>
 
     <div class="message-board__composer-actions">

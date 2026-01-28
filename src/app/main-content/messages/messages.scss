@@ -431,6 +431,7 @@
   padding: 12px;
   border: 1px solid #e2e8f0;
   width: 100%;
+  position: relative;
 }
 
 .message-board__composer textarea {
@@ -530,4 +531,58 @@
 
 .message-board__composer button[type='submit']:hover {
   background: linear-gradient(135deg, #4338ca, #6d28d9);
+}
+
+.message-board__mention-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+  z-index: 10;
+  max-height: 300px;
+  max-width: 300px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  align-items: baseline;
+}
+
+.message-board__mention-suggestions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.message-board__mention-suggestions button:hover,
+.message-board__mention-suggestions button:focus-visible {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+
+.message-board__mention-suggestions img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.message-board__mention-suggestions span {
+  font-weight: 600;
+  color: #0f172a;
 }
