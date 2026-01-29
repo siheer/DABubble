@@ -92,7 +92,7 @@
             <span class="member-option__name truncate">{{ member.name }}</span>
             <span *ngIf="member.subtitle" class="member-option__subtitle">{{ member.subtitle }}</span>
           </div>
-          <span *ngIf="member.status === 'online'" class="member-option__status" aria-label="Online"></span>
+          <span *ngIf="member.status === 'online'" class="member-option__status flex-shrink-0" aria-label="Online"></span>
         </button>
 
         <div class="member-selection__dropdown-actions">
