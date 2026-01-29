@@ -11,7 +11,7 @@
         </ng-container>
 
         <strong *ngIf="user === 'Du'">{{ user }}</strong>
-        <span *ngIf="user !== 'Du'">{{ user }}</span>
+        <span *ngIf="user !== 'Du'">{{ formatUserName(user) }}</span>
       </ng-container>
     </li>
   </ul>
