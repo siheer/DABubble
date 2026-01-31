@@ -1,11 +1,16 @@
 <!-- Step 1: Channel Details -->
-<section *ngIf="step === 1" class="create-channel-modal-overlay">
-  <form (ngSubmit)="onSubmitStep1(channelForm)" #channelForm="ngForm" class="create-channel-modal">
+<section *ngIf="step === 1" class="create-channel-modal-overlay" (click)="cancel()">
+  <form
+    (ngSubmit)="onSubmitStep1(channelForm)"
+    #channelForm="ngForm"
+    class="create-channel-modal"
+    (click)="$event.stopPropagation()">
     <header class="create-channel-modal__header">
       <div class="create-channel-modal__titles">
         <h2>Channel erstellen</h2>
         <p>
-          Channels dienen deinem Team zur Kommunikation. Am besten sollten sie themenbezogen sein #marketing zum Beispiel.
+          Channels dienen deinem Team zur Kommunikation. Am besten sollten sie themenbezogen sein #marketing zum
+          Beispiel.
         </p>
       </div>
       <button type="button" class="create-channel-modal__close" (click)="cancel()" aria-label="Schließen">
@@ -62,33 +67,24 @@
 </section>
 
 <!-- Step 2: Member Selection -->
-<section *ngIf="step === 2" class="member-selection-overlay">
-  <div class="member-selection-modal">
+<section *ngIf="step === 2" class="member-selection-overlay" (click)="cancel()">
+  <div class="member-selection-modal" (click)="$event.stopPropagation()">
+    <div class="flex w-full justify-center sm:hidden">
+      <span class="h-1.5 w-16 cursor-pointer rounded-full bg-gray-300" (click)="goBackToStep1()"></span>
+    </div>
     <header class="member-selection-modal__header">
-      <button
-        type="button"
-        class="member-selection-modal__back"
-        (click)="goBackToStep1()"
-        aria-label="Zurück">
+      <button type="button" class="member-selection-modal__back" (click)="goBackToStep1()" aria-label="Zurück">
         <mat-icon>arrow_back</mat-icon>
       </button>
       <h2>Leute hinzufügen</h2>
-      <button
-        type="button"
-        class="member-selection-modal__close"
-        (click)="cancel()"
-        aria-label="Schließen">
+      <button type="button" class="member-selection-modal__close" (click)="cancel()" aria-label="Schließen">
         <mat-icon>close</mat-icon>
       </button>
     </header>
 
     <div class="member-selection-modal__options">
       <label class="member-selection-modal__option">
-        <input
-          type="checkbox"
-          name="addAllMembers"
-          [(ngModel)]="addAllMembers"
-          (change)="onToggleAllMembers()" />
+        <input type="checkbox" name="addAllMembers" [(ngModel)]="addAllMembers" (change)="onToggleAllMembers()" />
         <span>
           Alle Mitglieder von
           <span class="member-selection-modal__channel">Allgemein</span>
@@ -143,7 +139,10 @@
             <span class="member-option__name truncate">{{ member.name }}</span>
             <span *ngIf="member.subtitle" class="member-option__subtitle">{{ member.subtitle }}</span>
           </div>
-          <span *ngIf="member.status === 'online'" class="member-option__status flex-shrink-0" aria-label="Online"></span>
+          <span
+            *ngIf="member.status === 'online'"
+            class="member-option__status flex-shrink-0"
+            aria-label="Online"></span>
         </button>
 
         <div class="member-selection__dropdown-actions">

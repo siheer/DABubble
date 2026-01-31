@@ -549,7 +549,6 @@
     margin-bottom: 16px;
     flex-shrink: 0;
   }
-
 }
 
 .member-chip {
@@ -692,5 +691,32 @@
 .member-selection-modal__actions {
   .btn-primary {
     border-radius: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .create-channel-modal-overlay {
+    align-items: normal;
+    padding: 0;
+  }
+
+  .create-channel-modal {
+    width: 100%;
+    border-radius: 0;
+  }
+
+  .member-selection-overlay {
+    padding: 0;
+    align-items: end;
+  }
+
+  .member-selection-modal {
+    width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .member-selection-modal__back {
+    display: none;
   }
 }
