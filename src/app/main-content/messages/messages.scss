@@ -38,7 +38,6 @@
   cursor: pointer;
   min-width: 0;
   > div {
-    flex: 1;
     min-width: 0;
     overflow: hidden;
   }
@@ -66,7 +65,6 @@
 .message-board__avatar {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
   object-fit: cover;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
@@ -396,7 +394,6 @@
 .message-board__intro-avatar {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
   object-fit: cover;
 }
 

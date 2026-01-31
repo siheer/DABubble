@@ -486,4 +486,8 @@ export class Messages {
 
     this.resetMentionState();
   }
+
+  protected get recipientOnline(): boolean {
+    return !!this.selectedRecipient?.onlineStatus;
+  }
 }
