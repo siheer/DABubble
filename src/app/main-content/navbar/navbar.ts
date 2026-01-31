@@ -5,7 +5,7 @@ import { MatInputModule } from '@angular/material/input';
 import { OverlayService } from '../../services/overlay.service';
 import { NavbarDialog } from './navbar-dialog/navbar-dialog';
 import { UserService } from '../../services/user.service';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FilterBox } from '../filter-box/filter-box';
 import { FormsModule } from '@angular/forms';
 import { ClickOutsideDirective } from '../../classes/click-outside.class';
@@ -35,6 +35,7 @@ export class Navbar {
   private overlayService = inject(OverlayService);
   private userService = inject(UserService);
   private readonly screenService = inject(ScreenService);
+  private readonly location = inject(Location);
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
   protected showBackButton = false;
@@ -107,10 +108,8 @@ export class Navbar {
   }
 
   onBackClick() {
-    this.router.navigateByUrl('/main/home', {
-      replaceUrl: true,
-    });
+    this.location.back();
   }
-  
+
   profilePictureUrl = computed(() => this.userService.getProfilePictureUrl(this.currentUser()));
 }
