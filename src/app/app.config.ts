@@ -7,10 +7,10 @@ import {
 import { provideRouter, ViewTransitionInfo, ViewTransitionsFeatureOptions, withViewTransitions } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
-import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { ViewTransitionService } from './services/view-transition.service';
+import { firebaseConfig } from './firebase.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,16 +19,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withViewTransitions(getViewTransitionOptions())),
     /** TODO for Angular v23: remove provideAnimations() and migrate animations */
     provideAnimations(),
-    provideFirebaseApp(() =>
-      initializeApp({
-        projectId: 'dabubble-39e16',
-        appId: '1:705017968624:web:aacf23c7e03c3ad4758f35',
-        storageBucket: 'dabubble-39e16.firebasestorage.app',
-        apiKey: 'AIzaSyDehGUwhVbK8Db__fh1K_e2-Z0d1qD7sM0',
-        authDomain: 'dabubble-39e16.firebaseapp.com',
-        messagingSenderId: '705017968624',
-      })
-    ),
+    firebaseConfig,
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
   ],
@@ -40,16 +31,6 @@ function getViewTransitionOptions(): ViewTransitionsFeatureOptions {
     onViewTransitionCreated: (transitionInfo: ViewTransitionInfo) => {
       const viewTransitionService = inject(ViewTransitionService);
       viewTransitionService.handleViewTransition(transitionInfo);
-      
-      // Suppress "Transition was skipped" errors from console
-      transitionInfo.transition.finished.catch((error) => {
-        if (error?.name === 'AbortError' && error?.message?.includes('skipped')) {
-          // Silently ignore - this is expected behavior
-          return;
-        }
-        // Re-throw other errors
-        throw error;
-      });
     },
   };
 }

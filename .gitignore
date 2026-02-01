@@ -64,6 +64,7 @@ Thumbs.db
 
 # sensitive data
 data.service.ts
+firebase.config.ts
 
 # server files
 *.php
