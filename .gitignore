@@ -49,3 +49,21 @@ Thumbs.db
 
 # Test files
 *.spec.ts
+
+# legal/privacy folders everywhere
+**/legal-notice/
+**/privacy-policy/
+**/impressum/
+**/datenschutz/
+
+# HTML files containing legal/privacy terms in the filename
+**/*privacy-policy*.html
+**/*legal-notice*.html
+**/*impressum*.html
+**/*datenschutz*.html
+
+# sensitive data
+data.service.ts
+
+# server files
+*.php
