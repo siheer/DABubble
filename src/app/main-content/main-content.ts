@@ -37,26 +37,14 @@ export class MainContent {
   constructor() {
     this.screenService.connect();
 
-    if (this.screenService.isTabletScreen() && this.router.url === '/main') {
-      queueMicrotask(() => {
-        this.router.navigateByUrl('/main/home', {
-          replaceUrl: true,
-        });
-      });
-    }
-
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        startWith(null),
+        map(() => this.route),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((event) => {
-        if (this.handleRedirect(event)) {
-          return;
-        }
-
-        this.syncRouteState(this.route);
-      });
+      .subscribe((route) => this.syncRouteState(route));
   }
 
   protected showMobileBackButton(): boolean {
@@ -155,12 +143,4 @@ export class MainContent {
     this.activeView.set(view);
   }
 
-  private handleRedirect(event: NavigationEnd): boolean {
-    if (!this.screenService.isTabletScreen() && event.urlAfterRedirects === '/main') {
-      this.router.navigateByUrl('/main/channels/GzP5VuJtvB50FtijLqlI', { replaceUrl: true });
-      return true;
-    }
-
-    return false;
-  }
 }

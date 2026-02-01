@@ -1,7 +1,7 @@
 <section class="navbar mx-auto flex max-w-[1440px] items-center justify-between gap-6 p-4 px-4 lg:gap-12">
   <div class="flex items-center gap-3 lg:pl-4">
     <button
-      *ngIf="showBackButton"
+      *ngIf="showBackButton()"
       type="button"
       class="flex items-center gap-1 text-2xl font-bold md:text-3xl"
       (click)="onBackClick()"
@@ -11,7 +11,7 @@
       Devspace
     </button>
 
-    <ng-container *ngIf="!showBackButton">
+    <ng-container *ngIf="!showBackButton()">
       <img class="size-12 lg:size-20" src="imgs/logo.svg" />
       <span class="cursor-default text-2xl font-bold md:text-3xl"> DABubble </span>
     </ng-container>

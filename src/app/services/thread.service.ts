@@ -13,23 +13,11 @@ import {
   setDoc,
   updateDoc,
 } from '@angular/fire/firestore';
-import {
-  BehaviorSubject,
-  Observable,
-  Subject,
-  combineLatest,
-  filter,
-  map,
-  of,
-  shareReplay,
-  startWith,
-  switchMap,
-} from 'rxjs';
+import { BehaviorSubject, Observable, Subject, combineLatest, map, of, shareReplay, startWith, switchMap } from 'rxjs';
 import { ChannelService } from './channel.service';
 import { UserService } from './user.service';
 import { AuthService } from './auth.service';
 import type { ChannelMessage, ThreadDocument, ThreadReply, ThreadContext, ThreadSource, ThreadMessage } from '../types';
-import type { User } from '@angular/fire/auth';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
@@ -45,10 +33,7 @@ export class ThreadService {
   private readonly threadPanelOpenSubject = new BehaviorSubject(false);
   readonly threadPanelOpen$ = this.threadPanelOpenSubject.asObservable();
 
-  private readonly authUser$ = this.authService.authState$.pipe(
-    startWith(this.authService.auth.currentUser),
-    filter((user): user is User => !!user)
-  );
+  private readonly authUser$ = this.authService.authState$.pipe(startWith(this.authService.auth.currentUser));
   private readonly threadSubject = new BehaviorSubject<ThreadContext | null>(null);
   private threadRepliesCache = new Map<string, Observable<ThreadReply[]>>();
   private threadCache = new Map<string, Observable<ThreadDocument | null>>();
@@ -68,6 +53,7 @@ export class ThreadService {
         this.authUser$,
       ]).pipe(
         map(([storedThread, replies, users, channel, rootMessage, authUser]) => {
+          if (!authUser) return null;
           const userMap = new Map(users.map((u) => [u.uid, u]));
 
           const mapUser = (authorId: string) => {

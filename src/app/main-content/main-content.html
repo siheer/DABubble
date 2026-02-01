@@ -1,5 +1,5 @@
 <section class="relative h-full pr-[calc((100%-1440px)/2)] pl-[calc((100%-1440px)/2)]">
-  <app-navbar></app-navbar>
+  <app-navbar [showBackButton]="showMobileBackButton()" (back)="navigateUp()"></app-navbar>
 
   <ng-container *ngIf="isTabletScreen(); else desktopLayout">
     <div class="h-[calc(100%-80px)] md:h-[calc(100%-96px)]">

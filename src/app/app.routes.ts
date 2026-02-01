@@ -18,8 +18,6 @@ import { ChannelComponent } from './main-content/channel/channel';
 import { Thread } from './main-content/thread/thread';
 import { NewMessagePanel } from './main-content/messages/new-massage-panel/new-massage-panel';
 import { MainHome } from './main-content/main-home';
-import { CreateChannelWithMembers } from './main-content/workspace/create-channel-with-members/create-channel-with-members';
-import { mobileMainGuard } from './guards/mobile-main.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -59,17 +57,14 @@ export const routes: Routes = [
     component: MainContent,
     canActivate: [onlyVerifiedGuard],
     children: [
-      {
-        path: 'home',
-        component: MainHome,
-      },
+      { path: '', component: MainHome },
       {
         path: 'channels',
         children: [
           {
             path: '',
             pathMatch: 'full',
-            redirectTo: 'GzP5VuJtvB50FtijLqlI',
+            redirectTo: '/main',
           },
           {
             path: ':channelId',

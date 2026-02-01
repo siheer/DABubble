@@ -65,16 +65,9 @@ export class Thread {
   protected readonly members$ = this.createMembersObservable();
 
   // ViewChild
-  @ViewChild('replyTextarea')
-  set replyTextarea(el: ElementRef<HTMLTextAreaElement> | undefined) {
-    if (el) {
-      requestAnimationFrame(() => {
-        el.nativeElement.focus();
-      });
-    }
-  }
-  @ViewChild('threadScrollArea')
-  threadScrollArea?: ElementRef<HTMLElement>;
+  @ViewChild('replyTextarea') replyTextarea?: ElementRef<HTMLTextAreaElement>;
+
+  @ViewChild('threadScrollArea') threadScrollArea?: ElementRef<HTMLElement>;
 
   // State
   protected openEmojiPickerFor: string | null = null;
@@ -129,23 +122,27 @@ export class Thread {
     this.thread$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((t) => (this.threadSnapshot = t));
     this.thread$
       .pipe(
-        map((t) => t?.replies.length ?? 0),
-        distinctUntilChanged(),
+        map((t) => ({
+          rootId: t?.root?.id ?? null,
+          repliesCount: t?.replies.length ?? 0,
+        })),
+        distinctUntilChanged((prev, curr) => prev.rootId === curr.rootId && prev.repliesCount === curr.repliesCount),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.scrollToBottom());
-    combineLatest([this.thread$.pipe(map((t) => t?.root?.id ?? null)), this.threadService.threadPanelOpen$])
+    const rootThreadId$ = this.thread$.pipe(
+      map((t) => t?.root?.id ?? null),
+      distinctUntilChanged()
+    );
+    combineLatest([rootThreadId$, this.threadService.threadPanelOpen$])
       .pipe(
-        filter(([rootId, isOpen]) => !!rootId && isOpen),
-        distinctUntilChanged(([prevId, prevOpen], [currId, currOpen]) => prevId === currId && prevOpen === currOpen),
-        takeUntilDestroyed(this.destroyRef)
+        takeUntilDestroyed(this.destroyRef),
+        filter(([threadId, isOpen]) => Boolean(threadId) && isOpen),
+        tap(() => {
+          requestAnimationFrame(() => this.focusComposer());
+        })
       )
-      .subscribe(() => {
-        requestAnimationFrame(() => {
-          this.scrollToBottom();
-          // this.focusComposer();
-        });
-      });
+      .subscribe();
   }
 
   /** Creates members observable. */
@@ -155,20 +152,19 @@ export class Thread {
         !cId
           ? of<ChannelMemberView[]>([])
           : combineLatest([this.membershipService.getChannelMembers(cId), this.userService.getAllUsers()]).pipe(
-              map(
-                ([members, users]) =>
-                  members
-                    .map((m) => {
-                      const user = users.find((u) => u.uid === m.id);
-                      if (!user) return null;
-                      return {
-                        ...m,
-                        name: user.name ?? m.name,
-                        profilePictureKey: user.profilePictureKey ?? m.profilePictureKey,
-                        user,
-                      } as ChannelMemberView;
-                    })
-                    .filter((m): m is ChannelMemberView => m !== null)
+              map(([members, users]) =>
+                members
+                  .map((m) => {
+                    const user = users.find((u) => u.uid === m.id);
+                    if (!user) return null;
+                    return {
+                      ...m,
+                      name: user.name ?? m.name,
+                      profilePictureKey: user.profilePictureKey ?? m.profilePictureKey,
+                      user,
+                    } as ChannelMemberView;
+                  })
+                  .filter((m): m is ChannelMemberView => m !== null)
               )
             )
       ),
@@ -434,11 +430,12 @@ export class Thread {
 
   /** Scrolls to bottom. */
   private scrollToBottom(): void {
-    const el = this.threadScrollArea?.nativeElement;
-    if (!el) return;
-
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
+    const element = this.threadScrollArea?.nativeElement;
+    if (!element) return;
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
     });
   }
 

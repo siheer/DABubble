@@ -9,6 +9,7 @@ import {
   catchError,
   combineLatest,
   distinctUntilChanged,
+  filter,
   from,
   map,
   of,
@@ -143,7 +144,7 @@ export class ChannelComponent {
   protected readonly messagesByDay$ = this.createMessagesByDayObservable();
   private readonly highlightRequest$ = combineLatest([this.route.queryParamMap, this.messagesByDay$]).pipe(
     map(([p]) => p.get('highlight')),
-    shareReplay(1)
+    filter((anchor) => anchor != null)
   );
 
   constructor() {
@@ -154,22 +155,10 @@ export class ChannelComponent {
   /** Creates channel observable with validation. */
   private createChannelObservable(): Observable<Channel | undefined> {
     return combineLatest([this.currentUser$, this.channelId$, this.channels$]).pipe(
-      // tap(([u, cId, chs]) => this.validateAccess(u, cId, chs)),
       map(([_, cId, chs]) => chs?.find((c) => c.id === cId)),
       shareReplay({ bufferSize: 1, refCount: true })
     );
   }
-
-  /** Validates channel access and redirects if invalid. */
-  // private validateAccess(user: AppUser | null, channelId: string | null, channels: Channel[]): void {
-  //   if (!user || !channelId) return;
-
-  //   if (!channels.length) return;
-
-  //   if (!channels.some((ch) => ch.id === channelId)) {
-  //     void this.router.navigate(['/main']);
-  //   }
-  // }
 
   /** Creates members observable with user enrichment. */
   private createMembersObservable(): Observable<ChannelMemberView[]> {
@@ -232,7 +221,7 @@ export class ChannelComponent {
         this.didInitialScroll = false;
         this.lastMessageCount = 0;
         this.lastMessageId = undefined;
-        requestAnimationFrame(() => this.focusComposer());
+        this.focusComposer();
       });
     this.allUsers$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((u) => (this.allUsersSnapshot = u));
     this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((m) => {
@@ -263,14 +252,6 @@ export class ChannelComponent {
       .subscribe(() => this.handleThreadClose());
     this.publicChannelSync();
     this.syncChildRoute();
-  }
-
-  /** Handles channel change. */
-  private onChannelChange(channel: Channel | undefined): void {
-    this.lastMessageCount = 0;
-    this.lastMessageId = undefined;
-    this.shouldScrollOnNextMessage = false;
-    if (channel?.id) requestAnimationFrame(() => this.focusComposer());
   }
 
   /** Handles messages change for auto-scroll. */
@@ -307,7 +288,7 @@ export class ChannelComponent {
   /** Handles thread close requests. */
   private handleThreadClose(): void {
     if (!this.hasThreadChild()) return;
-    this.threadSidenav ? void this.threadSidenav.close() : this.closeThread();
+    this.threadSidenav ? this.threadSidenav.close() : this.closeThread();
   }
 
   /** Syncs public channel members. */
@@ -412,7 +393,7 @@ export class ChannelComponent {
     if (!user?.uid) return;
     this.isSending = true;
     this.shouldScrollOnNextMessage = true;
-    this.ngZone.runOutsideAngular(() => requestAnimationFrame(() => this.focusComposer()));
+    this.focusComposer();
     this.channel$
       .pipe(
         take(1),
@@ -437,7 +418,7 @@ export class ChannelComponent {
           this.messageText = '';
           this.resetMentionState();
           this.isComposerEmojiPickerOpen = false;
-          this.ngZone.runOutsideAngular(() => requestAnimationFrame(() => this.focusComposer()));
+          this.focusComposer();
         },
         error: (e) => {
           this.shouldScrollOnNextMessage = false;
@@ -571,11 +552,16 @@ export class ChannelComponent {
   }
 
   /** Closes thread. */
-  closeThread(): void {
-    if (!this.hasThreadChild()) return;
+  async closeThread(): Promise<void> {
     const cId = this.route.snapshot.paramMap.get('channelId');
-    this.threadService.reset();
-    void this.router.navigate(cId ? ['/main/channels', cId] : ['/main']);
+    if (this.hasThreadChild()) {
+      console.log('ich war heir');
+      this.threadService.reset();
+      if (this.userService.currentUser()) {
+        this.router.navigate(cId ? ['/main/channels', cId] : ['/main']);
+      }
+    }
+    this.focusComposer();
   }
 
   /** Updates thread panel state. */
@@ -609,7 +595,9 @@ export class ChannelComponent {
 
   /** Focuses composer. */
   private focusComposer(): void {
-    this.messageTextarea?.nativeElement.focus();
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => this.messageTextarea?.nativeElement.focus());
+    });
   }
 
   /** Inserts text at cursor. */

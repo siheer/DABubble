@@ -1,18 +1,16 @@
-import { Component, computed, ElementRef, inject, ViewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, input, output, ViewChild } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { OverlayService } from '../../services/overlay.service';
 import { NavbarDialog } from './navbar-dialog/navbar-dialog';
 import { UserService } from '../../services/user.service';
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FilterBox } from '../filter-box/filter-box';
 import { FormsModule } from '@angular/forms';
 import { ClickOutsideDirective } from '../../classes/click-outside.class';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 import { ScreenService } from '../../services/screen.service';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -31,14 +29,13 @@ import { filter } from 'rxjs';
   styleUrls: ['./navbar.scss'],
 })
 export class Navbar {
-  private readonly router = inject(Router);
   private overlayService = inject(OverlayService);
   private userService = inject(UserService);
   private readonly screenService = inject(ScreenService);
-  private readonly location = inject(Location);
 
+  readonly showBackButton = input(false);
+  readonly back = output<void>();
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
-  protected showBackButton = false;
 
   @ViewChild('menuBtn', { read: ElementRef })
   menuBtn!: ElementRef<HTMLElement>;
@@ -51,16 +48,6 @@ export class Navbar {
 
   constructor() {
     this.screenService.connect();
-
-    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
-      this.showBackButton = this.computeShowBackButton(e.urlAfterRedirects);
-    });
-  }
-
-  private computeShowBackButton(url: string): boolean {
-    if (!this.isTabletScreen()) return false;
-    if (url === '/main/home') return false;
-    return url.startsWith('/main');
   }
 
   onSearchInput(event: Event) {
@@ -108,7 +95,7 @@ export class Navbar {
   }
 
   onBackClick() {
-    this.location.back();
+    this.back.emit();
   }
 
   profilePictureUrl = computed(() => this.userService.getProfilePictureUrl(this.currentUser()));

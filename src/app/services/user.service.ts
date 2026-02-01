@@ -18,12 +18,10 @@ import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-pi
 import { AuthService } from './auth.service';
 import { GuestService } from './guest.service';
 import { TEXTS } from '../texts';
-import { Router } from '@angular/router';
 import { ToastService } from '../toast/toast.service';
 import { NOTIFICATIONS } from '../notifications';
 import { ProfilePictureKey } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
-import { BrandStateService } from './brand-state.service';
 
 export interface AppUser {
   uid: string;
@@ -44,10 +42,8 @@ export class UserService {
   private authService = inject(AuthService);
   private guestService = inject(GuestService);
   private firestore = inject(Firestore);
-  private router = inject(Router);
   private toastService = inject(ToastService);
   private authenticatedFirestoreStreamService = inject(AuthenticatedFirestoreStreamService);
-  private brandState = inject(BrandStateService);
 
   private userDocSubscription?: Subscription;
   private allUsers$?: Observable<AppUser[]>;
@@ -66,8 +62,8 @@ export class UserService {
 
   private async handleAuthStateChange(firebaseUser: FirebaseUser | null): Promise<void> {
     if (!firebaseUser) {
-      await this.handleSignOutState();
-      await this.router.navigate(['/login']);
+      this.unsubscribeFromUserDocument();
+      this.currentUser.set(null);
       return;
     }
 
@@ -161,23 +157,7 @@ export class UserService {
     });
   }
 
-  private async handleSignOutState(): Promise<void> {
-    const prevUser = this.currentUser();
-    this.unsubscribeFromUserDocument();
-
-    if (prevUser && !prevUser.isGuest) {
-      await updateDoc(doc(this.firestore, `users/${prevUser.uid}`), {
-        onlineStatus: false,
-        lastSeen: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }).catch((error) => {
-        console.warn('Fehler beim Setzen des Offline-Status:', error);
-        // Fehler nicht weiterwerfen, um Logout nicht zu blockieren
-      });
-    }
-
-    this.currentUser.set(null);
-  }
+  private async handleSignOutState(): Promise<void> {}
 
   private unsubscribeFromUserDocument(): void {
     this.userDocSubscription?.unsubscribe();
@@ -320,6 +300,7 @@ export class UserService {
         document.body.style.cursor = 'wait';
         await this.guestService.signOutGuest(user);
       } else {
+        this.currentUser.set(null);
         await this.authService.signOut();
       }
     } catch (error: any) {
@@ -342,7 +323,6 @@ export class UserService {
       });
     } catch (error) {
       console.warn('Fehler beim Setzen des Offline-Status:', error);
-      // Fehler nicht weiterwerfen, um Logout nicht zu blockieren
     }
   }
 }

@@ -83,8 +83,13 @@ export class MainHome {
         this.isLoading.set(false);
         this.hasChannels.set(channels.length > 0);
 
-        // Navigiere NICHT automatisch zum ersten Channel
-        // User soll im Workspace bleiben
+        const welcomeChannelId = channels.find((channel) => (channel.title ?? '') === 'Welcome')?.id;
+        const firstChannelId = channels.find((channel) => !!channel.id)?.id;
+        const targetChannelId = welcomeChannelId ? welcomeChannelId : firstChannelId;
+
+        if (!this.isTabletScreen() && targetChannelId) {
+          void this.router.navigate(['/main/channels', targetChannelId], { replaceUrl: true });
+        }
       });
   }
 }
