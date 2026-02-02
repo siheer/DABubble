@@ -10,6 +10,7 @@ import { GuestService } from '../../services/guest.service';
 import { AsideContentWrapperComponent } from '../../aside-content/aside-content-wrapper';
 import { ToastService } from '../../toast/toast.service';
 import { firstValueFrom } from 'rxjs';
+import { FullscreenOverlayService } from '../../services/fullscreen-overlay.service';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +25,7 @@ export class Login {
   private readonly guestService = inject(GuestService);
   private readonly toastService = inject(ToastService);
   private readonly injector = inject(Injector);
+  private readonly fullscreenOverlayService = inject(FullscreenOverlayService);
 
   mode = input<'login' | 'reauth'>('login');
   embedded = input(false);
@@ -51,7 +53,7 @@ export class Login {
       return;
     }
 
-    document.body.style.cursor = 'wait';
+    this.fullscreenOverlayService.showFullscreenOverlay('loading', NOTIFICATIONS.LOGGING_IN);
     this.isSubmitting = true;
     this.resetMessages();
 
@@ -69,7 +71,7 @@ export class Login {
       this.toastService.error(NOTIFICATIONS.TOAST_LOGIN_FAILURE);
     } finally {
       this.isSubmitting = false;
-      document.body.style.cursor = 'default';
+      this.fullscreenOverlayService.hideFullscreenOverlay();
     }
   }
 

@@ -5,6 +5,7 @@ export const NOTIFICATIONS = {
   PROFILE_PICTURE_UPDATE_ERROR: 'Profilbild konnte nicht aktualisiert werden.',
   NO_USER_LOGGED_IN: 'Bitte melde dich an.',
   LOGGING_OUT: 'Abmelden...',
+  LOGGING_IN: 'Anmelden...',
 
   FIREBASE_INVALID_EMAIL: 'Die E-Mail-Adresse ist ungültig.',
   FIREBASE_USER_DISABLED: 'Dieser Benutzer wurde deaktiviert.',
