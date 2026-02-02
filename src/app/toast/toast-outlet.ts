@@ -22,22 +22,22 @@ export class ToastOutletComponent {
     {
       key: 'right',
       containerClass:
-        'pointer-events-none fixed right-6 bottom-6 z-50 flex max-w-[calc(100vw-2rem)] flex-col-reverse items-end gap-3 max-sm:right-4 max-sm:bottom-4',
+        'py-6 -my-6 pointer-events-none fixed right-6 bottom-6 z-50 flex max-w-[calc(100vw-2rem)] flex-col-reverse items-end gap-3 max-sm:right-4 max-sm:bottom-4',
     },
     {
       key: 'left',
       containerClass:
-        'pointer-events-none fixed left-6 bottom-6 z-50 flex max-w-[calc(100vw-2rem)] flex-col-reverse items-start gap-3 max-sm:left-4 max-sm:bottom-4',
+        'py-6 -my-6 pointer-events-none fixed left-6 bottom-6 z-50 flex max-w-[calc(100vw-2rem)] flex-col-reverse items-start gap-3 max-sm:left-4 max-sm:bottom-4',
     },
     {
       key: 'top',
       containerClass:
-        'pointer-events-none fixed top-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col items-center gap-3 max-sm:top-4',
+        'py-6 -my-6 pointer-events-none fixed top-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col items-center gap-3 max-sm:top-4',
     },
     {
       key: 'bottom',
       containerClass:
-        'pointer-events-none fixed bottom-6 w-full left-0 px-2 z-50 flex flex-col-reverse items-center-safe gap-3 max-sm:bottom-4 overflow-auto [scrollbar-width:none]',
+        'py-6 -my-6 pointer-events-none fixed bottom-6 w-full left-0 px-2 z-50 flex flex-col-reverse items-center-safe gap-3 max-sm:bottom-4 overflow-auto [scrollbar-width:none]',
     },
   ];
 
