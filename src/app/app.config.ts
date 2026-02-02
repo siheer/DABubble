@@ -4,7 +4,13 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter, ViewTransitionInfo, ViewTransitionsFeatureOptions, withViewTransitions } from '@angular/router';
+import {
+  provideRouter,
+  ViewTransitionInfo,
+  ViewTransitionsFeatureOptions,
+  withInMemoryScrolling,
+  withViewTransitions,
+} from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { getAuth, provideAuth } from '@angular/fire/auth';
@@ -16,7 +22,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withViewTransitions(getViewTransitionOptions())),
+    provideRouter(
+      routes,
+      withViewTransitions(getViewTransitionOptions()),
+      withInMemoryScrolling({ scrollPositionRestoration: 'top' })
+    ),
     /** TODO for Angular v23: remove provideAnimations() and migrate animations */
     provideAnimations(),
     firebaseConfig,
