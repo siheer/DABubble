@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AsideContentWrapperComponent } from '../aside-content-wrapper';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-legal-notice',
@@ -8,7 +9,9 @@ import { AsideContentWrapperComponent } from '../aside-content-wrapper';
   styleUrl: './legal-notice.scss',
 })
 export class LegalNotice {
-  backInHistory() {
-    window.history.back();
+  private router = inject(Router);
+
+  backToMain() {
+    this.router.navigate(['/main']);
   }
 }

@@ -1,5 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { AsideContentWrapperComponent } from '../aside-content-wrapper';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-privacy-policy',
@@ -8,11 +9,13 @@ import { AsideContentWrapperComponent } from '../aside-content-wrapper';
   styleUrl: './privacy-policy.scss',
 })
 export class PrivacyPolicy {
+  private router = inject(Router);
+
   embedded = input(false);
   action = output<void>();
 
-  backInHistory() {
-    window.history.back();
+  backToMain() {
+    this.router.navigate(['/main']);
   }
 
   embeddedAction() {
