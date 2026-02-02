@@ -4,6 +4,7 @@ import { Startscreen } from './startscreen/startscreen';
 import { CommonModule } from '@angular/common';
 import { BrandStateService } from './services/brand-state.service';
 import { ToastOutletComponent } from './toast/toast-outlet';
+import { FullscreenOverlayService } from './services/fullscreen-overlay.service';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +13,9 @@ import { ToastOutletComponent } from './toast/toast-outlet';
   styleUrl: './app.scss',
 })
 export class App {
-  constructor(public brandState: BrandStateService) {}
+  constructor(
+    public brandState: BrandStateService,
+    public fullscreenOverlayService: FullscreenOverlayService
+  ) {}
   protected readonly title = signal('daBubble');
 }

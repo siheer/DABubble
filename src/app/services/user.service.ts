@@ -22,6 +22,7 @@ import { ToastService } from '../toast/toast.service';
 import { NOTIFICATIONS } from '../notifications';
 import { ProfilePictureKey } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
+import { FullscreenOverlayService } from './fullscreen-overlay.service';
 
 export interface AppUser {
   uid: string;
@@ -44,6 +45,7 @@ export class UserService {
   private firestore = inject(Firestore);
   private toastService = inject(ToastService);
   private authenticatedFirestoreStreamService = inject(AuthenticatedFirestoreStreamService);
+  private fullscreenOverlayService = inject(FullscreenOverlayService);
 
   private userDocSubscription?: Subscription;
   private allUsers$?: Observable<AppUser[]>;
@@ -297,16 +299,19 @@ export class UserService {
       }
 
       if (user?.isGuest) {
-        document.body.style.cursor = 'wait';
+        // show text because of longer time it takes to remove all guest trails
+        this.fullscreenOverlayService.showFullscreenOverlay('loading', NOTIFICATIONS.LOGGING_OUT);
         await this.guestService.signOutGuest(user);
       } else {
+        // show no text because that would rather flash the user. It usually signs out lightning fast and you don't even see the overlay.
+        this.fullscreenOverlayService.showFullscreenOverlay('loading');
         this.currentUser.set(null);
         await this.authService.signOut();
       }
     } catch (error: any) {
       this.toastService.error(error.message ?? NOTIFICATIONS.TOAST_LOGOUT_FAILURE);
     } finally {
-      document.body.style.cursor = 'default';
+      this.fullscreenOverlayService.hideFullscreenOverlay();
     }
   }
 

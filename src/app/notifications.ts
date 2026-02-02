@@ -4,6 +4,7 @@ export const NOTIFICATIONS = {
   EMAIL_FORMAT_ERROR: 'Bitte gib eine E-Mailadresse ein.',
   PROFILE_PICTURE_UPDATE_ERROR: 'Profilbild konnte nicht aktualisiert werden.',
   NO_USER_LOGGED_IN: 'Bitte melde dich an.',
+  LOGGING_OUT: 'Abmelden...',
 
   FIREBASE_INVALID_EMAIL: 'Die E-Mail-Adresse ist ungültig.',
   FIREBASE_USER_DISABLED: 'Dieser Benutzer wurde deaktiviert.',

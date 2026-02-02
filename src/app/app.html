@@ -1,5 +1,22 @@
 <div class="view-transition h-full">
   <router-outlet />
 </div>
+
 <app-startscreen *ngIf="!brandState.splashDone()"></app-startscreen>
+
 <app-toast-outlet />
+
+@if (fullscreenOverlayService.fullscreenOverlayMode() === 'loading') {
+  <div class="dab-fullscreen-overlay" aria-live="polite" aria-busy="true">
+    @if (fullscreenOverlayService.fullscreenOverlayMessage()) {
+      <div class="dab-fullscreen-overlay-panel">
+        <div class="dab-fullscreen-overlay-spinner" aria-hidden="true"></div>
+        <span class="dab-fullscreen-overlay-text">
+          {{ fullscreenOverlayService.fullscreenOverlayMessage() }}
+        </span>
+      </div>
+    } @else {
+      <div class="dab-fullscreen-overlay-spinner" aria-hidden="true"></div>
+    }
+  </div>
+}
