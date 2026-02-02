@@ -1,18 +1,10 @@
 import { inject } from '@angular/core';
-import {
-  Router,
-  CanActivateFn,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-} from '@angular/router';
+import { Router, CanActivateFn } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { combineLatest } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-export const onlyVerifiedGuard: CanActivateFn = (
-  route: ActivatedRouteSnapshot,
-  state: RouterStateSnapshot
-) => {
+export const onlyVerifiedGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -22,10 +14,9 @@ export const onlyVerifiedGuard: CanActivateFn = (
         return router.createUrlTree(['/login']);
       }
 
-      // E-Mail-Verifizierung vorübergehend deaktiviert
-      // if (!isEmailVerified) {
-      //   return router.createUrlTree(['/verify-email']);
-      // }
+      if (!isEmailVerified) {
+        return router.createUrlTree(['/verify-email']);
+      }
 
       return true;
     })

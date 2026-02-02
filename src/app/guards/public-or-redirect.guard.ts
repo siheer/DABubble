@@ -1,18 +1,10 @@
 import { inject } from '@angular/core';
-import {
-  CanActivateFn,
-  Router,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-} from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
-export const publicOrRedirectGuard: CanActivateFn = (
-  route: ActivatedRouteSnapshot,
-  state: RouterStateSnapshot
-) => {
+export const publicOrRedirectGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -22,8 +14,11 @@ export const publicOrRedirectGuard: CanActivateFn = (
         return true;
       }
 
-      // E-Mail-Verifizierung deaktiviert - User wird direkt zu /main weitergeleitet
-      return router.createUrlTree(['/main']);
+      if (isEmailVerified) {
+        return router.createUrlTree(['/main']);
+      }
+
+      return router.createUrlTree(['/verify-email']);
     })
   );
 };

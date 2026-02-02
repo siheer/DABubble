@@ -38,7 +38,7 @@ import { AddToChannel } from './add-to-channel/add-to-channel';
 import { ThreadService } from '../../services/thread.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMOJI_CHOICES } from '../../texts';
+import { CHANNEL_EMOJI_CHOICES, EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from '../tooltip/tooltip';
@@ -47,11 +47,14 @@ import { MessageReactions } from '../message-reactions/message-reactions';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { DirectMessagesService } from '../../services/direct-messages.service';
-
-type MentionSegment = {
-  text: string;
-  member?: ChannelMemberView;
-};
+import { buildMessageSegments, getMentionedMembers, updateTagSuggestions } from './channel-mention.helper';
+import type {
+  ChannelMentionSuggestion,
+  MentionSegment,
+  MentionState,
+  MentionType,
+  UserMentionSuggestion,
+} from '../../classes/mentions.types';
 import { ProfilePictureService } from '../../services/profile-picture.service';
 
 @Component({
@@ -107,14 +110,19 @@ export class ChannelComponent {
 
   protected messageText = '';
   protected isSending = false;
+  private mentionState: MentionState = { suggestions: [], isVisible: false, triggerIndex: null, caretIndex: null };
+  protected get isMentionListVisible() {
+    return this.mentionState.isVisible;
+  }
+  protected get mentionType(): MentionType | undefined {
+    return this.mentionState.type;
+  }
   private cachedMembers: ChannelMemberView[] = [];
-  protected mentionSuggestions: ChannelMemberView[] = [];
-  protected isMentionListVisible = false;
-  private mentionTriggerIndex: number | null = null;
-  private mentionCaretIndex: number | null = null;
+  private cachedChannels: ChannelMentionSuggestion[] = [];
   private lastMessageCount = 0;
   private lastMessageId?: string;
   private shouldScrollOnNextMessage = false;
+  private didInitialScroll = false;
   private overlayRef?: OverlayRef;
   protected readonly hasThreadChild = signal(false);
 
@@ -123,19 +131,6 @@ export class ChannelComponent {
     this.channelId$,
     this.channels$,
   ]).pipe(
-    tap(([user, channelId, channels]) => {
-      if (!user) return;
-      if (!channelId) {
-        void this.router.navigate(['/main']);
-        return;
-      }
-      if (!channels) return;
-
-      const channelExists = channels.some((channel) => channel.id === channelId);
-      if (!channelExists) {
-        void this.router.navigate(['/main']);
-      }
-    }),
     map(([_, channelId, channels]) => (channels ? channels.find((c) => c.id === channelId) : undefined)),
     shareReplay({ bufferSize: 1, refCount: true })
   );
@@ -155,6 +150,7 @@ export class ChannelComponent {
   protected openEmojiPickerFor: string | null = null;
   protected isComposerEmojiPickerOpen = false;
   protected readonly emojiChoices = EMOJI_CHOICES;
+  protected readonly channelEmojiChoices = CHANNEL_EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
@@ -184,29 +180,22 @@ export class ChannelComponent {
           const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
 
-          return members.map((member) => {
-            const user = userMap.get(member.id);
-            const avatar = this.profilePictureService.getUrl(user?.profilePictureKey ?? member.profilePictureKey);
-            const name = user?.name ?? member.name;
+          return members
+            .map((member): ChannelMemberView | undefined => {
+              const user = userMap.get(member.id);
+              if (!user) return undefined;
+              const name = user?.name ?? member.name;
 
-            return {
-              id: member.id,
-              name,
-              profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey ?? 'default',
-              subtitle: member.subtitle,
-              isCurrentUser: member.id === currentUserId,
-              user: user ?? {
-                uid: member.id,
+              return {
+                id: member.id,
                 name,
-                email: null,
-                profilePictureKey: member.profilePictureKey ?? 'default',
-                onlineStatus: false,
-                lastSeen: undefined,
-                updatedAt: undefined,
-                createdAt: undefined,
-              },
-            };
-          });
+                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey,
+                subtitle: member.subtitle,
+                isCurrentUser: member.id === currentUserId,
+                user,
+              };
+            })
+            .filter((member): member is ChannelMemberView => member !== undefined);
         })
       );
     }),
@@ -229,14 +218,21 @@ export class ChannelComponent {
   constructor() {
     this.screenService.connect();
 
-    this.channel$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((channel) => {
-      this.lastMessageCount = 0;
-      this.lastMessageId = undefined;
-      this.shouldScrollOnNextMessage = false;
-      if (channel?.id) {
-        requestAnimationFrame(() => this.focusComposer());
-      }
-    });
+    this.channel$
+      .pipe(
+        map((channel) => channel?.id),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((channelId) => {
+        this.lastMessageCount = 0;
+        this.lastMessageId = undefined;
+        this.shouldScrollOnNextMessage = false;
+        this.didInitialScroll = false;
+        if (channelId) {
+          this.focusComposer();
+        }
+      });
 
     this.publicChannelMemberSync();
 
@@ -244,13 +240,38 @@ export class ChannelComponent {
 
     this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((members) => {
       this.cachedMembers = members;
-      this.updateMentionSuggestions();
+      this.updateMentionState();
+    });
+
+    this.channels$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((channels) => {
+      this.cachedChannels =
+        channels
+          ?.filter((channel): channel is { id: string; title?: string } => !!channel.id)
+          .map((channel) => ({
+            id: channel.id,
+            name: channel.title ?? '',
+          })) ?? [];
+      this.updateMentionState();
     });
 
     this.messagesByDay$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((days) => {
+      if (!this.channelMessages) return;
+
+      if (!this.didInitialScroll && days.length) {
+        this.didInitialScroll = true;
+        this.scrollToBottom();
+        const snapshot = this.getMessageSnapshot(days);
+        this.lastMessageCount = snapshot.count;
+        this.lastMessageId = snapshot.lastId;
+        return;
+      }
+
       const wasNearBottom = this.isNearBottom();
-      const hasNewMessages = this.shouldAutoScroll(days);
-      if (!hasNewMessages) return;
+      const result = this.shouldAutoScroll(days);
+      if (!result.shouldScroll) return;
+
+      this.lastMessageCount = result.newCount;
+      this.lastMessageId = result.newLastId;
 
       const shouldScroll = this.shouldScrollOnNextMessage || wasNearBottom;
       this.shouldScrollOnNextMessage = false;
@@ -287,7 +308,7 @@ export class ChannelComponent {
       if (this.threadSidenav) {
         void this.threadSidenav.close();
       } else {
-        this.closeThread();
+        void this.closeThread();
       }
     });
 
@@ -318,17 +339,21 @@ export class ChannelComponent {
       .subscribe();
   }
 
-  closeThread(): void {
+  async closeThread(): Promise<void> {
     if (!this.hasThreadChild()) return;
 
     const channelId = this.route.snapshot.paramMap.get('channelId');
     this.threadService.reset();
 
-    if (channelId) {
-      void this.router.navigate(['/main/channels', channelId]);
-    } else {
-      void this.router.navigate(['/main']);
+    if (this.userService.currentUser()) {
+      if (channelId) {
+        await this.router.navigate(['/main/channels', channelId]);
+      } else {
+        await this.router.navigate(['/main']);
+      }
     }
+
+    this.focusComposer();
   }
 
   protected updateThreadPanelOpenState(isOpen: boolean): void {
@@ -369,8 +394,8 @@ export class ChannelComponent {
   protected onMessageInput(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement | null;
     this.messageText = textarea?.value ?? this.messageText;
-    this.mentionCaretIndex = textarea?.selectionStart ?? null;
-    this.updateMentionSuggestions();
+    this.mentionState.caretIndex = textarea?.selectionStart ?? null;
+    this.updateMentionState();
   }
 
   protected toggleComposerEmojiPicker(): void {
@@ -385,14 +410,14 @@ export class ChannelComponent {
 
   protected insertComposerMention(): void {
     this.insertComposerText('@');
-    this.updateMentionSuggestions();
+    this.updateMentionState();
   }
 
   protected insertMention(member: ChannelMemberView): void {
-    if (this.mentionTriggerIndex === null) return;
+    if (this.mentionState.triggerIndex === null) return;
 
-    const caret = this.mentionCaretIndex ?? this.messageText.length;
-    const before = this.messageText.slice(0, this.mentionTriggerIndex);
+    const caret = this.mentionState.caretIndex ?? this.messageText.length;
+    const before = this.messageText.slice(0, this.mentionState.triggerIndex);
     const after = this.messageText.slice(caret);
     const mentionText = `@${member.name} `;
 
@@ -407,37 +432,33 @@ export class ChannelComponent {
       }
     });
 
-    this.resetMentionSuggestions();
+    this.resetMentionState();
+  }
+
+  protected insertChannel(channel: ChannelMentionSuggestion): void {
+    if (this.mentionState.triggerIndex === null) return;
+
+    const caret = this.mentionState.caretIndex ?? this.messageText.length;
+    const before = this.messageText.slice(0, this.mentionState.triggerIndex);
+    const after = this.messageText.slice(caret);
+
+    const text = `#${channel.name} `;
+    this.messageText = `${before}${text}${after}`;
+
+    const newCaret = before.length + text.length;
+    queueMicrotask(() => {
+      const textarea = this.messageTextarea?.nativeElement;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newCaret, newCaret);
+      }
+    });
+
+    this.resetMentionState();
   }
 
   protected buildMessageSegments(text: string): MentionSegment[] {
-    if (!text) return [{ text: '' }];
-    const regex = this.buildMentionRegex();
-    if (!regex) return [{ text }];
-
-    const segments: MentionSegment[] = [];
-    let lastIndex = 0;
-    regex.lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = regex.exec(text)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-      if (matchStart > lastIndex) {
-        segments.push({ text: text.slice(lastIndex, matchStart) });
-      }
-
-      const mentionName = match[1] ?? '';
-      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
-      segments.push({ text: match[0], member });
-      lastIndex = matchEnd;
-    }
-
-    if (lastIndex < text.length) {
-      segments.push({ text: text.slice(lastIndex) });
-    }
-
-    return segments.length ? segments : [{ text }];
+    return buildMessageSegments(text, this.cachedMembers, this.cachedChannels);
   }
 
   protected openMemberProfile(member?: ChannelMemberView): void {
@@ -459,47 +480,17 @@ export class ChannelComponent {
     });
   }
 
-  private buildMentionRegex(): RegExp | null {
-    if (!this.cachedMembers.length) return null;
-    const names = this.cachedMembers
-      .map((member) => member.name)
-      .filter(Boolean)
-      .sort((a, b) => b.length - a.length)
-      .map((name) => this.escapeRegex(name));
-
-    if (!names.length) return null;
-    return new RegExp(`@(${names.join('|')})`, 'gi');
-  }
-
-  private escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private getMentionedMembers(text: string): ChannelMemberView[] {
-    const regex = this.buildMentionRegex();
-    if (!regex) return [];
-    const found = new Map<string, ChannelMemberView>();
-    let match: RegExpExecArray | null;
-
-    while ((match = regex.exec(text)) !== null) {
-      const mentionName = match[1] ?? '';
-      const member = this.cachedMembers.find((entry) => entry.name.toLowerCase() === mentionName.toLowerCase());
-      if (member) {
-        found.set(member.id, member);
-      }
-    }
-
-    return Array.from(found.values());
-  }
   private focusComposer(): void {
-    this.messageTextarea?.nativeElement.focus();
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => this.messageTextarea?.nativeElement.focus());
+    });
   }
 
   private insertComposerText(text: string): void {
     const textarea = this.messageTextarea?.nativeElement;
     if (!textarea) {
       this.messageText = `${this.messageText}${text}`;
-      this.mentionCaretIndex = this.messageText.length;
+      this.mentionState.caretIndex = this.messageText.length;
       return;
     }
 
@@ -508,7 +499,7 @@ export class ChannelComponent {
     const before = this.messageText.slice(0, start);
     const after = this.messageText.slice(end);
     this.messageText = `${before}${text}${after}`;
-    this.mentionCaretIndex = start + text.length;
+    this.mentionState.caretIndex = start + text.length;
 
     requestAnimationFrame(() => {
       textarea.focus();
@@ -517,52 +508,45 @@ export class ChannelComponent {
     });
   }
 
-  private updateMentionSuggestions(): void {
-    const caret = this.mentionCaretIndex ?? this.messageText.length;
-    const textUpToCaret = this.messageText.slice(0, caret);
-    const atIndex = textUpToCaret.lastIndexOf('@');
+  private updateMentionState(): void {
+    const caret = this.mentionState.caretIndex ?? this.messageText.length;
 
-    if (atIndex === -1) {
-      this.resetMentionSuggestions();
+    const userResult = updateTagSuggestions(this.messageText, caret, '@', this.cachedMembers);
+
+    if (userResult.isVisible) {
+      this.mentionState = {
+        ...userResult,
+        caretIndex: this.mentionState.caretIndex,
+        type: 'user',
+      };
       return;
     }
 
-    if (atIndex > 0) {
-      const charBefore = textUpToCaret[atIndex - 1];
-      if (!/\s/.test(charBefore)) {
-        this.resetMentionSuggestions();
-        return;
-      }
-    }
+    const channelResult = updateTagSuggestions(this.messageText, caret, '#', this.cachedChannels);
 
-    const query = textUpToCaret.slice(atIndex + 1);
-
-    if (/\s/.test(query)) {
-      this.resetMentionSuggestions();
+    if (channelResult.isVisible) {
+      this.mentionState = {
+        ...channelResult,
+        caretIndex: this.mentionState.caretIndex,
+        type: 'channel',
+      };
       return;
     }
 
-    const normalizedQuery = query.toLowerCase();
-
-    this.mentionTriggerIndex = atIndex;
-    this.mentionSuggestions = this.cachedMembers.filter((member) =>
-      member.name.toLowerCase().includes(normalizedQuery)
-    );
-    this.isMentionListVisible = this.mentionSuggestions.length > 0;
+    this.resetMentionState();
   }
 
-  private resetMentionSuggestions(): void {
-    this.isMentionListVisible = false;
-    this.mentionSuggestions = [];
-    this.mentionTriggerIndex = null;
-    this.mentionCaretIndex = null;
+  private resetMentionState(): void {
+    this.mentionState = { suggestions: [], isVisible: false, triggerIndex: null, caretIndex: null };
   }
 
   private async notifyMentionedMembers(text: string, channelTitle: string): Promise<void> {
     const currentUser = this.userService.currentUser();
     if (!currentUser) return;
 
-    const mentionedMembers = this.getMentionedMembers(text).filter((member) => member.id !== currentUser.uid);
+    const mentionedMembers = getMentionedMembers(text, this.cachedMembers).filter(
+      (member) => member.id !== currentUser.uid
+    );
     if (!mentionedMembers.length) return;
 
     const formattedTime = new Intl.DateTimeFormat('de-DE', {
@@ -595,7 +579,7 @@ export class ChannelComponent {
 
     this.isSending = true;
     this.shouldScrollOnNextMessage = true;
-    this.ngZone.runOutsideAngular(() => requestAnimationFrame(() => this.focusComposer()));
+    this.focusComposer();
 
     this.channel$
       .pipe(
@@ -625,9 +609,9 @@ export class ChannelComponent {
       .subscribe({
         next: () => {
           this.messageText = '';
-          this.resetMentionSuggestions();
+          this.resetMentionState();
           this.isComposerEmojiPickerOpen = false;
-          this.ngZone.runOutsideAngular(() => requestAnimationFrame(() => this.focusComposer()));
+          this.focusComposer();
         },
         error: (error: unknown) => {
           this.shouldScrollOnNextMessage = false;
@@ -710,17 +694,18 @@ export class ChannelComponent {
 
     return `${formatter.format(date)} Uhr`;
   }
-  private shouldAutoScroll(days: ChannelDay[]): boolean {
+  private shouldAutoScroll(days: ChannelDay[]): { shouldScroll: boolean; newCount: number; newLastId?: string } {
     const snapshot = this.getMessageSnapshot(days);
     const shouldScroll =
       (this.lastMessageCount === 0 && snapshot.count > 0) ||
       snapshot.count > this.lastMessageCount ||
       (snapshot.lastId !== undefined && snapshot.lastId !== this.lastMessageId);
 
-    this.lastMessageCount = snapshot.count;
-    this.lastMessageId = snapshot.lastId;
-
-    return shouldScroll;
+    return {
+      shouldScroll,
+      newCount: snapshot.count,
+      newLastId: snapshot.lastId,
+    };
   }
 
   private getMessageSnapshot(days: ChannelDay[]): { count: number; lastId?: string } {
@@ -812,15 +797,23 @@ export class ChannelComponent {
 
   protected openChannelMembers(event: Event): void {
     const target = event.currentTarget as HTMLElement | null;
+    const isMobile = this.screenService.isTabletScreen();
 
-    combineLatest([this.channel$, this.channelTitle$, this.members$])
+    combineLatest([this.channel$, this.members$])
       .pipe(take(1))
-      .subscribe(([channel, title, members]) => {
+      .subscribe(([channel, members]) => {
         this.overlayService.open(ChannelMembers, {
           target: target ?? undefined,
-          offsetX: -200,
+          offsetX: isMobile ? -185 : -185,
           offsetY: 8,
-          data: { channelId: channel?.id, title, members },
+          data: {
+            channelId: channel?.id,
+            members,
+            overlayTitle: 'Mitglieder',
+            channelTitle: channel?.title,
+            mode: isMobile ? 'mobile' : 'desktop',
+            originTarget: target ?? undefined,
+          },
         });
       });
   }
@@ -953,5 +946,13 @@ export class ChannelComponent {
 
   hideReactionTooltip(): void {
     this.reactionTooltipService.hide();
+  }
+
+  protected get userMentionSuggestions(): UserMentionSuggestion[] {
+    return this.mentionState.type === 'user' ? (this.mentionState.suggestions as UserMentionSuggestion[]) : [];
+  }
+
+  protected get channelMentionSuggestions(): ChannelMentionSuggestion[] {
+    return this.mentionState.type === 'channel' ? (this.mentionState.suggestions as ChannelMentionSuggestion[]) : [];
   }
 }
