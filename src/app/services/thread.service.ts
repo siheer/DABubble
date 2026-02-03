@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  Timestamp,
   addDoc,
   collection,
   collectionData,
@@ -70,7 +69,7 @@ export class ThreadService {
             const user = userMap.get(authorId);
             return {
               authorName: user?.name ?? 'Gelöschter Nutzer',
-              profilePictureKey: user?.profilePictureKey ?? 'default',
+              profilePictureKey: user!.profilePictureKey,
             };
           };
 
@@ -196,19 +195,7 @@ export class ThreadService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(repliesQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((replies) =>
-                (replies as any[]).map((reply) => {
-                  const createdAt = (reply.createdAt as Timestamp) ?? Timestamp.now();
-                  return {
-                    id: reply.id,
-                    authorId: reply.authorId,
-                    text: reply.text ?? '',
-                    createdAt,
-                    updatedAt: (reply.updatedAt as Timestamp) ?? createdAt,
-                    reactions: reply.reactions ?? {},
-                  };
-                })
-              )
+              map((replies) => replies as ThreadReply[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
@@ -314,12 +301,8 @@ export class ThreadService {
             docData(threadDocRef, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((data) => {
                 if (!data) return null;
-                const docData = data as Record<string, unknown>;
-                const createdAt = (docData['createdAt'] as Timestamp) ?? Timestamp.now();
                 return {
                   ...(data as ThreadDocument),
-                  createdAt,
-                  updatedAt: (docData['updatedAt'] as Timestamp) ?? createdAt,
                 };
               })
             ),
@@ -400,4 +383,5 @@ export class ThreadService {
   threadSnapshot(): ThreadState | null {
     return this.threadSubject.value;
   }
+
 }

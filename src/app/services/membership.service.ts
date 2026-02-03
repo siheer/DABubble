@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  Timestamp,
   collection,
   collectionData,
   collectionGroup,
@@ -19,7 +18,7 @@ import { AuthService } from './auth.service';
 import type { AppUser } from './user.service';
 import { Observable, combineLatest, map, of, shareReplay, switchMap } from 'rxjs';
 import { NOTIFICATIONS } from '../notifications';
-import type { Channel, ChannelMember, ProfilePictureKey } from '../types';
+import type { Channel, ChannelMember } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
@@ -92,17 +91,7 @@ export class ChannelMembershipService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(membersCollection, { idField: 'id' }).pipe(
-              map((members) =>
-                (members as Array<Record<string, unknown>>).map((member) => ({
-                  id: (member['id'] as string) ?? 'unbekannt',
-                  name: (member['name'] as string) ?? 'Unbekannter Nutzer',
-                  profilePictureKey: (member['profilePictureKey'] as ProfilePictureKey) ?? 'default',
-                  subtitle: member['subtitle'] as string | undefined,
-                  addedAt: (member['addedAt'] as Timestamp) ?? Timestamp.now(),
-                  channelId: (member['channelId'] as string) ?? channelId,
-                  scope: (member['scope'] as 'channel') ?? 'channel',
-                }))
-              )
+              map((members) => members as ChannelMember[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
@@ -226,8 +215,8 @@ export class ChannelMembershipService {
   private buildChannelMemberPayload(userId: string, data: AppUser, channelId: string): Record<string, unknown> {
     const payload: Record<string, unknown> = {
       id: userId,
-      name: data.name ?? 'Unbekannter Nutzer',
-      profilePictureKey: data.profilePictureKey ?? 'default',
+      name: data.name,
+      profilePictureKey: data.profilePictureKey,
       scope: 'channel',
       addedAt: serverTimestamp(),
       channelId,

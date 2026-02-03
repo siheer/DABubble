@@ -180,12 +180,12 @@ export class ChannelComponent {
             .map((member): ChannelMemberView | undefined => {
               const user = userMap.get(member.id);
               if (!user) return undefined;
-              const name = user?.name ?? member.name;
+              const name = user.name;
 
               return {
                 id: member.id,
                 name,
-                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey ?? 'default',
+                profilePictureKey: user.profilePictureKey,
                 subtitle: member.subtitle,
               };
             })
@@ -571,7 +571,7 @@ export class ChannelComponent {
           if (!channel?.id) {
             return of(null);
           }
-          const channelTitle = channel.title ?? this.channelDefaults.name;
+          const channelTitle = channel.title;
           return from(
             this.channelService.addChannelMessage(channel.id, {
               text,
@@ -607,21 +607,21 @@ export class ChannelComponent {
   }
 
   private toViewMessage(message: ChannelMessage & { author?: AppUser }): ChannelMessageView {
-    const createdAt = this.timestampToDate(message.createdAt) ?? new Date();
+    const createdAt = this.timestampToDate(message.createdAt) as Date;
     const lastReplyAt = this.timestampToDate(message.lastReplyAt);
     const currentUserId = this.userService.currentUser()?.uid;
 
     return {
       id: message.id,
       authorId: message.authorId,
-      author: message.author?.name ?? 'Unbekannter Nutzer',
-      profilePictureKey: message.author?.profilePictureKey ?? 'default',
+      author: message.author!.name,
+      profilePictureKey: message.author!.profilePictureKey,
 
       createdAt,
       time: this.formatTime(createdAt),
 
-      text: message.text ?? '',
-      replies: message.replies ?? 0,
+      text: message.text,
+      replies: message.replies,
 
       lastReplyAt,
       lastReplyTime: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
@@ -629,7 +629,7 @@ export class ChannelComponent {
       tag: message.tag,
 
       isOwn: message.authorId === currentUserId,
-      reactions: message.reactions ?? {},
+      reactions: message.reactions,
     };
   }
 
@@ -710,7 +710,7 @@ export class ChannelComponent {
         data: {
           channelId: channel.id,
           title: channel.title,
-          description: channel.description ?? this.channelDefaults.summary,
+          description: channel.description,
         },
       });
     });
@@ -813,7 +813,7 @@ export class ChannelComponent {
   react(message: ChannelMessageView, emoji: string): void {
     if (!this.currentUser || !this.channelId || !message.id) return;
 
-    const reactions = message.reactions ?? {};
+    const reactions = message.reactions;
     const hasReacted = reactions[emoji]?.includes(this.currentUser.uid) ?? false;
 
     this.messageReactionsService.toggleReaction({

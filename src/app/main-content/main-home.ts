@@ -83,8 +83,8 @@ export class MainHome {
         this.isLoading.set(false);
         this.hasChannels.set(channels.length > 0);
 
-        const welcomeChannelId = channels.find((channel) => (channel.title ?? '') === 'Welcome')?.id;
-        const firstChannelId = channels.find((channel) => !!channel.id)?.id;
+        const welcomeChannelId = channels.find((channel) => channel.title === 'Welcome')?.id;
+        const firstChannelId = channels[0]?.id;
         const targetChannelId = welcomeChannelId ? welcomeChannelId : firstChannelId;
 
         if (!this.isTabletScreen() && targetChannelId) {

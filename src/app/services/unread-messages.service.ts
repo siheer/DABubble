@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  Timestamp,
   collectionData,
   collectionGroup,
   doc,
@@ -83,10 +82,10 @@ export class UnreadMessagesService {
   );
 
   readonly directMessageUnreadTotalCount$: Observable<number> = this.directMessageUsersWithUnreadCount$.pipe(
-    map((users) => users.reduce((total, user) => total + (user.unreadCount ?? 0), 0))
+    map((users) => users.reduce((total, user) => total + user.unreadCount, 0))
   );
   readonly channelUnreadTotalCount$: Observable<number> = this.channelsWithUnreadCount$.pipe(
-    map((channels) => channels.reduce((total, channel) => total + (channel.unreadCount ?? 0), 0))
+    map((channels) => channels.reduce((total, channel) => total + channel.unreadCount, 0))
   );
 
   constructor() {
@@ -113,8 +112,6 @@ export class UnreadMessagesService {
 
     const mapped = channels.map((channel) => {
       const channelId = channel.id;
-      if (!channelId) return { ...channel, unreadCount: 0 };
-
       const messageCount = channel.messageCount;
       const lastReadCount = readStatusMap.get(channelId)?.lastReadCount ?? 0;
       const unreadCount = Math.max(0, messageCount - lastReadCount);
@@ -123,15 +120,15 @@ export class UnreadMessagesService {
       return { ...channel, unreadCount: isActive ? 0 : unreadCount };
     });
     return [...mapped].sort((a, b) => {
-      const aUnread = a.unreadCount ?? 0;
-      const bUnread = b.unreadCount ?? 0;
+      const aUnread = a.unreadCount;
+      const bUnread = b.unreadCount;
 
       if (aUnread !== bUnread) {
         return bUnread - aUnread;
       }
 
-      const aTitle = a.title ?? '';
-      const bTitle = b.title ?? '';
+      const aTitle = a.title;
+      const bTitle = b.title;
 
       return aTitle.localeCompare(bTitle);
     });
@@ -144,14 +141,12 @@ export class UnreadMessagesService {
     activeDmId: string | null,
     currentUserId: string
   ): DirectMessageUser[] {
-    const metaMap = new Map(metas.map((meta) => [meta.id ?? '', meta]));
+    const metaMap = new Map(metas.map((meta) => [meta.id, meta]));
     const readStatusMap = new Map(
       readStatusEntries.filter((status) => status.scope === 'dm').map((status) => [status.targetId, status])
     );
 
-    const directMessageUsers = users
-      .filter((user) => user.name && user.name.trim().length > 0) // Filtere User ohne Namen
-      .map((user) => {
+    const directMessageUsers = users.map((user) => {
         const displayName = user.uid === currentUserId ? `${user.name} (Du)` : user.name;
         const conversationId = this.directMessagesService.buildConversationId(currentUserId, user.uid);
         const meta = metaMap.get(conversationId);
@@ -296,49 +291,7 @@ export class UnreadMessagesService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(readStatusQuery, { serverTimestamps: 'estimate' }).pipe(
-              map((statuses) =>
-                (statuses as Array<Record<string, unknown>>)
-                  .map((status) => {
-                    const userId = status['userId'] as string | undefined;
-                    if (!userId) return null;
-                    const lastReadAt = (status['lastReadAt'] as Timestamp) ?? Timestamp.now();
-                    const updatedAt = (status['updatedAt'] as Timestamp) ?? lastReadAt;
-                    const lastReadCount = (status['lastReadCount'] as number) ?? 0;
-                    const scope = status['scope'] as 'channel' | 'dm' | undefined;
-                    const targetId = status['targetId'] as string | undefined;
-                    const conversationId = status['conversationId'] as string | undefined;
-                    const channelId = status['channelId'] as string | undefined;
-
-                    if (scope === 'dm' || (conversationId && scope !== 'channel')) {
-                      const resolvedTargetId = targetId ?? conversationId;
-                      if (!resolvedTargetId) return null;
-                      return {
-                        userId,
-                        targetId: resolvedTargetId,
-                        scope: 'dm',
-                        lastReadAt,
-                        lastReadCount,
-                        updatedAt,
-                      };
-                    }
-
-                    if (scope === 'channel' || (channelId && scope !== 'dm')) {
-                      const resolvedTargetId = targetId ?? channelId;
-                      if (!resolvedTargetId) return null;
-                      return {
-                        userId,
-                        targetId: resolvedTargetId,
-                        scope: 'channel',
-                        lastReadAt,
-                        lastReadCount,
-                        updatedAt,
-                      };
-                    }
-
-                    return null;
-                  })
-                  .filter((entry): entry is ReadStatusEntry => entry !== null)
-              )
+              map((statuses) => statuses as ReadStatusEntry[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));

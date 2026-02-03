@@ -72,12 +72,12 @@ export class Thread {
             .map((member): ChannelMemberView | undefined => {
               const user = userMap.get(member.id);
               if (!user) return undefined;
-              const name = user?.name ?? member.name;
+              const name = user.name;
 
               return {
                 id: member.id,
                 name,
-                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey ?? 'default',
+                profilePictureKey: user.profilePictureKey,
                 subtitle: member.subtitle,
               };
             })
@@ -113,12 +113,12 @@ export class Thread {
   private allUsersSnapshot: AppUser[] = [];
 
   protected get currentUser() {
-    const user = this.userService.currentUser();
+    const user = this.userService.currentUser()!;
 
     return {
-      uid: user?.uid,
-      name: user?.name ?? 'Gast',
-      profilePictureKey: user?.profilePictureKey ?? 'default',
+      uid: user.uid,
+      name: user.name,
+      profilePictureKey: user.profilePictureKey,
     };
   }
 

@@ -128,8 +128,8 @@ export class Messages {
       )
       .subscribe((channels) => {
         this.cachedChannels = channels.map((c) => ({
-          id: c.id!,
-          name: c.title ?? '',
+          id: c.id,
+          name: c.title,
         }));
       });
     this.dmUserId$
@@ -248,9 +248,9 @@ export class Messages {
       author: isSystem ? Messages.SYSTEM_AUTHOR_NAME : isOwn ? 'Du' : authorUser.name,
       profilePictureKey: isSystem
         ? Messages.SYSTEM_PROFILE_PICTURE_KEY
-        : (authorUser.profilePictureKey ?? Messages.SYSTEM_PROFILE_PICTURE_KEY),
+        : authorUser.profilePictureKey,
       text: message.text,
-      timestamp: message.createdAt ? message.createdAt.toDate() : new Date(),
+      timestamp: message.createdAt.toDate(),
       isOwn,
       reactions: message.reactions,
     };
@@ -368,14 +368,14 @@ export class Messages {
     map.set(this.currentUser.uid, {
       id: this.currentUser.uid,
       name: this.currentUser.name,
-      profilePictureKey: this.currentUser.profilePictureKey ?? 'default',
+      profilePictureKey: this.currentUser.profilePictureKey,
     });
 
     if (this.selectedRecipient.uid !== this.currentUser.uid) {
       map.set(this.selectedRecipient.uid, {
         id: this.selectedRecipient.uid,
         name: this.selectedRecipient.name,
-        profilePictureKey: this.selectedRecipient.profilePictureKey ?? 'default',
+        profilePictureKey: this.selectedRecipient.profilePictureKey,
       });
     }
 

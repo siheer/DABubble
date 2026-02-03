@@ -13,7 +13,6 @@ import {
 import { AuthService } from './auth.service';
 import { NOTIFICATIONS } from '../notifications';
 import { type AppUser } from './user.service';
-import { PROFILE_PICTURE_URLS } from '../auth/set-profile-picture/set-profile-picture';
 import { GuestRegistryData } from '../types';
 import { ChannelService } from './channel.service';
 import { ChannelMembershipService } from './membership.service';
@@ -34,13 +33,14 @@ export class GuestService {
   private toastService = inject(ToastService);
 
   /** Builds the initial guest user payload. */
-  async buildGuestUserDocData() {
+  async buildGuestUserDocData(): Promise<Partial<AppUser>> {
     const guestNumber = await this.getRandomGuestNumber();
     const name = `Gast ${guestNumber}`;
+    const profilePictureKey = 'default';
 
     return {
       name,
-      photoUrl: PROFILE_PICTURE_URLS.default,
+      profilePictureKey,
       isGuest: true,
     };
   }
@@ -168,14 +168,13 @@ export class GuestService {
   /** Persists the last successful cleanup time. */
   private async markCleanupDone(): Promise<void> {
     const guestsDocRef = this.getGuestsDocRef();
-    await setDoc(
-      guestsDocRef,
-      {
-        isCleanedUp: true,
-        lastCleanupAt: Date.now(),
-      },
-      { merge: true }
-    );
+    const snap = await getDoc(guestsDocRef);
+    const data = this.buildGuestRegistry(snap.data() as Partial<GuestRegistryData> | undefined);
+    await setDoc(guestsDocRef, {
+      ...data,
+      isCleanedUp: true,
+      lastCleanupAt: Date.now(),
+    });
   }
 
   /** Removes channel and DM messages written by the user. */
@@ -208,7 +207,8 @@ export class GuestService {
 
     try {
       return await runTransaction(this.firestore, async (transaction) => {
-        const usedNumbers = await this.getUsedGuestNumbers(transaction, guestsDocRef);
+        const registry = await this.getGuestRegistry(transaction, guestsDocRef);
+        const usedNumbers = registry.usedNumbers;
         const availableNumbers = this.buildAvailableGuestNumbers(usedNumbers);
 
         if (!availableNumbers.length) {
@@ -216,7 +216,10 @@ export class GuestService {
         }
 
         const selectedNumber = this.pickRandomNumber(availableNumbers);
-        this.setUsedGuestNumbers(transaction, guestsDocRef, [...usedNumbers, selectedNumber]);
+        this.setGuestRegistry(transaction, guestsDocRef, {
+          ...registry,
+          usedNumbers: [...usedNumbers, selectedNumber],
+        });
         return selectedNumber;
       });
     } catch (error: any) {
@@ -235,13 +238,12 @@ export class GuestService {
   }
 
   /** Loads the used guest numbers from the registry. */
-  private async getUsedGuestNumbers(
+  private async getGuestRegistry(
     transaction: Transaction,
     guestsDocRef: DocumentReference
-  ): Promise<number[]> {
+  ): Promise<GuestRegistryData> {
     const snap = await transaction.get(guestsDocRef);
-    const data = this.buildGuestRegistry(snap.data() as Partial<GuestRegistryData> | undefined);
-    return data.usedNumbers;
+    return this.buildGuestRegistry(snap.data() as Partial<GuestRegistryData> | undefined);
   }
 
   private buildGuestRegistry(data?: Partial<GuestRegistryData>): GuestRegistryData {
@@ -273,12 +275,8 @@ export class GuestService {
   }
 
   /** Writes the used guest numbers to the registry. */
-  private setUsedGuestNumbers(
-    transaction: Transaction,
-    guestsDocRef: DocumentReference,
-    usedNumbers: number[]
-  ): void {
-    transaction.set(guestsDocRef, { usedNumbers }, { merge: true });
+  private setGuestRegistry(transaction: Transaction, guestsDocRef: DocumentReference, data: GuestRegistryData): void {
+    transaction.set(guestsDocRef, data);
   }
 
   /** Releases the guest number for reuse. */
@@ -290,13 +288,14 @@ export class GuestService {
 
     try {
       await runTransaction(this.firestore, async (transaction) => {
-        const usedNumbers = await this.getUsedGuestNumbers(transaction, guestsDocRef);
+        const registry = await this.getGuestRegistry(transaction, guestsDocRef);
+        const usedNumbers = registry.usedNumbers;
         if (!usedNumbers.length) return;
 
         const nextNumbers = usedNumbers.filter((value) => value !== guestNumber);
         if (nextNumbers.length === usedNumbers.length) return;
 
-        this.setUsedGuestNumbers(transaction, guestsDocRef, nextNumbers);
+        this.setGuestRegistry(transaction, guestsDocRef, { ...registry, usedNumbers: nextNumbers });
       });
     } catch (error: any) {
       // Ignore failed-precondition errors from concurrent updates

@@ -79,7 +79,6 @@ export class Workspace {
 
   /** Navigates to selected channel. */
   protected selectChannel(channel: ChannelListItem): void {
-    if (!channel?.id) return;
     void this.router.navigate(['/main/channels', channel.id]);
   }
 
@@ -90,18 +89,17 @@ export class Workspace {
 
   /** Navigates to direct message conversation with user. */
   protected openDirectMessage(user: DirectMessageUser): void {
-    if (!user?.uid) return;
     void this.router.navigate(['/main/dms', user.uid]);
   }
 
   /** Tracks channel by ID for ngFor optimization. */
   protected trackChannel(index: number, channel: ChannelListItem): string {
-    return channel.id ?? `${index}`;
+    return channel.id;
   }
 
   /** Tracks direct message user by UID for ngFor optimization. */
   protected trackDirectUser(index: number, user: DirectMessageUser): string {
-    return user.uid ?? `${index}`;
+    return user.uid;
   }
 
   /** Gets avatar URL for profile picture key. */

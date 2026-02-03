@@ -1,6 +1,7 @@
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
-import { DocumentData, Firestore, Timestamp, collection, collectionGroup, getDocs } from '@angular/fire/firestore';
+import { DocumentData, Firestore, collection, collectionGroup, getDocs } from '@angular/fire/firestore';
 import {
+  Channel,
   ChannelSearchResult,
   MessageBase,
   SearchCollection,
@@ -20,8 +21,8 @@ export class SearchService {
     const channels = await this.getCollectionDocs('channels');
     return new Map(
       channels.map((channel) => {
-        const data = channel.data as Record<string, unknown>;
-        return [channel.id, (data['title'] as string) ?? 'Unbenannter Channel'];
+        const data = channel.data as Channel;
+        return [channel.id, data.title];
       })
     );
   }
@@ -111,17 +112,20 @@ export class SearchService {
     return messages
       .map((message) => {
         const channelId = message.channelId;
-        if (!channelId || !allowedChannelIds.has(channelId)) return null;
+        if (!allowedChannelIds.has(channelId)) return null;
 
         const data = message.data as MessageBase;
 
-        if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
+        if (!data.text.toLowerCase().includes(lowerTerm)) return null;
+
+        const channelTitle = channelMap.get(channelId);
+        if (!channelTitle) return null;
 
         return {
           id: message.id,
           collection: 'messages',
           channelId,
-          channelTitle: channelMap.get(channelId) ?? 'Unbenannter Channel',
+          channelTitle,
           data: {
             text: data.text,
             authorId: data.authorId,
@@ -142,17 +146,19 @@ export class SearchService {
         const parentMessageId = thread.parentMessageId;
         const channelId = thread.channelId;
 
-        if (!parentMessageId || !channelId) return null;
         if (!allowedChannelIds.has(channelId)) return null;
 
         const data = thread.data as MessageBase;
-        if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
+        if (!data.text.toLowerCase().includes(lowerTerm)) return null;
+
+        const channelTitle = channelMap.get(channelId);
+        if (!channelTitle) return null;
 
         return {
           id: thread.id,
           collection: 'messages',
           channelId,
-          channelTitle: channelMap.get(channelId) ?? 'Unbenannter Channel',
+          channelTitle,
           parentMessageId,
           isThread: true,
           data: {
@@ -218,17 +224,13 @@ export class SearchService {
     if (collectionName === 'channels') {
       const docs = await this.getCollectionDocs(collectionName);
       return docs.map((doc) => {
-        const data = doc.data as Record<string, unknown>;
+        const data = doc.data as Omit<Channel, 'id'>;
         return {
           id: doc.id,
           collection: 'channels',
           data: {
             id: doc.id,
-            title: (data['title'] as string) ?? 'Unbenannter Channel',
-            description: (data['description'] as string) ?? 'Keine Beschreibung.',
-            isPublic: (data['isPublic'] as boolean) ?? false,
-            messageCount: (data['messageCount'] as number) ?? 0,
-            lastMessageAt: data['lastMessageAt'] as Timestamp | undefined,
+            ...data,
           },
         } as ChannelSearchResult;
       });
@@ -249,7 +251,7 @@ export class SearchService {
     });
   }
 
-  private async getChannelMessageDocs(): Promise<Array<{ id: string; channelId: string | null; data: DocumentData }>> {
+  private async getChannelMessageDocs(): Promise<Array<{ id: string; channelId: string; data: DocumentData }>> {
     return runInInjectionContext(this.injector, async () => {
       const messagesRef = collectionGroup(this.firestore, 'messages');
       const snapshot = await getDocs(messagesRef);
@@ -260,7 +262,7 @@ export class SearchService {
           const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
-            channelId: (data['channelId'] as string | undefined) ?? docSnap.ref.parent.parent?.id ?? null,
+            channelId: data['channelId'] as string,
             data: docSnap.data(),
           };
         });
@@ -268,7 +270,7 @@ export class SearchService {
   }
 
   private async getThreadDocs(): Promise<
-    Array<{ id: string; channelId: string | null; parentMessageId: string | null; data: DocumentData }>
+    Array<{ id: string; channelId: string; parentMessageId: string; data: DocumentData }>
   > {
     return runInInjectionContext(this.injector, async () => {
       const threadsRef = collectionGroup(this.firestore, 'threads');
@@ -280,9 +282,8 @@ export class SearchService {
           const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
-            channelId:
-              (data['channelId'] as string | undefined) ?? docSnap.ref.parent.parent?.parent?.parent?.id ?? null,
-            parentMessageId: (data['parentMessageId'] as string | undefined) ?? docSnap.ref.parent.parent?.id ?? null,
+            channelId: data['channelId'] as string,
+            parentMessageId: data['parentMessageId'] as string,
             data: docSnap.data(),
           };
         });

@@ -44,9 +44,7 @@ export class MessageReactionsService implements OnDestroy {
         const snap = await tx.get(messageRef);
         if (!snap.exists()) return;
 
-        const reactions: Record<string, string[]> = {
-          ...(snap.data()['reactions'] ?? {}),
-        };
+        const reactions = snap.data()['reactions'] as Record<string, string[]>;
 
         const users = reactions[emoji] ?? [];
         const hasReacted = users.includes(userId);
@@ -87,9 +85,7 @@ export class MessageReactionsService implements OnDestroy {
         const snap = await tx.get(messageRef);
         if (!snap.exists()) return;
 
-        const reactions: Record<string, string[]> = {
-          ...(snap.data()['reactions'] ?? {}),
-        };
+        const reactions = snap.data()['reactions'] as Record<string, string[]>;
 
         const users: string[] = reactions[emoji] ?? [];
 

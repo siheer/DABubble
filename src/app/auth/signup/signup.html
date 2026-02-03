@@ -103,7 +103,7 @@
             #privacyModel="ngModel"
             class="custom-checkbox">
             Ich stimme der
-            <button class="dab-anchor-on-white-inline" (click)="openPrivacyOverlay()">Datenschutzerklärung</button>
+            <button type="button" class="dab-anchor-on-white-inline" (click)="openPrivacyOverlay()">Datenschutzerklärung</button>
             zu.
           </mat-checkbox>
           @if (privacyModel.invalid && privacyModel.touched) {

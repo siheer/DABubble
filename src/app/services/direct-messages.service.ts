@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  Timestamp,
   addDoc,
   collection,
   collectionData,
@@ -43,14 +42,7 @@ export class DirectMessagesService {
           createStream: () => {
             const usersCollection = collection(this.firestore, 'users');
             return collectionData(usersCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((users) =>
-                (users as any[]).map((user) => ({
-                  id: user.id ?? 'unbekannt',
-                  name: user.name ?? 'Unbenannter Nutzer',
-                  email: user.email ?? null,
-                  photoUrl: user.photoUrl ?? null,
-                }))
-              )
+              map((users) => users as DirectMessage[])
             );
           },
         })
@@ -73,15 +65,7 @@ export class DirectMessagesService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(metaQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((metas) =>
-                (metas as Array<Record<string, unknown>>).map((meta) => ({
-                  id: meta['id'] as string,
-                  participants: (meta['participants'] as string[]) ?? [],
-                  messageCount: (meta['messageCount'] as number) ?? 0,
-                  lastMessageAt: meta['lastMessageAt'] as Timestamp | undefined,
-                  lastMessageAuthorId: meta['lastMessageAuthorId'] as string | undefined,
-                }))
-              )
+              map((metas) => metas as DirectMessageMeta[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));
@@ -107,17 +91,7 @@ export class DirectMessagesService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(messagesQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((messages) =>
-                (messages as Array<Record<string, unknown>>).map((message) => ({
-                  id: message['id'] as string,
-                  authorId: message['authorId'] as string,
-                  text: (message['text'] as string) ?? '',
-                  createdAt: (message['createdAt'] as Timestamp) ?? Timestamp.now(),
-                  updatedAt:
-                    (message['updatedAt'] as Timestamp) ?? (message['createdAt'] as Timestamp) ?? Timestamp.now(),
-                  reactions: (message['reactions'] as Record<string, string[]>) ?? {},
-                }))
-              )
+              map((messages) => messages as DirectMessageEntry[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));
@@ -132,7 +106,7 @@ export class DirectMessagesService {
     currentUser: Pick<DirectMessageEntry, 'authorId' | 'text'>,
     recipientId: string
   ): Promise<void> {
-    const authorId = currentUser.authorId ?? '';
+    const authorId = currentUser.authorId;
     const conversationId = this.buildConversationId(authorId, recipientId);
     const messagesCollection = collection(this.firestore, `directMessages/${conversationId}/messages`);
 
@@ -148,7 +122,7 @@ export class DirectMessagesService {
     await setDoc(
       metaDoc,
       {
-        participants: Array.from(new Set([authorId, recipientId].filter(Boolean))),
+        participants: Array.from(new Set([authorId, recipientId])),
         lastMessageAt: serverTimestamp(),
         lastMessageAuthorId: authorId,
         messageCount: increment(1),
@@ -242,4 +216,5 @@ export class DirectMessagesService {
       throw new Error(NOTIFICATIONS.DIRECT_MESSAGES_DELETE_FAILED);
     }
   }
+
 }

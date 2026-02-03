@@ -21,7 +21,7 @@ type SuggestedMember = {
   avatar: string;
   subtitle?: string;
   status?: 'online' | 'offline';
-  profilePictureKey?: ProfilePictureKey;
+  profilePictureKey: ProfilePictureKey;
 };
 
 @Component({
@@ -73,7 +73,7 @@ export class AddToChannel implements OnInit {
             id: user.uid,
             name: user.name,
             avatar: this.profilePictureService.getUrl(user.profilePictureKey),
-            profilePictureKey: user.profilePictureKey ?? 'default',
+            profilePictureKey: user.profilePictureKey,
             subtitle: user.email ?? undefined,
             status: user.onlineStatus ? 'online' : 'offline',
           }));
@@ -143,7 +143,7 @@ export class AddToChannel implements OnInit {
           this.membershipService.upsertChannelMember(this.channelId!, {
             id: member.id,
             name: member.name,
-            profilePictureKey: member.profilePictureKey ?? 'default',
+            profilePictureKey: member.profilePictureKey,
             subtitle: member.subtitle,
           })
         )

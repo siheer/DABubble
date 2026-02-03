@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  Timestamp,
   addDoc,
   collection,
   collectionData,
@@ -44,16 +43,7 @@ export class ChannelService {
           createStream: () => {
             const channelsCollection = collection(this.firestore, 'channels');
             return collectionData(channelsCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((channels) =>
-                (channels as Array<Record<string, unknown>>).map((channel) => ({
-                  id: (channel['id'] as string) ?? '',
-                  title: (channel['title'] as string) ?? 'Unbenannter Channel',
-                  description: (channel['description'] as string) ?? DEFAULT_CHANNEL_DESCRIPTION,
-                  isPublic: (channel['isPublic'] as boolean) ?? false,
-                  messageCount: (channel['messageCount'] as number) ?? 0,
-                  lastMessageAt: channel['lastMessageAt'] as Timestamp | undefined,
-                }))
-              )
+              map((channels) => channels as Channel[])
             );
           },
         })
@@ -76,15 +66,10 @@ export class ChannelService {
             docData(channelDoc, { serverTimestamps: 'estimate' }).pipe(
               map((data) => {
                 if (!data) return null;
-                const docData = data as Record<string, unknown>;
                 return {
                   id: channelId,
-                  title: (docData['title'] as string) ?? 'Unbenannter Channel',
-                  description: (docData['description'] as string) ?? DEFAULT_CHANNEL_DESCRIPTION,
-                  isPublic: (docData['isPublic'] as boolean) ?? false,
-                  messageCount: (docData['messageCount'] as number) ?? 0,
-                  lastMessageAt: docData['lastMessageAt'] as Timestamp | undefined,
-                } as Channel;
+                  ...(data as Omit<Channel, 'id'>),
+                };
               })
             ),
         })
@@ -107,22 +92,7 @@ export class ChannelService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
             collectionData(messagesCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
-              map((messages) =>
-                (messages as any[]).map((message) => {
-                  const createdAt = (message.createdAt as Timestamp) ?? Timestamp.now();
-                  return {
-                    id: message.id,
-                    authorId: message.authorId,
-                    text: message.text ?? '',
-                    createdAt,
-                    updatedAt: (message.updatedAt as Timestamp) ?? createdAt,
-                    replies: message.replies ?? 0,
-                    lastReplyAt: message.lastReplyAt,
-                    tag: message.tag,
-                    reactions: message.reactions ?? {},
-                  };
-                })
-              )
+              map((messages) => messages as ChannelMessage[])
             ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
@@ -143,6 +113,7 @@ export class ChannelService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       replies: 0,
+      reactions: {},
     });
 
     const channelDoc = doc(this.firestore, `channels/${channelId}`);
@@ -221,7 +192,7 @@ export class ChannelService {
     const normalizedTitle = title.toLowerCase().trim();
     return snapshot.docs.some((doc) => {
       const data = doc.data() as Channel;
-      return data.title?.toLowerCase().trim() === normalizedTitle;
+      return data.title.toLowerCase().trim() === normalizedTitle;
     });
   }
 
@@ -259,18 +230,10 @@ export class ChannelService {
             docData(messageDoc, { serverTimestamps: 'estimate' }).pipe(
               map((data) => {
                 if (!data) return null;
-
                 return {
                   id: messageId,
-                  authorId: data['authorId'] as string,
-                  text: (data['text'] as string) ?? '',
-                  createdAt: (data['createdAt'] as Timestamp) ?? Timestamp.now(),
-                  replies: (data['replies'] as number) ?? 0,
-                  lastReplyAt: data['lastReplyAt'] as Timestamp | undefined,
-                  tag: data['tag'] as string | undefined,
-                  reactions: (data['reactions'] as Record<string, string[]>) ?? {},
-                  updatedAt: (data['updatedAt'] as Timestamp) ?? (data['createdAt'] as Timestamp) ?? Timestamp.now(),
-                } as ChannelMessage;
+                  ...(data as Omit<ChannelMessage, 'id'>),
+                };
               })
             ),
         })
@@ -300,4 +263,5 @@ export class ChannelService {
       }
     }
   }
+
 }

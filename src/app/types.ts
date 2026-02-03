@@ -99,7 +99,7 @@ export interface DirectMessage {
   id: string;
   name: string;
   email: string | null;
-  photoUrl: string | null;
+  profilePictureKey: ProfilePictureKey;
 }
 
 export interface DirectMessageEntry extends MessageWithReactions {

@@ -24,13 +24,13 @@ import { ProfilePictureKey } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 import { FullscreenOverlayService } from './fullscreen-overlay.service';
 
-const RESERVED_USER_IDS = new Set(['__system__', 'system']);
+const RESERVED_USER_IDS = new Set(['__system__']);
 
 export interface AppUser {
   uid: string;
   email: string | null;
   name: string;
-  profilePictureKey?: ProfilePictureKey;
+  profilePictureKey: ProfilePictureKey;
   onlineStatus: boolean;
   lastSeen?: unknown;
   updatedAt?: unknown;
@@ -108,11 +108,13 @@ export class UserService {
 
     const userRef = doc(this.firestore, `users/${firebaseUser.uid}`);
 
+    const profilePictureKey = data.profilePictureKey ?? 'default';
+
     const newUser: AppUser = {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
       name: data.name || TEXTS.NEW_USER,
-      profilePictureKey: data.profilePictureKey ?? 'default',
+      profilePictureKey,
       onlineStatus: true,
       isGuest: data.isGuest ?? false,
       createdAt: serverTimestamp(),
@@ -192,22 +194,7 @@ export class UserService {
           createStream: () => {
             const usersCollection = collection(this.firestore, 'users');
             return collectionData(usersCollection, { idField: 'uid', serverTimestamps: 'estimate' }).pipe(
-              map((users) =>
-                (users as Array<Partial<AppUser> & { uid?: string }>)
-                  .map((user) => ({
-                    uid: user.uid ?? 'unbekannt',
-                    name: user.name ?? 'Unbenannter Nutzer',
-                    email: user.email ?? null,
-                    profilePictureKey: user.profilePictureKey ?? 'default',
-                    onlineStatus: user.onlineStatus ?? false,
-                    lastSeen: user.lastSeen,
-                    updatedAt: user.updatedAt,
-                    createdAt: user.createdAt,
-                    role: user.role,
-                    isGuest: user.isGuest ?? false,
-                  }))
-                  .filter((user) => !RESERVED_USER_IDS.has(user.uid))
-              )
+              map((users) => (users as AppUser[]).filter((user) => !RESERVED_USER_IDS.has(user.uid)))
             );
           },
         })
@@ -225,21 +212,10 @@ export class UserService {
       return snapshot.docs
         .filter((docSnap) => !RESERVED_USER_IDS.has(docSnap.id))
         .map((docSnap) => {
-          const data = docSnap.data() as Partial<AppUser>;
+          const data = docSnap.data() as AppUser;
           return {
             id: docSnap.id,
-            data: {
-              uid: data.uid ?? docSnap.id,
-              name: data.name ?? 'Unbenannter Nutzer',
-              email: data.email ?? null,
-              profilePictureKey: data.profilePictureKey ?? 'default',
-              onlineStatus: data.onlineStatus ?? false,
-              lastSeen: data.lastSeen,
-              updatedAt: data.updatedAt,
-              createdAt: data.createdAt,
-              role: data.role,
-              isGuest: data.isGuest ?? false,
-            },
+            data,
           };
         });
     });
@@ -255,7 +231,7 @@ export class UserService {
           fallbackValue: null,
           isUserAllowed: (currentUser) => currentUser.uid === uid,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
-          createStream: () => docData(userDoc).pipe(map((data) => (data as AppUser) ?? null)),
+          createStream: () => docData(userDoc).pipe(map((data) => (data ? (data as AppUser) : null))),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
@@ -287,8 +263,6 @@ export class UserService {
 
     const fallbackNameFromEmail = firebaseUser.email?.split('@')[0] ?? TEXTS.NEW_USER;
     const name = firebaseUser.displayName || fallbackNameFromEmail;
-    const photoUrl = PROFILE_PICTURE_URLS.default;
-
     await this.authService.updateUserProfile(name);
     await this.createUserDocument(firebaseUser, {
       name,
