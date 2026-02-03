@@ -116,6 +116,7 @@ export class ChannelComponent {
   }
   private cachedMembers: ChannelMemberView[] = [];
   private cachedChannels: ChannelMentionSuggestion[] = [];
+  private messageSegmentsCache = new Map<string, { text: string; segments: MentionSegment[] }>();
   private lastMessageCount = 0;
   private lastMessageId?: string;
   private shouldScrollOnNextMessage = false;
@@ -234,6 +235,7 @@ export class ChannelComponent {
 
     this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((members) => {
       this.cachedMembers = members;
+      this.messageSegmentsCache.clear();
       this.updateMentionState();
     });
 
@@ -243,6 +245,7 @@ export class ChannelComponent {
           id: channel.id,
           name: channel.title,
         })) ?? [];
+      this.messageSegmentsCache.clear();
       this.updateMentionState();
     });
 
@@ -449,12 +452,21 @@ export class ChannelComponent {
     this.resetMentionState();
   }
 
-  protected buildMessageSegments(text: string): MentionSegment[] {
-    return buildMessageSegments(text, this.cachedMembers, this.cachedChannels);
+  protected buildMessageSegments(message: ChannelMessageView): MentionSegment[] {
+    const cached = this.messageSegmentsCache.get(message.id);
+    if (cached && cached.text === message.text) {
+      return cached.segments;
+    }
+
+    const segments = buildMessageSegments(message.text, this.cachedMembers, this.cachedChannels);
+    this.messageSegmentsCache.set(message.id, { text: message.text, segments });
+    return segments;
   }
 
   protected openMemberProfile(member?: ChannelMemberView): void {
     if (!member) return;
+    this.openEmojiPickerFor = null;
+    (document.activeElement as HTMLElement | null)?.blur();
 
     const resolvedUser = this.allUsersSnapshot.find((user) => user.uid === member.id);
     const fallbackUser: AppUser = resolvedUser ?? {

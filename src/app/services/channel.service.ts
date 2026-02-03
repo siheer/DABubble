@@ -14,7 +14,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, combineLatest, map, shareReplay } from 'rxjs';
+import { Observable, combineLatest, map, shareReplay, withLatestFrom } from 'rxjs';
 import type { AppUser } from './user.service';
 import type { Channel, ChannelMessage } from '../types';
 import { AuthService } from './auth.service';
@@ -140,7 +140,8 @@ export class ChannelService {
     channelId: string,
     users$: Observable<AppUser[]>
   ): Observable<(ChannelMessage & { author?: AppUser })[]> {
-    return combineLatest([this.getChannelMessages(channelId), users$]).pipe(
+    return this.getChannelMessages(channelId).pipe(
+      withLatestFrom(users$),
       map(([messages, users]) =>
         messages.map((msg) => ({
           ...msg,

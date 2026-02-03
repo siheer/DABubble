@@ -133,7 +133,7 @@
                     </header>
                     <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
                       <p class="channel__message-text">
-                        <ng-container *ngFor="let segment of buildMessageSegments(message.text)">
+                        <ng-container *ngFor="let segment of buildMessageSegments(message)">
                           <span *ngIf="segment.kind === 'text'">
                             {{ segment.text }}
                           </span>
