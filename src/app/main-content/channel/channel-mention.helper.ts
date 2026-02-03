@@ -1,5 +1,5 @@
 import type { ChannelMemberView } from '../../types';
-import type { ChannelMentionSuggestion, MentionSegment } from '../../classes/mentions.types';
+import type { ChannelMentionSuggestion, MentionSegment } from '../../types';
 
 export function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

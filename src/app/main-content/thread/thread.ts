@@ -24,7 +24,7 @@ import type {
   MentionState,
   MentionType,
   UserMentionSuggestion,
-} from '../../classes/mentions.types';
+} from '../../types';
 
 @Component({
   selector: 'app-thread',
@@ -34,8 +34,6 @@ import type {
   styleUrl: './thread.scss',
 })
 export class Thread {
-  private static readonly SYSTEM_PROFILE_PICTURE_KEY: ProfilePictureKey = 'default';
-  private static readonly SYSTEM_AUTHOR_NAME = 'System';
   private readonly threadService = inject(ThreadService);
   private readonly userService = inject(UserService);
   private readonly membershipService = inject(ChannelMembershipService);
@@ -68,7 +66,6 @@ export class Thread {
 
       return combineLatest([this.membershipService.getChannelMembers(channelId), this.userService.getAllUsers()]).pipe(
         map(([members, users]) => {
-          const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
 
           return members
@@ -80,10 +77,8 @@ export class Thread {
               return {
                 id: member.id,
                 name,
-                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey,
+                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey ?? 'default',
                 subtitle: member.subtitle,
-                isCurrentUser: member.id === currentUserId,
-                user,
               };
             })
             .filter((member): member is ChannelMemberView => member !== undefined);
@@ -115,6 +110,7 @@ export class Thread {
   private threadSnapshot: ThreadContext | null = null;
   private isThreadPanelOpen = false;
   private pendingScrollToBottom = false;
+  private allUsersSnapshot: AppUser[] = [];
 
   protected get currentUser() {
     const user = this.userService.currentUser();
@@ -148,6 +144,11 @@ export class Thread {
       this.updateMentionState();
     });
 
+    this.userService
+      .getAllUsers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((users) => (this.allUsersSnapshot = users));
+
     this.userService.currentUser$
       .pipe(
         switchMap((user) => (user ? this.membershipService.getChannelsForUser(user.uid) : of([]))),
@@ -155,10 +156,9 @@ export class Thread {
       )
       .subscribe((channels) => {
         this.cachedChannels = channels
-          .filter((channel): channel is { id: string; title?: string } => !!channel.id)
           .map((channel) => ({
             id: channel.id,
-            name: channel.title ?? '',
+            name: channel.title,
           }));
         this.updateMentionState();
       });
@@ -167,15 +167,13 @@ export class Thread {
       this.threadSnapshot = thread;
     });
 
-    this.threadService.threadPanelOpen$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((isOpen) => {
-        this.isThreadPanelOpen = isOpen;
-        if (isOpen && this.pendingScrollToBottom) {
-          this.pendingScrollToBottom = false;
-          this.scrollToBottom();
-        }
-      });
+    this.threadService.threadPanelOpen$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((isOpen) => {
+      this.isThreadPanelOpen = isOpen;
+      if (isOpen && this.pendingScrollToBottom) {
+        this.pendingScrollToBottom = false;
+        this.scrollToBottom();
+      }
+    });
 
     this.thread$
       .pipe(
@@ -184,8 +182,7 @@ export class Thread {
           repliesCount: thread?.replies.length ?? 0,
         })),
         distinctUntilChanged(
-          (previous, current) =>
-            previous.rootId === current.rootId && previous.repliesCount === current.repliesCount
+          (previous, current) => previous.rootId === current.rootId && previous.repliesCount === current.repliesCount
         ),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -322,13 +319,14 @@ export class Thread {
   }
 
   protected openMemberProfile(member?: ChannelMemberView): void {
-    if (!member || member.isCurrentUser) return;
+    if (!member) return;
 
-    const fallbackUser: AppUser = member.user ?? {
+    const resolvedUser = this.allUsersSnapshot.find((user) => user.uid === member.id);
+    const fallbackUser: AppUser = resolvedUser ?? {
       uid: member.id,
       name: member.name,
       email: null,
-      profilePictureKey: 'default',
+      profilePictureKey: member.profilePictureKey,
       onlineStatus: false,
       lastSeen: undefined,
       updatedAt: undefined,
@@ -416,17 +414,7 @@ export class Thread {
     const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
 
     await Promise.all(
-      mentionedMembers.map((member) =>
-        this.directMessagesService.sendDirectMessage(
-          {
-            authorId: member.id,
-            authorName: Thread.SYSTEM_AUTHOR_NAME,
-            authorProfilePictureKey: Thread.SYSTEM_PROFILE_PICTURE_KEY,
-            text: messageText,
-          },
-          member.id
-        )
-      )
+      mentionedMembers.map((member) => this.directMessagesService.sendSystemMessage(member.id, messageText))
     );
   }
 

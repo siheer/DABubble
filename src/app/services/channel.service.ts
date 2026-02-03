@@ -17,9 +17,11 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, combineLatest, map, shareReplay } from 'rxjs';
 import type { AppUser } from './user.service';
-import type { Channel, ChannelAttachment, ChannelMessage } from '../types';
+import type { Channel, ChannelMessage } from '../types';
 import { AuthService } from './auth.service';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
+
+const DEFAULT_CHANNEL_DESCRIPTION = 'Keine Beschreibung.';
 
 @Injectable({ providedIn: 'root' })
 export class ChannelService {
@@ -41,7 +43,18 @@ export class ChannelService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () => {
             const channelsCollection = collection(this.firestore, 'channels');
-            return collectionData(channelsCollection, { idField: 'id' }).pipe(map((channels) => channels as Channel[]));
+            return collectionData(channelsCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
+              map((channels) =>
+                (channels as Array<Record<string, unknown>>).map((channel) => ({
+                  id: (channel['id'] as string) ?? '',
+                  title: (channel['title'] as string) ?? 'Unbenannter Channel',
+                  description: (channel['description'] as string) ?? DEFAULT_CHANNEL_DESCRIPTION,
+                  isPublic: (channel['isPublic'] as boolean) ?? false,
+                  messageCount: (channel['messageCount'] as number) ?? 0,
+                  lastMessageAt: channel['lastMessageAt'] as Timestamp | undefined,
+                }))
+              )
+            );
           },
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
@@ -59,7 +72,21 @@ export class ChannelService {
           authState$: this.authService.authState$,
           fallbackValue: null,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
-          createStream: () => docData(channelDoc).pipe(map((data) => (data as Channel) ?? null)),
+          createStream: () =>
+            docData(channelDoc, { serverTimestamps: 'estimate' }).pipe(
+              map((data) => {
+                if (!data) return null;
+                const docData = data as Record<string, unknown>;
+                return {
+                  id: channelId,
+                  title: (docData['title'] as string) ?? 'Unbenannter Channel',
+                  description: (docData['description'] as string) ?? DEFAULT_CHANNEL_DESCRIPTION,
+                  isPublic: (docData['isPublic'] as boolean) ?? false,
+                  messageCount: (docData['messageCount'] as number) ?? 0,
+                  lastMessageAt: docData['lastMessageAt'] as Timestamp | undefined,
+                } as Channel;
+              })
+            ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
 
@@ -79,20 +106,22 @@ export class ChannelService {
           fallbackValue: [],
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            collectionData(messagesCollection, { idField: 'id' }).pipe(
+            collectionData(messagesCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((messages) =>
-                (messages as any[]).map((message) => ({
-                  id: message.id,
-                  authorId: message.authorId,
-                  text: message.text ?? '',
-                  createdAt: message.createdAt,
-                  replies: message.replies ?? 0,
-                  lastReplyAt: message.lastReplyAt,
-                  tag: message.tag,
-                  attachment: message.attachment,
-                  updatedAt: message.updatedAt,
-                  reactions: message.reactions ?? {},
-                }))
+                (messages as any[]).map((message) => {
+                  const createdAt = (message.createdAt as Timestamp) ?? Timestamp.now();
+                  return {
+                    id: message.id,
+                    authorId: message.authorId,
+                    text: message.text ?? '',
+                    createdAt,
+                    updatedAt: (message.updatedAt as Timestamp) ?? createdAt,
+                    replies: message.replies ?? 0,
+                    lastReplyAt: message.lastReplyAt,
+                    tag: message.tag,
+                    reactions: message.reactions ?? {},
+                  };
+                })
               )
             ),
         })
@@ -112,6 +141,7 @@ export class ChannelService {
       authorId: message.authorId,
       text: message.text,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       replies: 0,
     });
 
@@ -158,9 +188,9 @@ export class ChannelService {
     );
   }
 
-  async createChannel(title: string, description?: string, isPublic = false): Promise<string> {
+  async createChannel(title: string, description: string, isPublic = false): Promise<string> {
     const trimmedTitle = title.trim();
-    const trimmedDescription = description?.trim();
+    const trimmedDescription = description.trim();
 
     // Prüfe, ob ein Channel mit diesem Namen bereits existiert
     const nameExists = await this.checkIfChannelNameExists(trimmedTitle);
@@ -170,17 +200,11 @@ export class ChannelService {
 
     const channelPayload: Record<string, unknown> = {
       title: trimmedTitle,
+      isPublic,
+      description: trimmedDescription || DEFAULT_CHANNEL_DESCRIPTION,
       createdAt: serverTimestamp(),
       messageCount: 0,
     };
-
-    if (trimmedDescription) {
-      channelPayload['description'] = trimmedDescription;
-    }
-    if (isPublic) {
-      channelPayload['isPublic'] = true;
-    }
-
     const channelsCollection = collection(this.firestore, 'channels');
     const newChannel = await addDoc(channelsCollection, channelPayload);
 
@@ -193,7 +217,7 @@ export class ChannelService {
   async checkIfChannelNameExists(title: string): Promise<boolean> {
     const channelsCollection = collection(this.firestore, 'channels');
     const snapshot = await getDocs(channelsCollection);
-    
+
     const normalizedTitle = title.toLowerCase().trim();
     return snapshot.docs.some((doc) => {
       const data = doc.data() as Channel;
@@ -232,7 +256,7 @@ export class ChannelService {
           fallbackValue: null,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            docData(messageDoc).pipe(
+            docData(messageDoc, { serverTimestamps: 'estimate' }).pipe(
               map((data) => {
                 if (!data) return null;
 
@@ -240,12 +264,12 @@ export class ChannelService {
                   id: messageId,
                   authorId: data['authorId'] as string,
                   text: (data['text'] as string) ?? '',
-                  createdAt: data['createdAt'] as Timestamp,
+                  createdAt: (data['createdAt'] as Timestamp) ?? Timestamp.now(),
                   replies: (data['replies'] as number) ?? 0,
                   lastReplyAt: data['lastReplyAt'] as Timestamp | undefined,
                   tag: data['tag'] as string | undefined,
-                  attachment: data['attachment'] as ChannelAttachment | undefined,
-                  updatedAt: data['updatedAt'] as Timestamp | undefined,
+                  reactions: (data['reactions'] as Record<string, string[]>) ?? {},
+                  updatedAt: (data['updatedAt'] as Timestamp) ?? (data['createdAt'] as Timestamp) ?? Timestamp.now(),
                 } as ChannelMessage;
               })
             ),

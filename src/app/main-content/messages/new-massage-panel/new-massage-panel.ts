@@ -3,7 +3,7 @@ import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BehaviorSubject, Observable, combineLatest, map, of, switchMap } from 'rxjs';
 import { ChannelMembershipService } from '../../../services/membership.service';
-import type { Channel, ProfilePictureKey, SearchResult } from '../../../types';
+import type { Channel, ProfilePictureKey, SearchPanelResult } from '../../../types';
 import { AppUser, UserService } from '../../../services/user.service';
 import { Router } from '@angular/router';
 import { ProfilePictureService } from '../../../services/profile-picture.service';
@@ -38,7 +38,7 @@ export class NewMessagePanel {
 
   private readonly users$ = this.userService.getAllUsers();
 
-  protected readonly searchResults$: Observable<SearchResult> = combineLatest([
+  protected readonly searchResults$: Observable<SearchPanelResult> = combineLatest([
     this.searchTerm$,
     this.channels$,
     this.users$,

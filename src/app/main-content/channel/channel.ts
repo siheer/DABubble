@@ -22,7 +22,6 @@ import { MessageReactionsService } from '../../services/message-reactions.servic
 import { ChannelMembershipService } from '../../services/membership.service';
 import type {
   Channel,
-  ChannelAttachment,
   ChannelMessage,
   ChannelMember,
   ChannelMemberView,
@@ -54,7 +53,7 @@ import type {
   MentionState,
   MentionType,
   UserMentionSuggestion,
-} from '../../classes/mentions.types';
+} from '../../types';
 import { ProfilePictureService } from '../../services/profile-picture.service';
 
 @Component({
@@ -66,8 +65,6 @@ import { ProfilePictureService } from '../../services/profile-picture.service';
   styleUrls: ['./channel.scss'],
 })
 export class ChannelComponent {
-  private static readonly SYSTEM_PROFILE_PICTURE_KEY: ProfilePictureKey = 'default';
-  private static readonly SYSTEM_AUTHOR_NAME = 'System';
   private readonly channelService = inject(ChannelService);
   private readonly membershipService = inject(ChannelMembershipService);
   private readonly messageReactionsService = inject(MessageReactionsService);
@@ -177,7 +174,6 @@ export class ChannelComponent {
 
       return combineLatest([this.membershipService.getChannelMembers(channel.id), this.allUsers$]).pipe(
         map(([members, users]) => {
-          const currentUserId = this.userService.currentUser()?.uid;
           const userMap = new Map(users.map((user) => [user.uid, user]));
 
           return members
@@ -189,10 +185,8 @@ export class ChannelComponent {
               return {
                 id: member.id,
                 name,
-                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey,
+                profilePictureKey: user?.profilePictureKey ?? member.profilePictureKey ?? 'default',
                 subtitle: member.subtitle,
-                isCurrentUser: member.id === currentUserId,
-                user,
               };
             })
             .filter((member): member is ChannelMemberView => member !== undefined);
@@ -245,12 +239,10 @@ export class ChannelComponent {
 
     this.channels$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((channels) => {
       this.cachedChannels =
-        channels
-          ?.filter((channel): channel is { id: string; title?: string } => !!channel.id)
-          .map((channel) => ({
-            id: channel.id,
-            name: channel.title ?? '',
-          })) ?? [];
+        channels?.map((channel) => ({
+          id: channel.id,
+          name: channel.title,
+        })) ?? [];
       this.updateMentionState();
     });
 
@@ -462,13 +454,14 @@ export class ChannelComponent {
   }
 
   protected openMemberProfile(member?: ChannelMemberView): void {
-    if (!member || member.isCurrentUser) return;
+    if (!member) return;
 
-    const fallbackUser: AppUser = member.user ?? {
+    const resolvedUser = this.allUsersSnapshot.find((user) => user.uid === member.id);
+    const fallbackUser: AppUser = resolvedUser ?? {
       uid: member.id,
       name: member.name,
       email: null,
-      profilePictureKey: 'default',
+      profilePictureKey: member.profilePictureKey,
       onlineStatus: false,
       lastSeen: undefined,
       updatedAt: undefined,
@@ -557,17 +550,7 @@ export class ChannelComponent {
     const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle} erwähnt.`;
 
     await Promise.all(
-      mentionedMembers.map((member) =>
-        this.directMessagesService.sendDirectMessage(
-          {
-            authorId: member.id,
-            authorName: ChannelComponent.SYSTEM_AUTHOR_NAME,
-            authorProfilePictureKey: ChannelComponent.SYSTEM_PROFILE_PICTURE_KEY,
-            text: messageText,
-          },
-          member.id
-        )
-      )
+      mentionedMembers.map((member) => this.directMessagesService.sendSystemMessage(member.id, messageText))
     );
   }
   protected sendMessage(): void {
@@ -644,7 +627,6 @@ export class ChannelComponent {
       lastReplyTime: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
 
       tag: message.tag,
-      attachment: message.attachment,
 
       isOwn: message.authorId === currentUserId,
       reactions: message.reactions ?? {},
@@ -719,19 +701,16 @@ export class ChannelComponent {
     const target = event.currentTarget as HTMLElement | null;
 
     this.channel$.pipe(take(1)).subscribe((channel) => {
-      const resolvedChannel = channel ?? {
-        title: this.channelDefaults.name,
-        description: this.channelDefaults.summary,
-      };
+      if (!channel) return;
 
       this.overlayService.open(ChannelDescription, {
         target: target ?? undefined,
         offsetX: 0,
         offsetY: -8,
         data: {
-          channelId: resolvedChannel.id,
-          title: resolvedChannel.title ?? this.channelDefaults.name,
-          description: resolvedChannel.description ?? this.channelDefaults.summary,
+          channelId: channel.id,
+          title: channel.title,
+          description: channel.description ?? this.channelDefaults.summary,
         },
       });
     });
@@ -744,11 +723,9 @@ export class ChannelComponent {
       this.threadService.openThread({
         id: message.id,
         channelId: channel.id,
-        channelTitle: channel.title ?? this.channelDefaults.name,
         authorId: message.authorId,
         time: message.time,
         text: message.text,
-        isOwn: message.isOwn,
       });
     });
   }

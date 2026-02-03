@@ -8,7 +8,7 @@ import { UserService } from '../../services/user.service';
 import { CommonModule } from '@angular/common';
 import { FilterBox } from '../filter-box/filter-box';
 import { FormsModule } from '@angular/forms';
-import { ClickOutsideDirective } from '../../classes/click-outside.class';
+import { ClickOutsideDirective } from '../../directives/click-outside.directive';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 import { ScreenService } from '../../services/screen.service';
 

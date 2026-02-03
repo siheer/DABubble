@@ -7,7 +7,7 @@ import { UnreadMessagesService } from '../../services/unread-messages.service';
 import type { ChannelListItem, DirectMessageUser, ProfilePictureKey } from '../../types';
 import { FormsModule } from '@angular/forms';
 import { FilterBox } from '../filter-box/filter-box';
-import { ClickOutsideDirective } from '../../classes/click-outside.class';
+import { ClickOutsideDirective } from '../../directives/click-outside.directive';
 import { ProfilePictureService } from '../../services/profile-picture.service';
 import { OverlayService } from '../../services/overlay.service';
 import { CreateChannelWithMembers } from './create-channel-with-members/create-channel-with-members';

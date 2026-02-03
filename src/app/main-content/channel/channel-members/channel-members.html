@@ -19,18 +19,16 @@
   <ul class="channel-members__list">
     <li
       *ngFor="let member of members"
-      class="channel-members__item"
-      [class.channel-members__item--clickable]="!member.isCurrentUser">
+      class="channel-members__item channel-members__item--clickable">
       <button
         type="button"
         class="channel-members__item-button"
-        [disabled]="member.isCurrentUser"
         (click)="openMemberProfile(member)">
         <img [src]="getAvatarUrl(member.profilePictureKey)" [alt]="member.name" class="channel-members__avatar" />
         <div class="channel-members__meta">
           <div class="channel-members__name-row">
             <span class="channel-members__name truncate">{{ member.name }}</span>
-            <span *ngIf="member.isCurrentUser" class="channel-members__pill flex-shrink-0">Du</span>
+            <span *ngIf="isCurrentUser(member)" class="channel-members__pill flex-shrink-0">Du</span>
           </div>
           <span *ngIf="member.subtitle" class="channel-members__subtitle">{{ member.subtitle }}</span>
         </div>

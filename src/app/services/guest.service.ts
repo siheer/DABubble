@@ -156,9 +156,9 @@ export class GuestService {
   private async isCleanupRequired(): Promise<boolean> {
     const guestsDocRef = this.getGuestsDocRef();
     const snap = await getDoc(guestsDocRef);
-    const data = snap.data() as GuestRegistryData;
+    const data = this.buildGuestRegistry(snap.data() as Partial<GuestRegistryData> | undefined);
 
-    if (!data?.isCleanedUp || !data?.lastCleanupAt) {
+    if (!data.isCleanedUp || !data.lastCleanupAt) {
       return true;
     }
 
@@ -230,18 +230,26 @@ export class GuestService {
   }
 
   /** Returns the guest registry document reference. */
-  private getGuestsDocRef(): DocumentReference<GuestRegistryData> {
+  private getGuestsDocRef(): DocumentReference {
     return doc(this.firestore, 'guests', 'registry');
   }
 
   /** Loads the used guest numbers from the registry. */
   private async getUsedGuestNumbers(
     transaction: Transaction,
-    guestsDocRef: DocumentReference<GuestRegistryData>
+    guestsDocRef: DocumentReference
   ): Promise<number[]> {
     const snap = await transaction.get(guestsDocRef);
-    const data = snap.data();
-    return data?.usedNumbers ?? [];
+    const data = this.buildGuestRegistry(snap.data() as Partial<GuestRegistryData> | undefined);
+    return data.usedNumbers;
+  }
+
+  private buildGuestRegistry(data?: Partial<GuestRegistryData>): GuestRegistryData {
+    return {
+      usedNumbers: data?.usedNumbers ?? [],
+      isCleanedUp: data?.isCleanedUp ?? false,
+      lastCleanupAt: data?.lastCleanupAt ?? 0,
+    };
   }
 
   /** Builds the list of available guest numbers. */
@@ -267,7 +275,7 @@ export class GuestService {
   /** Writes the used guest numbers to the registry. */
   private setUsedGuestNumbers(
     transaction: Transaction,
-    guestsDocRef: DocumentReference<GuestRegistryData>,
+    guestsDocRef: DocumentReference,
     usedNumbers: number[]
   ): void {
     transaction.set(guestsDocRef, { usedNumbers }, { merge: true });

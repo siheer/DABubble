@@ -1,14 +1,15 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, DestroyRef, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { OverlayService } from '../../../services/overlay.service';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AddToChannel } from '../add-to-channel/add-to-channel';
 import { MatDialog, matDialogAnimations } from '@angular/material/dialog';
-import { AppUser } from '../../../services/user.service';
+import { AppUser, UserService } from '../../../services/user.service';
 import { MemberDialog } from '../../member-dialog/member-dialog';
 import { ChannelMemberView, ProfilePictureKey } from '../../../types';
 import { ProfilePictureService } from '../../../services/profile-picture.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-channel-members',
@@ -32,6 +33,9 @@ export class ChannelMembers {
   private readonly overlayService = inject(OverlayService);
   private readonly dialog = inject(MatDialog);
   private readonly profilePictureService = inject(ProfilePictureService);
+  private readonly userService = inject(UserService);
+  private readonly destroyRef = inject(DestroyRef);
+  private allUsersSnapshot: AppUser[] = [];
 
   @Input() members: ChannelMemberView[] = [];
   @Input() overlayTitle  = 'Mitglieder';
@@ -41,6 +45,13 @@ export class ChannelMembers {
 
   @Input() originTarget?: HTMLElement;
   protected visible = true;
+
+  constructor() {
+    this.userService
+      .getAllUsers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((users) => (this.allUsersSnapshot = users));
+  }
 
   protected getAvatarUrl(key?: ProfilePictureKey): string {
     return this.profilePictureService.getUrl(key);
@@ -80,15 +91,12 @@ export class ChannelMembers {
   }
 
   protected openMemberProfile(member: ChannelMemberView): void {
-    if (member.isCurrentUser) {
-      return;
-    }
-
-    const fallbackUser: AppUser = member.user ?? {
+    const resolvedUser = this.allUsersSnapshot.find((user) => user.uid === member.id);
+    const fallbackUser: AppUser = resolvedUser ?? {
       uid: member.id,
       name: member.name,
       email: null,
-      profilePictureKey: undefined,
+      profilePictureKey: member.profilePictureKey,
       onlineStatus: false,
       lastSeen: undefined,
       updatedAt: undefined,
@@ -98,5 +106,10 @@ export class ChannelMembers {
     this.dialog.open(MemberDialog, {
       data: { user: fallbackUser },
     });
+  }
+
+  protected isCurrentUser(member: ChannelMemberView): boolean {
+    const currentUserId = this.userService.currentUser()?.uid;
+    return Boolean(currentUserId && member.id === currentUserId);
   }
 }

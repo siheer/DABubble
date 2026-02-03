@@ -73,7 +73,7 @@
                         class="channel__message-action"
                         aria-label="Grünen Haken setzen"
                         [class.channel__message-action--active]="
-                          message.reactions?.['✅']?.includes(currentUser?.uid ?? '')
+                          message.reactions['✅']?.includes(currentUser?.uid ?? '')
                         "
                         (click)="react(message, '✅')">
                         ✅
@@ -83,7 +83,7 @@
                         class="channel__message-action"
                         aria-label="Daumen hoch geben"
                         [class.channel__message-action--active]="
-                          message.reactions?.['👍']?.includes(currentUser?.uid ?? '')
+                          message.reactions['👍']?.includes(currentUser?.uid ?? '')
                         "
                         (click)="react(message, '👍')">
                         👍
@@ -180,22 +180,6 @@
                       (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
                       (hideTooltip)="hideReactionTooltip()"></app-message-reactions>
 
-                    <ng-container *ngIf="message.attachment as attachment">
-                      <div class="channel__attachment">
-                        <div class="channel__attachment-text">
-                          <span *ngIf="attachment.badgeLabel" class="channel__pill channel__pill--info">
-                            {{ attachment.badgeLabel }}
-                          </span>
-                          <h3>{{ attachment.title }}</h3>
-                          <p *ngIf="attachment.description">{{ attachment.description }}</p>
-                        </div>
-                        <a *ngIf="attachment.linkLabel" class="channel__attachment-link" [href]="attachment.linkHref">
-                          {{ attachment.linkLabel }}
-                          <mat-icon>open_in_new</mat-icon>
-                        </a>
-                      </div>
-                    </ng-container>
-
                     <button
                       *ngIf="message.replies"
                       type="button"
@@ -236,13 +220,19 @@
             </div>
             <div *ngIf="isMentionListVisible" class="channel__mention-suggestions">
               <ng-container *ngIf="mentionType === 'user'">
-                <button type="button" *ngFor="let member of userMentionSuggestions as members" (click)="insertMention(member)">
+                <button
+                  type="button"
+                  *ngFor="let member of userMentionSuggestions as members"
+                  (click)="insertMention(member)">
                   <img [src]="getAvatarUrl(member.profilePictureKey)" [alt]="member.name" />
                   <span class="truncate">{{ member.name }}</span>
                 </button>
               </ng-container>
               <ng-container *ngIf="mentionType === 'channel'">
-                <button type="button" *ngFor="let channel of channelMentionSuggestions" (click)="insertChannel(channel)">
+                <button
+                  type="button"
+                  *ngFor="let channel of channelMentionSuggestions"
+                  (click)="insertChannel(channel)">
                   <span class="truncate">#{{ channel.name }}</span>
                 </button>
               </ng-container>

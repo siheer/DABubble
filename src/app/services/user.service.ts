@@ -24,6 +24,8 @@ import { ProfilePictureKey } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 import { FullscreenOverlayService } from './fullscreen-overlay.service';
 
+const RESERVED_USER_IDS = new Set(['__system__', 'system']);
+
 export interface AppUser {
   uid: string;
   email: string | null;
@@ -191,18 +193,20 @@ export class UserService {
             const usersCollection = collection(this.firestore, 'users');
             return collectionData(usersCollection, { idField: 'uid', serverTimestamps: 'estimate' }).pipe(
               map((users) =>
-                (users as Array<Partial<AppUser> & { uid?: string }>).map((user) => ({
-                  uid: user.uid ?? 'unbekannt',
-                  name: user.name ?? 'Unbenannter Nutzer',
-                  email: user.email ?? null,
-                  profilePictureKey: user.profilePictureKey ?? 'default',
-                  onlineStatus: user.onlineStatus ?? false,
-                  lastSeen: user.lastSeen,
-                  updatedAt: user.updatedAt,
-                  createdAt: user.createdAt,
-                  role: user.role,
-                  isGuest: user.isGuest ?? false,
-                }))
+                (users as Array<Partial<AppUser> & { uid?: string }>)
+                  .map((user) => ({
+                    uid: user.uid ?? 'unbekannt',
+                    name: user.name ?? 'Unbenannter Nutzer',
+                    email: user.email ?? null,
+                    profilePictureKey: user.profilePictureKey ?? 'default',
+                    onlineStatus: user.onlineStatus ?? false,
+                    lastSeen: user.lastSeen,
+                    updatedAt: user.updatedAt,
+                    createdAt: user.createdAt,
+                    role: user.role,
+                    isGuest: user.isGuest ?? false,
+                  }))
+                  .filter((user) => !RESERVED_USER_IDS.has(user.uid))
               )
             );
           },
@@ -218,24 +222,26 @@ export class UserService {
       const usersCollection = collection(this.firestore, 'users');
       const snapshot = await getDocs(usersCollection);
 
-      return snapshot.docs.map((docSnap) => {
-        const data = docSnap.data() as Partial<AppUser>;
-        return {
-          id: docSnap.id,
-          data: {
-            uid: data.uid ?? docSnap.id,
-            name: data.name ?? 'Unbenannter Nutzer',
-            email: data.email ?? null,
-            profilePictureKey: data.profilePictureKey ?? 'default',
-            onlineStatus: data.onlineStatus ?? false,
-            lastSeen: data.lastSeen,
-            updatedAt: data.updatedAt,
-            createdAt: data.createdAt,
-            role: data.role,
-            isGuest: data.isGuest ?? false,
-          },
-        };
-      });
+      return snapshot.docs
+        .filter((docSnap) => !RESERVED_USER_IDS.has(docSnap.id))
+        .map((docSnap) => {
+          const data = docSnap.data() as Partial<AppUser>;
+          return {
+            id: docSnap.id,
+            data: {
+              uid: data.uid ?? docSnap.id,
+              name: data.name ?? 'Unbenannter Nutzer',
+              email: data.email ?? null,
+              profilePictureKey: data.profilePictureKey ?? 'default',
+              onlineStatus: data.onlineStatus ?? false,
+              lastSeen: data.lastSeen,
+              updatedAt: data.updatedAt,
+              createdAt: data.createdAt,
+              role: data.role,
+              isGuest: data.isGuest ?? false,
+            },
+          };
+        });
     });
   }
 

@@ -18,12 +18,13 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, map, shareReplay } from 'rxjs';
 import { NOTIFICATIONS } from '../notifications';
-import type { DirectMessage, DirectMessageEntry, DirectMessageMeta, ProfilePictureKey } from '../types';
+import type { DirectMessage, DirectMessageEntry, DirectMessageMeta } from '../types';
 import { AuthService } from './auth.service';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
+  static readonly SYSTEM_USER_ID = '__system__';
   private directMessagesCache = new Map<string, Observable<DirectMessageEntry[]>>();
   private directMessages$?: Observable<DirectMessage[]>;
   private directMessageMetaCache = new Map<string, Observable<DirectMessageMeta[]>>();
@@ -41,7 +42,7 @@ export class DirectMessagesService {
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () => {
             const usersCollection = collection(this.firestore, 'users');
-            return collectionData(usersCollection, { idField: 'id' }).pipe(
+            return collectionData(usersCollection, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((users) =>
                 (users as any[]).map((user) => ({
                   id: user.id ?? 'unbekannt',
@@ -71,7 +72,7 @@ export class DirectMessagesService {
           isUserAllowed: (currentUser) => currentUser.uid === userId,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            collectionData(metaQuery, { idField: 'id' }).pipe(
+            collectionData(metaQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((metas) =>
                 (metas as Array<Record<string, unknown>>).map((meta) => ({
                   id: meta['id'] as string,
@@ -105,15 +106,15 @@ export class DirectMessagesService {
           isUserAllowed: (currentUser) => currentUser.uid === currentUserId,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            collectionData(messagesQuery, { idField: 'id' }).pipe(
+            collectionData(messagesQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((messages) =>
                 (messages as Array<Record<string, unknown>>).map((message) => ({
                   id: message['id'] as string,
                   authorId: message['authorId'] as string,
-                  authorName: (message['authorName'] as string) ?? 'Unbekannter Nutzer',
-                  authorProfilePictureKey: (message['authorProfilePictureKey'] as ProfilePictureKey) ?? 'default',
                   text: (message['text'] as string) ?? '',
-                  createdAt: message['createdAt'] as Timestamp,
+                  createdAt: (message['createdAt'] as Timestamp) ?? Timestamp.now(),
+                  updatedAt:
+                    (message['updatedAt'] as Timestamp) ?? (message['createdAt'] as Timestamp) ?? Timestamp.now(),
                   reactions: (message['reactions'] as Record<string, string[]>) ?? {},
                 }))
               )
@@ -128,7 +129,7 @@ export class DirectMessagesService {
   }
 
   async sendDirectMessage(
-    currentUser: Pick<DirectMessageEntry, 'authorId' | 'authorName' | 'authorProfilePictureKey'> & { text: string },
+    currentUser: Pick<DirectMessageEntry, 'authorId' | 'text'>,
     recipientId: string
   ): Promise<void> {
     const authorId = currentUser.authorId ?? '';
@@ -136,9 +137,10 @@ export class DirectMessagesService {
     const messagesCollection = collection(this.firestore, `directMessages/${conversationId}/messages`);
 
     await addDoc(messagesCollection, {
-      ...currentUser,
+      authorId,
       text: currentUser.text,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       reactions: {},
     });
 
@@ -161,7 +163,7 @@ export class DirectMessagesService {
         readDoc,
         {
           userId: authorId,
-          conversationId,
+          targetId: conversationId,
           scope: 'dm',
           lastReadAt: serverTimestamp(),
           lastReadCount: increment(1),
@@ -170,6 +172,31 @@ export class DirectMessagesService {
         { merge: true }
       );
     }
+  }
+
+  async sendSystemMessage(recipientId: string, text: string): Promise<void> {
+    const conversationId = this.buildConversationId(recipientId, recipientId);
+    const messagesCollection = collection(this.firestore, `directMessages/${conversationId}/messages`);
+
+    await addDoc(messagesCollection, {
+      authorId: DirectMessagesService.SYSTEM_USER_ID,
+      text,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      reactions: {},
+    });
+
+    const metaDoc = doc(this.firestore, `directMessages/${conversationId}`);
+    await setDoc(
+      metaDoc,
+      {
+        participants: [recipientId],
+        lastMessageAt: serverTimestamp(),
+        lastMessageAuthorId: DirectMessagesService.SYSTEM_USER_ID,
+        messageCount: increment(1),
+      },
+      { merge: true }
+    );
   }
 
   async updateDirectMessage(

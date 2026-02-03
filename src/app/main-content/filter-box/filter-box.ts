@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, inject } from '@angular/core';
 import { SearchService } from '../../services/search.service';
 import { CommonModule } from '@angular/common';
-import { SearchResult } from '../../classes/search-result.class';
+import { ChannelSearchResult, MessageSearchResult, SearchResult, UserSearchResult } from '../../types';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { AppUser, UserService } from '../../services/user.service';
@@ -115,19 +115,8 @@ export class FilterBox implements OnInit, OnChanges {
 
   choose(item: SearchResult) {
     if (item.collection === 'users') {
-      const user: AppUser = {
-        uid: item.id,
-        name: item.data.name,
-        email: item.data.email ?? null,
-        profilePictureKey: item.data.profilePictureKey ?? 'default',
-        onlineStatus: item.data.onlineStatus ?? false,
-        lastSeen: item.data.lastSeen,
-        createdAt: item.data.createdAt,
-        updatedAt: item.data.updatedAt,
-      };
-
       this.dialog.open(MemberDialog, {
-        data: { user },
+        data: { user: item.data },
       });
 
       this.close.emit();
@@ -136,9 +125,7 @@ export class FilterBox implements OnInit, OnChanges {
       this.selectItem.emit(item);
       this.close.emit();
     } else if (item.collection === 'messages') {
-      if (!item.channelId || !item.id) return;
-
-      if (item.parentMessageId) {
+      if (item.isThread) {
         void this.router.navigate(['/main/channels', item.channelId, 'threads', item.parentMessageId]);
       } else {
         void this.router.navigate(['/main/channels', item.channelId], { queryParams: { highlight: item.id } });
@@ -148,16 +135,16 @@ export class FilterBox implements OnInit, OnChanges {
     }
   }
 
-  get users(): SearchResult[] {
-    return this.results.filter((r) => r.collection === 'users');
+  get users(): UserSearchResult[] {
+    return this.results.filter((r) => r.collection === 'users') as UserSearchResult[];
   }
 
-  get channels(): SearchResult[] {
-    return this.results.filter((r) => r.collection === 'channels');
+  get channels(): ChannelSearchResult[] {
+    return this.results.filter((r) => r.collection === 'channels') as ChannelSearchResult[];
   }
 
-  get messages(): SearchResult[] {
-    return this.results.filter((r) => r.collection === 'messages');
+  get messages(): MessageSearchResult[] {
+    return this.results.filter((r) => r.collection === 'messages') as MessageSearchResult[];
   }
 
   get isUserSearch(): boolean {
@@ -176,7 +163,7 @@ export class FilterBox implements OnInit, OnChanges {
     return this.isGuidance || this.results.length > 0 || this.showEmptyState;
   }
 
-  getAuthor(message: SearchResult): AppUser | undefined {
+  getAuthor(message: Extract<SearchResult, { collection: 'messages' }>): AppUser | undefined {
     return this.usersById.get(message.data.authorId);
   }
 
@@ -191,7 +178,7 @@ export class FilterBox implements OnInit, OnChanges {
     }, 400);
   }
 
-  getProfileUrl(user: SearchResult): string {
-    return this.userService.getProfilePictureUrl(user.data as AppUser);
+  getProfileUrl(user: Extract<SearchResult, { collection: 'users' }>): string {
+    return this.userService.getProfilePictureUrl(user.data);
   }
 }

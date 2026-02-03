@@ -1,6 +1,12 @@
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
-import { DocumentData, Firestore, collection, collectionGroup, getDocs } from '@angular/fire/firestore';
-import { SearchCollection, SearchResult, MessageDoc, ThreadDoc } from '../classes/search-result.class';
+import { DocumentData, Firestore, Timestamp, collection, collectionGroup, getDocs } from '@angular/fire/firestore';
+import {
+  ChannelSearchResult,
+  MessageBase,
+  SearchCollection,
+  SearchResult,
+  UserSearchResult,
+} from '../types';
 import { ChannelMembershipService } from './membership.service';
 import { UserService } from './user.service';
 import { from, Observable, of, switchMap } from 'rxjs';
@@ -11,8 +17,13 @@ export class SearchService {
   private readonly injector = inject(EnvironmentInjector);
 
   private async buildChannelMap(): Promise<Map<string, string>> {
-    const channels = await this.getAllFromCollection('channels');
-    return new Map(channels.map((c) => [c.id, c.data.title]));
+    const channels = await this.getCollectionDocs('channels');
+    return new Map(
+      channels.map((channel) => {
+        const data = channel.data as Record<string, unknown>;
+        return [channel.id, (data['title'] as string) ?? 'Unbenannter Channel'];
+      })
+    );
   }
 
   constructor(
@@ -71,14 +82,14 @@ export class SearchService {
 
   private async searchChannelsForUser(term: string, allowedChannelIds: Set<string>): Promise<SearchResult[]> {
     const lowerTerm = term.toLowerCase();
-    const channels = await this.getAllFromCollection('channels');
+    const channels = (await this.getAllFromCollection('channels')) as ChannelSearchResult[];
 
     return channels.filter((c) => {
       if (!allowedChannelIds.has(c.id)) return false;
 
       if (lowerTerm === '') return true;
 
-      return c.data.title?.toLowerCase().includes(lowerTerm);
+      return c.data.title.toLowerCase().includes(lowerTerm);
     });
   }
 
@@ -102,7 +113,7 @@ export class SearchService {
         const channelId = message.channelId;
         if (!channelId || !allowedChannelIds.has(channelId)) return null;
 
-        const data = message.data as MessageDoc;
+        const data = message.data as MessageBase;
 
         if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
 
@@ -110,11 +121,12 @@ export class SearchService {
           id: message.id,
           collection: 'messages',
           channelId,
-          channelTitle: channelMap.get(channelId),
+          channelTitle: channelMap.get(channelId) ?? 'Unbenannter Channel',
           data: {
             text: data.text,
             authorId: data.authorId,
           },
+          isThread: false,
         } as SearchResult;
       })
       .filter((r): r is SearchResult => r !== null);
@@ -133,14 +145,14 @@ export class SearchService {
         if (!parentMessageId || !channelId) return null;
         if (!allowedChannelIds.has(channelId)) return null;
 
-        const data = thread.data as ThreadDoc;
+        const data = thread.data as MessageBase;
         if (!data.text?.toLowerCase().includes(lowerTerm)) return null;
 
         return {
           id: thread.id,
           collection: 'messages',
           channelId,
-          channelTitle: channelMap.get(channelId),
+          channelTitle: channelMap.get(channelId) ?? 'Unbenannter Channel',
           parentMessageId,
           isThread: true,
           data: {
@@ -175,14 +187,14 @@ export class SearchService {
    * @returns A list of SearchResult objects from the matching collection
    */
   private async searchByText(
-    collectionName: SearchCollection,
+    collectionName: 'users',
     term: string,
-    extractField: (r: SearchResult) => string
+    extractField: (r: UserSearchResult) => string
   ): Promise<SearchResult[]> {
     const results = await this.getAllFromCollection(collectionName);
     const lowerTerm = term.toLowerCase();
 
-    return results.filter((r) => extractField(r).toLowerCase().includes(lowerTerm));
+    return (results as UserSearchResult[]).filter((r) => extractField(r).toLowerCase().includes(lowerTerm));
   }
 
   /**
@@ -194,14 +206,35 @@ export class SearchService {
    * @returns A list of all documents in the collection as SearchResult objects
    */
   async getAllFromCollection(collectionName: SearchCollection): Promise<SearchResult[]> {
-    const docs =
-      collectionName === 'users' ? await this.userService.getUserDocs() : await this.getCollectionDocs(collectionName);
+    if (collectionName === 'users') {
+      const docs = await this.userService.getUserDocs();
+      return docs.map((doc) => ({
+        id: doc.id,
+        collection: 'users',
+        data: doc.data,
+      }));
+    }
 
-    return docs.map((doc) => ({
-      id: doc.id,
-      collection: collectionName,
-      data: doc.data,
-    }));
+    if (collectionName === 'channels') {
+      const docs = await this.getCollectionDocs(collectionName);
+      return docs.map((doc) => {
+        const data = doc.data as Record<string, unknown>;
+        return {
+          id: doc.id,
+          collection: 'channels',
+          data: {
+            id: doc.id,
+            title: (data['title'] as string) ?? 'Unbenannter Channel',
+            description: (data['description'] as string) ?? 'Keine Beschreibung.',
+            isPublic: (data['isPublic'] as boolean) ?? false,
+            messageCount: (data['messageCount'] as number) ?? 0,
+            lastMessageAt: data['lastMessageAt'] as Timestamp | undefined,
+          },
+        } as ChannelSearchResult;
+      });
+    }
+
+    return [];
   }
 
   private async getCollectionDocs(collectionName: string): Promise<Array<{ id: string; data: DocumentData }>> {

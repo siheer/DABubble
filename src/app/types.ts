@@ -14,22 +14,7 @@ export interface PasswordValidationResult {
   };
 }
 
-export interface PendingRegistrationData {
-  fullName: string;
-  emailAddress: string;
-  password: string;
-  privacyAccepted: boolean;
-  profilePictureKey: ProfilePictureKey;
-}
-
-export type ProfilePictureKey =
-  | 'default'
-  | 'female1'
-  | 'female2'
-  | 'male1'
-  | 'male2'
-  | 'male3'
-  | 'male4';
+export type ProfilePictureKey = 'default' | 'female1' | 'female2' | 'male1' | 'male2' | 'male3' | 'male4';
 
 export interface ProfilePicture {
   key: ProfilePictureKey;
@@ -37,116 +22,94 @@ export interface ProfilePicture {
 }
 
 // Guest registry
-export type GuestRegistryData = { usedNumbers?: number[]; isCleanedUp?: boolean; lastCleanupAt?: number };
+export type GuestRegistryData = { usedNumbers: number[]; isCleanedUp: boolean; lastCleanupAt: number };
 
 // Channels and membership
 export interface Channel {
-  id?: string;
-  title?: string;
-  description?: string;
-  isPublic?: boolean;
-  messageCount?: number;
+  id: string;
+  title: string;
+  description: string;
+  isPublic: boolean;
+  messageCount: number;
   lastMessageAt?: Timestamp;
 }
 
-export interface ChannelAttachment {
-  title?: string;
-  description?: string;
-  linkLabel?: string;
-  linkHref?: string;
-  badgeLabel?: string;
+export type MessageReactions = Record<string, string[]>;
+
+export interface MessageBase {
+  authorId: string;
+  text: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
-export interface ChannelMessage {
-  id?: string;
-  authorId: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-  text?: string;
-  replies?: number;
+export interface MessageWithReactions extends MessageBase {
+  reactions: MessageReactions;
+}
+
+export interface ChannelMessage extends MessageWithReactions {
+  id: string;
+  replies: number;
   lastReplyAt?: Timestamp;
   tag?: string;
-  attachment?: ChannelAttachment;
-  reactions?: {
-    [emoji: string]: string[];
-  };
 }
 
 export interface ChannelMember {
   id: string;
   name: string;
-  profilePictureKey?: ProfilePictureKey;
+  profilePictureKey: ProfilePictureKey;
   subtitle?: string;
-  addedAt?: Timestamp;
-  channelId?: string;
-  scope?: 'channel';
+  addedAt: Timestamp;
+  channelId: string;
+  scope: 'channel';
 }
 
 // Threads
-export interface ThreadDocument {
-  authorId: string;
-  text: string;
-  createdAt?: any;
+export interface ThreadDocument extends MessageBase {
+  id: string;
 }
 
-export interface ThreadReply {
-  id?: string;
-  authorId: string;
-  text: string;
-  createdAt?: any;
-  reactions?: Record<string, string[]>; 
+export interface ThreadReply extends MessageWithReactions {
+  id: string;
 }
 
-export interface ThreadMessage {
+// Thread state
+export interface ThreadRootState {
   id: string;
   authorId: string;
-  authorName?: string;
-  profilePictureKey?: ProfilePictureKey;
-  timestamp: string;
   text: string;
-  isOwn?: boolean;
-  reactions?: Record<string, string[]>;
+  timestamp: string;
 }
 
-export interface ThreadContext {
+export interface ThreadState {
   channelId: string;
-  channelTitle: string;
-  root: ThreadMessage;
-  replies: ThreadMessage[];
+  root: ThreadRootState;
 }
 
 export interface ThreadSource {
-  id?: string;
+  id: string;
   channelId: string;
-  channelTitle: string;
   authorId: string;
   time: string;
   text: string;
-  isOwn?: boolean;
 }
 
 // Direct messages
 export interface DirectMessage {
   id: string;
   name: string;
-  email?: string | null;
-  photoUrl?: string | null;
+  email: string | null;
+  photoUrl: string | null;
 }
 
-export interface DirectMessageEntry {
-  id?: string;
-  authorId?: string;
-  authorName?: string;
-  authorProfilePictureKey?: ProfilePictureKey;
-  text?: string;
-  createdAt?: Timestamp;
-  reactions?: Record<string, string[]>;
+export interface DirectMessageEntry extends MessageWithReactions {
+  id: string;
 }
 
 export interface DirectMessageMeta {
-  id?: string;
+  id: string;
   participants: string[];
-  messageCount?: number;
+  messageCount: number;
   lastMessageAt?: Timestamp;
   lastMessageAuthorId?: string;
 }
@@ -158,33 +121,44 @@ export type ChannelListItem = Channel & { unreadCount: number };
 
 export type ReadStatusEntry = {
   userId: string;
-  conversationId?: string;
-  channelId?: string;
-  lastReadAt?: Timestamp;
-  lastReadCount?: number;
-  updatedAt?: Timestamp;
-  scope?: 'channel' | 'dm';
+  targetId: string;
+  scope: 'channel' | 'dm';
+  lastReadAt: Timestamp;
+  lastReadCount: number;
+  updatedAt: Timestamp;
 };
 
 // Channel UI views
-export type ChannelMessageView = {
-  id?: string;
+export interface MessageViewBase {
+  id: string;
   authorId: string;
+  profilePictureKey: ProfilePictureKey;
+  text: string;
+  isOwn: boolean;
+  reactions: MessageReactions;
+}
+
+export interface ChannelMessageView extends MessageViewBase {
   author: string;
-  profilePictureKey?: ProfilePictureKey;
   createdAt: Date;
   time: string;
-  text: string;
-  replies?: number;
+  replies: number;
   lastReplyAt?: Date;
   lastReplyTime?: string;
   tag?: string;
-  attachment?: ChannelAttachment;
-  isOwn?: boolean;
-  reactions?: {
-    [emoji: string]: string[];
-  };
-};
+}
+
+export interface ThreadMessage extends MessageViewBase {
+  authorName: string;
+  timestamp: string;
+}
+
+export interface ThreadContext {
+  channelId: string;
+  channelTitle: string;
+  root: ThreadMessage;
+  replies: ThreadMessage[];
+}
 
 export type ChannelDay = {
   label: string;
@@ -195,25 +169,79 @@ export type ChannelDay = {
 export type ChannelMemberView = {
   id: string;
   name: string;
-  profilePictureKey?: ProfilePictureKey;
+  profilePictureKey: ProfilePictureKey;
   subtitle?: string;
-  isCurrentUser?: boolean;
-  user?: AppUser;
 };
+
+// Mentions
+export type MentionType = 'user' | 'channel';
+
+export type UserMentionSuggestion = ChannelMemberView;
+
+export interface ChannelMentionSuggestion {
+  id: string;
+  name: string;
+}
+
+export interface MentionState {
+  suggestions: UserMentionSuggestion[] | ChannelMentionSuggestion[];
+  isVisible: boolean;
+  triggerIndex: number | null;
+  caretIndex: number | null;
+  type?: MentionType;
+}
+
+export type MentionSegment =
+  | {
+      kind: 'text';
+      text: string;
+    }
+  | {
+      kind: 'member';
+      text: string;
+      member: ChannelMemberView;
+    }
+  | {
+      kind: 'channel';
+      text: string;
+      channel: ChannelMentionSuggestion;
+    };
 
 // Direct message UI
-export type MessageBubble = {
-  id?: string;
+export interface MessageBubble extends MessageViewBase {
   author: string;
-  profilePictureKey?: ProfilePictureKey;
-  content: string;
-  timestamp: Timestamp | undefined;
-  isOwn?: boolean;
-  reactions?: Record<string, string[]>;
-};
+  timestamp: Date;
+}
 
 // Search
-export type SearchResult = {
+export type SearchCollection = 'users' | 'channels' | 'messages';
+
+export type UserSearchResult = {
+  id: string;
+  collection: 'users';
+  data: AppUser;
+};
+
+export type ChannelSearchResult = {
+  id: string;
+  collection: 'channels';
+  data: Channel;
+};
+
+type MessageSearchBase = {
+  id: string;
+  collection: 'messages';
+  data: { text: string; authorId: string };
+  channelId: string;
+  channelTitle: string;
+};
+
+export type MessageSearchResult = MessageSearchBase &
+  ({ isThread: false } | { isThread: true; parentMessageId: string });
+
+export type SearchResult = UserSearchResult | ChannelSearchResult | MessageSearchResult;
+
+export type SearchPanelResult = {
   channels: Channel[];
   users: Array<AppUser & { displayName: string; isCurrentUser: boolean }>;
   hasQuery: boolean;

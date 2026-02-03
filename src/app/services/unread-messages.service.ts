@@ -108,16 +108,14 @@ export class UnreadMessagesService {
     activeChannelId: string | null
   ): ChannelListItem[] {
     const readStatusMap = new Map(
-      readStatusEntries
-        .filter((status) => !!status.channelId && (!status.scope || status.scope === 'channel'))
-        .map((status) => [status.channelId ?? '', status])
+      readStatusEntries.filter((status) => status.scope === 'channel').map((status) => [status.targetId, status])
     );
 
     const mapped = channels.map((channel) => {
       const channelId = channel.id;
       if (!channelId) return { ...channel, unreadCount: 0 };
 
-      const messageCount = channel.messageCount ?? 0;
+      const messageCount = channel.messageCount;
       const lastReadCount = readStatusMap.get(channelId)?.lastReadCount ?? 0;
       const unreadCount = Math.max(0, messageCount - lastReadCount);
       const isActive = activeChannelId === channelId;
@@ -148,9 +146,7 @@ export class UnreadMessagesService {
   ): DirectMessageUser[] {
     const metaMap = new Map(metas.map((meta) => [meta.id ?? '', meta]));
     const readStatusMap = new Map(
-      readStatusEntries
-        .filter((status) => !!status.conversationId && (!status.scope || status.scope === 'dm'))
-        .map((status) => [status.conversationId!, status])
+      readStatusEntries.filter((status) => status.scope === 'dm').map((status) => [status.targetId, status])
     );
 
     const directMessageUsers = users
@@ -196,11 +192,10 @@ export class UnreadMessagesService {
           ]).pipe(
             map(([channel, readStatusEntries]) => {
               if (!channel) return null;
-              const messageCount = channel.messageCount ?? 0;
+              const messageCount = channel.messageCount;
               const lastReadCount =
-                readStatusEntries.find(
-                  (status) => status.channelId === channelId && (!status.scope || status.scope === 'channel')
-                )?.lastReadCount ?? 0;
+                readStatusEntries.find((status) => status.scope === 'channel' && status.targetId === channelId)
+                  ?.lastReadCount ?? 0;
               return { userId: currentUser.uid, channelId, messageCount, lastReadCount };
             })
           );
@@ -242,7 +237,7 @@ export class UnreadMessagesService {
             map(([metas, readStatusEntries]) => {
               const meta = metas.find((entry) => entry.id === conversationId);
               const readStatus = readStatusEntries.find(
-                (status) => status.conversationId === conversationId && (!status.scope || status.scope === 'dm')
+                (status) => status.scope === 'dm' && status.targetId === conversationId
               );
               const messageCount = meta?.messageCount ?? 0;
               const lastReadCount = readStatus?.lastReadCount ?? 0;
@@ -300,17 +295,49 @@ export class UnreadMessagesService {
           isUserAllowed: (currentUser) => currentUser.uid === userId,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            collectionData(readStatusQuery).pipe(
+            collectionData(readStatusQuery, { serverTimestamps: 'estimate' }).pipe(
               map((statuses) =>
-                (statuses as Array<Record<string, unknown>>).map((status) => ({
-                  userId: status['userId'] as string,
-                  conversationId: status['conversationId'] as string | undefined,
-                  channelId: status['channelId'] as string | undefined,
-                  lastReadAt: status['lastReadAt'] as Timestamp | undefined,
-                  lastReadCount: (status['lastReadCount'] as number) ?? 0,
-                  updatedAt: status['updatedAt'] as Timestamp | undefined,
-                  scope: status['scope'] as 'channel' | 'dm' | undefined,
-                }))
+                (statuses as Array<Record<string, unknown>>)
+                  .map((status) => {
+                    const userId = status['userId'] as string | undefined;
+                    if (!userId) return null;
+                    const lastReadAt = (status['lastReadAt'] as Timestamp) ?? Timestamp.now();
+                    const updatedAt = (status['updatedAt'] as Timestamp) ?? lastReadAt;
+                    const lastReadCount = (status['lastReadCount'] as number) ?? 0;
+                    const scope = status['scope'] as 'channel' | 'dm' | undefined;
+                    const targetId = status['targetId'] as string | undefined;
+                    const conversationId = status['conversationId'] as string | undefined;
+                    const channelId = status['channelId'] as string | undefined;
+
+                    if (scope === 'dm' || (conversationId && scope !== 'channel')) {
+                      const resolvedTargetId = targetId ?? conversationId;
+                      if (!resolvedTargetId) return null;
+                      return {
+                        userId,
+                        targetId: resolvedTargetId,
+                        scope: 'dm',
+                        lastReadAt,
+                        lastReadCount,
+                        updatedAt,
+                      };
+                    }
+
+                    if (scope === 'channel' || (channelId && scope !== 'dm')) {
+                      const resolvedTargetId = targetId ?? channelId;
+                      if (!resolvedTargetId) return null;
+                      return {
+                        userId,
+                        targetId: resolvedTargetId,
+                        scope: 'channel',
+                        lastReadAt,
+                        lastReadCount,
+                        updatedAt,
+                      };
+                    }
+
+                    return null;
+                  })
+                  .filter((entry): entry is ReadStatusEntry => entry !== null)
               )
             ),
         })
@@ -322,17 +349,13 @@ export class UnreadMessagesService {
     return this.readStatusEntriesByUserCache.get(userId)!;
   }
 
-  private async setDirectMessageReadStatus(
-    userId: string,
-    conversationId: string,
-    messageCount: number
-  ): Promise<void> {
-    const readDoc = doc(this.firestore, `directMessages/${conversationId}/readStatus/${userId}`);
+  private async setDirectMessageReadStatus(userId: string, targetId: string, messageCount: number): Promise<void> {
+    const readDoc = doc(this.firestore, `directMessages/${targetId}/readStatus/${userId}`);
     await setDoc(
       readDoc,
       {
         userId,
-        conversationId,
+        targetId,
         scope: 'dm',
         lastReadAt: serverTimestamp(),
         lastReadCount: messageCount,
@@ -348,7 +371,7 @@ export class UnreadMessagesService {
       readDoc,
       {
         userId,
-        channelId,
+        targetId: channelId,
         scope: 'channel',
         lastReadAt: serverTimestamp(),
         lastReadCount: messageCount,

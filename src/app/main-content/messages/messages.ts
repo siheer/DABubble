@@ -19,7 +19,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { AppUser, UserService } from '../../services/user.service';
 import type { ChannelMemberView, DirectMessageEntry, MessageBubble, ProfilePictureKey } from '../../types';
-import { Timestamp } from '@angular/fire/firestore';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { EMOJI_CHOICES } from '../../texts';
@@ -29,12 +28,7 @@ import { ReactionTooltipService } from '../../services/reaction-tooltip.service'
 import { ProfilePictureService } from '../../services/profile-picture.service';
 import { formatTimestamp, formatDateLabel, getDateKey, hasMention } from './messages.helper';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
-import {
-  MentionState,
-  MentionType,
-  UserMentionSuggestion,
-  ChannelMentionSuggestion,
-} from '../../classes/mentions.types';
+import { MentionState, MentionType, UserMentionSuggestion, ChannelMentionSuggestion } from '../../types';
 import { updateTagSuggestions, buildMessageSegments } from '../channel/channel-mention.helper';
 import { ChannelMembershipService } from '../../services/membership.service';
 
@@ -49,7 +43,7 @@ import { ChannelMembershipService } from '../../services/membership.service';
 export class Messages {
   private static readonly SYSTEM_PROFILE_PICTURE_KEY: ProfilePictureKey = 'default';
   private static readonly SYSTEM_AUTHOR_NAME = 'System';
-
+  private static readonly SYSTEM_USER_ID = DirectMessagesService.SYSTEM_USER_ID;
   private readonly directMessagesService = inject(DirectMessagesService);
   private readonly userService = inject(UserService);
   private readonly dialog = inject(MatDialog);
@@ -85,7 +79,7 @@ export class Messages {
         ? of([])
         : this.directMessagesService
             .getDirectConversationMessages(user.uid, recipient.uid)
-            .pipe(map((msgs) => msgs.map((m) => this.mapMessage(m, user))))
+            .pipe(map((msgs) => msgs.map((m) => this.mapMessage(m, user, recipient))))
     ),
     shareReplay({ bufferSize: 1, refCount: true })
   );
@@ -180,8 +174,6 @@ export class Messages {
       await this.directMessagesService.sendDirectMessage(
         {
           authorId: this.currentUser.uid,
-          authorName: this.currentUser.name,
-          authorProfilePictureKey: this.currentUser.profilePictureKey ?? 'default',
           text: trimmed,
         },
         this.selectedRecipient.uid
@@ -227,12 +219,12 @@ export class Messages {
   }
 
   /** Formats timestamp to time string. */
-  protected formatTimestamp(timestamp?: Timestamp): string {
+  protected formatTimestamp(timestamp?: Date): string {
     return formatTimestamp(timestamp);
   }
 
   /** Formats timestamp to date label. */
-  protected formatDateLabel(timestamp?: Timestamp): string {
+  protected formatDateLabel(timestamp?: Date): string {
     return formatDateLabel(timestamp);
   }
 
@@ -246,17 +238,21 @@ export class Messages {
   }
 
   /** Maps DirectMessageEntry to MessageBubble. */
-  private mapMessage(message: DirectMessageEntry, currentUser: AppUser): MessageBubble {
-    const isSys = message.authorName === Messages.SYSTEM_AUTHOR_NAME;
-    const isOwn = !isSys && message.authorId === currentUser.uid;
+  private mapMessage(message: DirectMessageEntry, currentUser: AppUser, recipient: AppUser): MessageBubble {
+    const isSystem = message.authorId === Messages.SYSTEM_USER_ID;
+    const isOwn = !isSystem && message.authorId === currentUser.uid;
+    const authorUser = isOwn ? currentUser : recipient;
     return {
       id: message.id,
-      author: isOwn ? 'Du' : (message.authorName ?? 'Unbekannter Nutzer'),
-      profilePictureKey: message.authorProfilePictureKey ?? 'default',
-      content: message.text ?? '',
-      timestamp: message.createdAt,
+      authorId: message.authorId,
+      author: isSystem ? Messages.SYSTEM_AUTHOR_NAME : isOwn ? 'Du' : authorUser.name,
+      profilePictureKey: isSystem
+        ? Messages.SYSTEM_PROFILE_PICTURE_KEY
+        : (authorUser.profilePictureKey ?? Messages.SYSTEM_PROFILE_PICTURE_KEY),
+      text: message.text,
+      timestamp: message.createdAt ? message.createdAt.toDate() : new Date(),
       isOwn,
-      reactions: message.reactions ?? {},
+      reactions: message.reactions,
     };
   }
 
@@ -269,22 +265,14 @@ export class Messages {
       new Date()
     );
     const messageText = `Du wurdest von ${this.currentUser.name} am ${formattedTime} im privaten Chat mit ${this.currentUser.name} erwähnt.`;
-    await this.directMessagesService.sendDirectMessage(
-      {
-        authorId: this.selectedRecipient.uid,
-        authorName: Messages.SYSTEM_AUTHOR_NAME,
-        authorProfilePictureKey: Messages.SYSTEM_PROFILE_PICTURE_KEY,
-        text: messageText,
-      },
-      this.selectedRecipient.uid
-    );
+    await this.directMessagesService.sendSystemMessage(this.selectedRecipient.uid, messageText);
   }
 
   /** Starts editing message. */
   protected startEditing(message: MessageBubble): void {
     if (!message.id || !message.isOwn) return;
     this.editingMessageId = message.id;
-    this.editMessageText = message.content;
+    this.editMessageText = message.text;
   }
 
   /** Cancels editing. */
@@ -380,18 +368,14 @@ export class Messages {
     map.set(this.currentUser.uid, {
       id: this.currentUser.uid,
       name: this.currentUser.name,
-      profilePictureKey: this.currentUser.profilePictureKey,
-      isCurrentUser: true,
-      user: this.currentUser,
+      profilePictureKey: this.currentUser.profilePictureKey ?? 'default',
     });
 
     if (this.selectedRecipient.uid !== this.currentUser.uid) {
       map.set(this.selectedRecipient.uid, {
         id: this.selectedRecipient.uid,
         name: this.selectedRecipient.name,
-        profilePictureKey: this.selectedRecipient.profilePictureKey,
-        isCurrentUser: false,
-        user: this.selectedRecipient,
+        profilePictureKey: this.selectedRecipient.profilePictureKey ?? 'default',
       });
     }
 

@@ -98,8 +98,9 @@ export class ChannelMembershipService {
                   name: (member['name'] as string) ?? 'Unbekannter Nutzer',
                   profilePictureKey: (member['profilePictureKey'] as ProfilePictureKey) ?? 'default',
                   subtitle: member['subtitle'] as string | undefined,
-                  addedAt: member['addedAt'] as Timestamp | undefined,
+                  addedAt: (member['addedAt'] as Timestamp) ?? Timestamp.now(),
                   channelId: (member['channelId'] as string) ?? channelId,
+                  scope: (member['scope'] as 'channel') ?? 'channel',
                 }))
               )
             ),
@@ -112,13 +113,16 @@ export class ChannelMembershipService {
     return this.channelMembersCache.get(channelId)!;
   }
 
-  async upsertChannelMember(channelId: string, member: ChannelMember): Promise<void> {
+  async upsertChannelMember(
+    channelId: string,
+    member: Pick<ChannelMember, 'id' | 'name' | 'profilePictureKey' | 'subtitle'>
+  ): Promise<void> {
     const memberDoc = doc(this.firestore, `channels/${channelId}/members/${member.id}`);
 
     const payload: Record<string, unknown> = {
       id: member.id,
       name: member.name,
-      profilePictureKey: member.profilePictureKey ?? 'default',
+      profilePictureKey: member.profilePictureKey,
       channelId,
       scope: 'channel',
       addedAt: serverTimestamp(),

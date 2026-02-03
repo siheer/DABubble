@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
+  Timestamp,
   addDoc,
   collection,
   collectionData,
@@ -17,7 +18,16 @@ import { BehaviorSubject, Observable, Subject, combineLatest, map, of, shareRepl
 import { ChannelService } from './channel.service';
 import { UserService } from './user.service';
 import { AuthService } from './auth.service';
-import type { ChannelMessage, ThreadDocument, ThreadReply, ThreadContext, ThreadSource, ThreadMessage } from '../types';
+import type {
+  ChannelMessage,
+  ProfilePictureKey,
+  ThreadDocument,
+  ThreadReply,
+  ThreadContext,
+  ThreadSource,
+  ThreadMessage,
+  ThreadState,
+} from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
 
 @Injectable({ providedIn: 'root' })
@@ -34,7 +44,7 @@ export class ThreadService {
   readonly threadPanelOpen$ = this.threadPanelOpenSubject.asObservable();
 
   private readonly authUser$ = this.authService.authState$.pipe(startWith(this.authService.auth.currentUser));
-  private readonly threadSubject = new BehaviorSubject<ThreadContext | null>(null);
+  private readonly threadSubject = new BehaviorSubject<ThreadState | null>(null);
   private threadRepliesCache = new Map<string, Observable<ThreadReply[]>>();
   private threadCache = new Map<string, Observable<ThreadDocument | null>>();
   // Feste Dokument-ID für die Thread-Metadaten, damit der Pfad eine gerade Segmentzahl hat:
@@ -64,26 +74,13 @@ export class ThreadService {
             };
           };
 
-          const root = this.toRootMessage(context, storedThread, rootMessage, authUser.uid);
-
-          const isOwn = root.authorId === authUser.uid;
+          const root = this.toRootMessage(context, storedThread, rootMessage, authUser.uid, mapUser);
 
           return {
             channelId: context.channelId,
-            channelTitle: channel?.title ?? context.channelTitle,
-            root: {
-              ...root,
-              isOwn,
-              ...mapUser(root.authorId),
-            },
-            replies: replies.map((r) => {
-              const message = this.toThreadMessage(r);
-              return {
-                ...message,
-                isOwn: r.authorId === authUser.uid,
-                ...mapUser(r.authorId),
-              };
-            }),
+            channelTitle: channel?.title ?? 'Unbekannter Channel',
+            root,
+            replies: replies.map((reply) => this.toThreadMessage(reply, authUser.uid, mapUser)),
           };
         })
       );
@@ -91,16 +88,14 @@ export class ThreadService {
   );
 
   openThread(source: ThreadSource): void {
-    const id = source.id ?? this.generateId();
-    this.setThreadContext(source.channelId, source.channelTitle, {
-      id,
+    this.setThreadState(source.channelId, {
+      id: source.id,
       authorId: source.authorId,
       timestamp: source.time,
       text: source.text,
-      isOwn: source.isOwn ?? false,
     });
 
-    void this.saveThread(source.channelId, id, {
+    void this.saveThread(source.channelId, source.id, {
       authorId: source.authorId,
       text: source.text,
     });
@@ -114,25 +109,26 @@ export class ThreadService {
       return;
     }
 
-    this.setThreadContext(channelId, current?.channelId === channelId ? current.channelTitle : '', { id: messageId });
+    this.setThreadState(channelId, {
+      id: messageId,
+      authorId: '',
+      text: '',
+      timestamp: '',
+    });
   }
 
-  private setThreadContext(
+  private setThreadState(
     channelId: string,
-    channelTitle: string,
-    root: Partial<ThreadMessage> & { id: string }
+    root: { id: string; authorId: string; text: string; timestamp: string }
   ): void {
     this.threadSubject.next({
       channelId,
-      channelTitle,
       root: {
         id: root.id,
         authorId: root.authorId ?? '',
         timestamp: root.timestamp ?? '',
         text: root.text ?? '',
-        isOwn: root.isOwn ?? false,
       },
-      replies: [],
     });
   }
 
@@ -199,15 +195,19 @@ export class ThreadService {
           fallbackValue: [],
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            collectionData(repliesQuery, { idField: 'id' }).pipe(
+            collectionData(repliesQuery, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
               map((replies) =>
-                (replies as any[]).map((reply) => ({
-                  id: reply.id,
-                  authorId: reply.authorId,
-                  text: reply.text ?? '',
-                  createdAt: reply.createdAt,
-                  reactions: reply.reactions ?? {},
-                }))
+                (replies as any[]).map((reply) => {
+                  const createdAt = (reply.createdAt as Timestamp) ?? Timestamp.now();
+                  return {
+                    id: reply.id,
+                    authorId: reply.authorId,
+                    text: reply.text ?? '',
+                    createdAt,
+                    updatedAt: (reply.updatedAt as Timestamp) ?? createdAt,
+                    reactions: reply.reactions ?? {},
+                  };
+                })
               )
             ),
         })
@@ -232,6 +232,7 @@ export class ThreadService {
       authorId: reply.authorId,
       text: reply.text,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       reactions: {},
     });
 
@@ -273,6 +274,7 @@ export class ThreadService {
         authorId: payload.authorId,
         text: payload.text,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       },
       { merge: true }
     );
@@ -309,7 +311,18 @@ export class ThreadService {
           fallbackValue: null,
           shouldLogError: () => Boolean(this.authService.auth.currentUser),
           createStream: () =>
-            docData(threadDocRef, { idField: 'id' }).pipe(map((data) => (data as ThreadDocument) ?? null)),
+            docData(threadDocRef, { idField: 'id', serverTimestamps: 'estimate' }).pipe(
+              map((data) => {
+                if (!data) return null;
+                const docData = data as Record<string, unknown>;
+                const createdAt = (docData['createdAt'] as Timestamp) ?? Timestamp.now();
+                return {
+                  ...(data as ThreadDocument),
+                  createdAt,
+                  updatedAt: (docData['updatedAt'] as Timestamp) ?? createdAt,
+                };
+              })
+            ),
         })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
 
@@ -320,35 +333,47 @@ export class ThreadService {
   }
 
   private toRootMessage(
-    context: ThreadContext,
+    context: ThreadState,
     storedThread: ThreadDocument | null,
     channelMessage: ChannelMessage | null,
-    authUserId: string
+    authUserId: string,
+    mapUser: (authorId: string) => { authorName: string; profilePictureKey: ProfilePictureKey }
   ): ThreadMessage {
     const authorId = channelMessage?.authorId ?? storedThread?.authorId ?? context.root.authorId;
     const text = channelMessage?.text ?? storedThread?.text ?? context.root.text;
     const timestampSource = channelMessage?.createdAt ? channelMessage : null;
     const createdAt = this.resolveTimestamp(timestampSource ?? null);
     const hasServerTimestamp = !!timestampSource?.createdAt;
+    const { authorName, profilePictureKey } = mapUser(authorId);
 
     return {
       id: context.root.id,
       authorId,
+      authorName,
+      profilePictureKey,
       timestamp: hasServerTimestamp ? this.formatTime(createdAt) : context.root.timestamp,
       text,
       isOwn: authorId === authUserId,
-      reactions: { ...(channelMessage?.reactions ?? {}) },
+      reactions: channelMessage?.reactions ?? {},
     };
   }
 
-  private toThreadMessage(reply: ThreadReply): ThreadMessage {
+  private toThreadMessage(
+    reply: ThreadReply,
+    authUserId: string,
+    mapUser: (authorId: string) => { authorName: string; profilePictureKey: ProfilePictureKey }
+  ): ThreadMessage {
     const createdAt = this.resolveTimestamp(reply);
+    const { authorName, profilePictureKey } = mapUser(reply.authorId);
     return {
-      id: reply.id ?? this.generateId(),
+      id: reply.id,
       authorId: reply.authorId,
+      authorName,
+      profilePictureKey,
       timestamp: this.formatTime(createdAt),
-      text: reply.text ?? '',
-      reactions: reply.reactions ?? {},
+      text: reply.text,
+      isOwn: reply.authorId === authUserId,
+      reactions: reply.reactions,
     };
   }
 
@@ -372,15 +397,7 @@ export class ThreadService {
     return formatter.format(date);
   }
 
-  private generateId(): string {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-      return crypto.randomUUID();
-    }
-
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-
-  threadSnapshot(): ThreadContext | null {
+  threadSnapshot(): ThreadState | null {
     return this.threadSubject.value;
   }
 }
