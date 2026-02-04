@@ -1,0 +1,137 @@
+@layer components {
+  .dab-card {
+    @apply mx-auto w-full bg-white px-4 py-8 shadow-md sm:rounded-3xl sm:p-10 lg:p-12;
+  }
+
+  .dab-form {
+    @apply space-y-7;
+  }
+
+  .dab-input-field {
+    @apply relative block;
+
+    .icon {
+      @apply pointer-events-none absolute top-1/2 left-6 -translate-y-1/2 text-dab-gray transition;
+    }
+
+    &:has(.icon) input {
+      @apply pl-15;
+    }
+
+    input {
+      @apply w-full rounded-full border border-transparent bg-dab-bg px-6 py-3 caret-dab-gray transition outline-none placeholder:text-dab-gray hover:not-focus:border-dab-gray focus:border-dab-purple-1;
+
+      &.ng-touched.ng-invalid:not(:focus, :hover) {
+        border-color: var(--dab-rosa-error);
+      }
+    }
+
+    &:has(input.ng-touched.ng-invalid):not(:focus-within, :hover) .icon {
+      color: var(--dab-rosa-error);
+    }
+
+    &:focus-within .icon {
+      color: black;
+    }
+  }
+
+  .dab-field-error {
+    @apply -mb-5 px-2 text-sm text-dab-rosa-error;
+  }
+
+  .dab-anchor-on-white,
+  .dab-anchor-on-white-inline {
+    @apply rounded-full border border-transparent px-4 py-0.5 text-center text-dab-purple-2 transition;
+
+    &:is(:hover, :focus-visible) {
+      @apply bg-dab-bg font-semibold text-dab-purple-1 no-underline outline-none;
+    }
+  }
+
+  .dab-anchor-on-white-inline {
+    @apply p-0;
+
+    &:is(:hover, :focus-visible) {
+      @apply bg-inherit;
+    }
+  }
+
+  .dab-anchor-on-bg {
+    @apply rounded-full border border-transparent px-4 py-1.5 text-center text-dab-purple-2 transition;
+
+    &:is(:hover, :focus-visible) {
+      @apply border-dab-gray font-semibold text-dab-purple-1 no-underline outline-none;
+    }
+  }
+
+  .dab-btn-primary,
+  .dab-btn-secondary {
+    @apply w-full rounded-full border border-transparent px-4 py-2 text-center font-medium text-white transition sm:w-fit sm:px-6;
+  }
+
+  .dab-btn-primary {
+    @apply bg-dab-purple-1 disabled:bg-dab-gray;
+
+    &:is(:hover, :focus-visible):not(:disabled) {
+      @apply bg-dab-purple-2 outline-none;
+    }
+
+    &:active:not(:disabled) {
+      @apply bg-dab-purple-1;
+    }
+  }
+
+  .dab-btn-secondary {
+    @apply border-dab-purple-1 text-dab-purple-1;
+
+    &:is(:hover, :focus-visible):not(:disabled) {
+      @apply bg-dab-purple-3 text-white outline-none;
+    }
+
+    &:active:not(:disabled) {
+      @apply bg-dab-purple-1 text-white;
+    }
+
+    &:disabled {
+      @apply border-dab-gray bg-white text-dab-gray;
+    }
+  }
+
+  .dab-ui-item {
+    @apply rounded-full p-2 leading-0 transition;
+
+    &:is(:hover, :focus-visible) {
+      @apply bg-dab-bg text-dab-purple-3 outline-none;
+    }
+
+    &:is(:hover, :focus-visible) :is(.material-icons, mat-icon) {
+      font-weight: bold !important;
+    }
+  }
+
+  .dab-avatar-img {
+    @apply rounded-full object-cover;
+  }
+
+  .paragraph-20 {
+    @apply text-center text-lg sm:text-xl;
+  }
+
+  .dab-inline-info,
+  .dab-inline-status,
+  .dab-inline-error {
+    @apply mx-2 my-4 rounded-xl bg-dab-bg px-4 py-3 text-center text-sm sm:mx-4 sm:my-6 sm:text-base;
+  }
+
+  .dab-inline-info {
+    @apply bg-dab-bg text-dab-purple-1;
+  }
+
+  .dab-inline-status {
+    @apply text-dab-gray;
+  }
+
+  .dab-inline-error {
+    @apply bg-rose-50 text-dab-rosa-error;
+  }
+}
