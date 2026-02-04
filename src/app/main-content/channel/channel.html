@@ -44,136 +44,45 @@
       </header>
 
       <section class="channel__panel">
-        <div class="channel__messages" aria-live="polite" #channelMessages>
+        <app-message-list class="message-list" aria-live="polite" #channelMessages>
           <ng-container *ngIf="messagesByDay$ | async as messagesByDay">
             <ng-container *ngIf="messagesByDay.length; else noMessages">
               <ng-container *ngFor="let day of messagesByDay">
-                <div class="channel__day">
+                <div class="message-divider">
                   <span>{{ day.label }}</span>
                 </div>
 
-                <article
+                <app-message-item
                   *ngFor="let message of day.messages; trackBy: trackByMessageId"
-                  class="channel__message"
-                  [id]="'message-' + message.id"
-                  [class.channel__message--own]="message.isOwn">
-                  <img
-                    class="channel__message-avatar rounded-full"
-                    [src]="getAvatarUrl(message.profilePictureKey)"
-                    [alt]="message.author" />
+                  [message]="message"
+                  [idPrefix]="'message-'"
+                  [avatarUrl]="getAvatarUrl(message.profilePictureKey)">
+                  <app-message-actions
+                    [message]="message"
+                    [currentUserId]="currentUser?.uid ?? null"
+                    [includeCheck]="true"
+                    [includeThumb]="true"
+                    [includePicker]="true"
+                    [includeThread]="true"
+                    [includeEdit]="true"
+                    [isOwn]="message.isOwn"
+                    [isVisible]="openEmojiPickerFor === message.id"
+                    [isEmojiPickerOpen]="openEmojiPickerFor === message.id"
+                    (actionSelected)="handleMessageAction(message, $event)"
+                    (emojiSelected)="react(message, $event)"></app-message-actions>
 
-                  <div class="channel__message-body">
-                    <div
-                      class="channel__message-actions"
-                      [class.channel__message-actions--visible]="openEmojiPickerFor === message.id"
-                      [class.channel__message-actions--own]="message.isOwn"
-                      aria-label="Nachrichtenaktionen">
-                      <button
-                        type="button"
-                        class="channel__message-action"
-                        aria-label="Grünen Haken setzen"
-                        [class.channel__message-action--active]="
-                          message.reactions['✅']?.includes(currentUser?.uid ?? '')
-                        "
-                        (click)="react(message, '✅')">
-                        ✅
-                      </button>
-                      <button
-                        type="button"
-                        class="channel__message-action"
-                        aria-label="Daumen hoch geben"
-                        [class.channel__message-action--active]="
-                          message.reactions['👍']?.includes(currentUser?.uid ?? '')
-                        "
-                        (click)="react(message, '👍')">
-                        👍
-                      </button>
-                      <button
-                        type="button"
-                        class="channel__message-action"
-                        aria-label="Emoji-Auswahl öffnen"
-                        (click)="toggleEmojiPicker(message.id)">
-                        <mat-icon>add_reaction</mat-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="channel__message-action"
-                        aria-label="Thread öffnen"
-                        (click)="openThread(message)">
-                        <mat-icon>chat_bubble</mat-icon>
-                      </button>
-                      <button
-                        *ngIf="message.isOwn"
-                        type="button"
-                        class="channel__message-action"
-                        aria-label="Weitere Aktionen"
-                        (click)="startEditingMessage(message)">
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-                      <div
-                        class="channel__emoji-picker"
-                        [class.channel__emoji-picker--own]="message.isOwn"
-                        *ngIf="openEmojiPickerFor === message.id">
-                        <button
-                          type="button"
-                          *ngFor="let emoji of emojiChoices"
-                          (click)="react(message, emoji)"
-                          aria-label="Emoji auswählen">
-                          {{ emoji }}
-                        </button>
-                      </div>
-                    </div>
-                    <header class="channel__message-header">
-                      <div class="channel__message-meta">
-                        <div class="channel__author-line">
-                          <strong>{{ message.author }}</strong>
-                          <time>{{ message.time }}</time>
-                        </div>
-                      </div>
-                    </header>
-                    <ng-container *ngIf="editingMessageId !== message.id; else editChannelMessage">
-                      <p class="channel__message-text">
-                        <ng-container *ngFor="let segment of buildMessageSegments(message)">
-                          <span *ngIf="segment.kind === 'text'">
-                            {{ segment.text }}
-                          </span>
-
-                          <button
-                            *ngIf="segment.kind === 'member'"
-                            type="button"
-                            class="channel__mention-link channel__mention-link--user"
-                            (click)="openMemberProfile(segment.member)">
-                            {{ segment.text }}
-                          </button>
-
-                          <span
-                            *ngIf="segment.kind === 'channel'"
-                            class="channel__mention-link channel__mention-link--channel">
-                            {{ segment.text }}
-                          </span>
-                        </ng-container>
-                      </p>
-                    </ng-container>
-                    <ng-template #editChannelMessage>
-                      <div class="channel__message-edit">
-                        <textarea rows="3" [(ngModel)]="editMessageText" aria-label="Nachricht bearbeiten"></textarea>
-                        <div class="channel__message-edit-actions">
-                          <button type="button" class="channel__message-edit-cancel" (click)="cancelEditingMessage()">
-                            Abbrechen
-                          </button>
-                          <button
-                            type="button"
-                            class="channel__message-edit-save"
-                            [disabled]="!editMessageText.trim() || isSavingEdit"
-                            (click)="message.id && saveEditingMessage(message.id)">
-                            Speichern
-                          </button>
-                        </div>
-                      </div>
-                    </ng-template>
-
+                  <app-message-body
+                    [message]="message"
+                    [segments]="buildMessageSegments(message)"
+                    [isEditing]="editingMessageId === message.id"
+                    [(editText)]="editMessageText"
+                    [isSaving]="isSavingEdit"
+                    (saveEdit)="message.id && saveEditingMessage(message.id)"
+                    (cancelEdit)="cancelEditingMessage()"
+                    (memberSelected)="openMemberProfile($event)">
                     <app-message-reactions
                       *ngIf="message.reactions"
+                      message-extra
                       [reactions]="message.reactions"
                       [currentUserId]="currentUser?.uid"
                       (react)="react(message, $event)"
@@ -182,88 +91,52 @@
 
                     <button
                       *ngIf="message.replies"
+                      message-extra
                       type="button"
                       class="channel__thread-summary"
                       (click)="openThread(message)">
                       <span class="channel__thread-count">
                         {{ message.replies }} Antwort{{ message.replies === 1 ? '' : 'en' }}
                       </span>
-                      <span *ngIf="message.lastReplyTime" class="channel__thread-meta">
-                        Letzte Antwort {{ message.lastReplyTime }}
+                      <span *ngIf="message.lastReplyTimeLabel" class="channel__thread-meta">
+                        Letzte Antwort {{ message.lastReplyTimeLabel }}
                       </span>
                     </button>
-                  </div>
-                </article>
+                  </app-message-body>
+                </app-message-item>
               </ng-container>
             </ng-container>
           </ng-container>
           <ng-template #noMessages>
             <p class="channel__empty">Noch keine Nachrichten vorhanden.</p>
           </ng-template>
-        </div>
+        </app-message-list>
 
-        <form class="channel__composer" aria-label="Neue Nachricht verfassen" (ngSubmit)="sendMessage()">
-          <div class="channel__composer-input">
-            <textarea
-              #messageTextarea
-              rows="3"
-              name="message"
-              [(ngModel)]="messageText"
-              (input)="onMessageInput($event)"
-              (click)="onMessageInput($event)"
-              (keydown.enter)="onComposerKeydown($event)"
-              [placeholder]="'Nachricht an #' + ((channelTitle$ | async) ?? channelDefaults.name)"></textarea>
-            <div class="channel__composer-picker" *ngIf="isComposerEmojiPickerOpen">
-              <button type="button" *ngFor="let emoji of channelEmojiChoices" (click)="addComposerEmoji(emoji)">
-                {{ emoji }}
-              </button>
-            </div>
-            <div *ngIf="isMentionListVisible" class="channel__mention-suggestions">
-              <ng-container *ngIf="mentionType === 'user'">
-                <button
-                  type="button"
-                  *ngFor="let member of userMentionSuggestions as members"
-                  (click)="insertMention(member)">
-                  <img [src]="getAvatarUrl(member.profilePictureKey)" [alt]="member.name" />
-                  <span class="truncate">{{ member.name }}</span>
-                </button>
-              </ng-container>
-              <ng-container *ngIf="mentionType === 'channel'">
-                <button
-                  type="button"
-                  *ngFor="let channel of channelMentionSuggestions"
-                  (click)="insertChannel(channel)">
-                  <span class="truncate">#{{ channel.name }}</span>
-                </button>
-              </ng-container>
-            </div>
-          </div>
-          <div class="channel__composer-actions">
-            <div class="channel__composer-start">
-              <button
-                type="button"
-                class="channel__composer-button"
-                aria-label="Emoji einfügen"
-                (click)="toggleComposerEmojiPicker()">
-                <mat-icon>sentiment_satisfied</mat-icon>
-              </button>
-              <button
-                type="button"
-                class="channel__composer-button"
-                aria-label="Benutzer und Mentions"
-                (click)="insertComposerMention()">
-                <mat-icon>alternate_email</mat-icon>
-              </button>
-            </div>
-            <button
-              type="submit"
-              class="channel__composer-button channel__send"
-              aria-label="Nachricht senden"
-              [disabled]="!messageText.trim() || isSending">
-              <img src="imgs/channels/send.svg" alt="" />
-            </button>
-          </div>
-        </form>
+        <app-message-composer
+          aria-label="Neue Nachricht verfassen"
+          [(text)]="messageText"
+          [placeholderPrefix]="'Nachricht an '"
+          [placeholderHighlight]="'#' + ((channelTitle$ | async) ?? channelDefaults.name)"
+          [ariaLabel]="'Neue Nachricht verfassen'"
+          [disabled]="isSending"
+          [disableSend]="!messageText.trim() || isSending"
+          [isEmojiPickerOpen]="isComposerEmojiPickerOpen"
+          [showMentions]="isMentionListVisible"
+          [mentionType]="mentionType"
+          [userSuggestions]="userMentionSuggestions"
+          [channelSuggestions]="channelMentionSuggestions"
+          [showMemberMentionTrigger]="true"
+          [showChannelMentionTrigger]="true"
+          [avatarUrlResolver]="avatarUrlResolver"
+          (composerInput)="onMessageInput($event)"
+          (composerKeydown)="onComposerKeydown($event)"
+          (submitMessage)="sendMessage()"
+          (toggleEmojiPicker)="toggleComposerEmojiPicker()"
+          (emojiSelected)="addComposerEmoji($event)"
+          (mentionTrigger)="insertComposerMention()"
+          (channelMentionTrigger)="insertComposerChannel()"
+          (userMentionSelected)="insertMention($event)"
+          (channelMentionSelected)="insertChannel($event)"></app-message-composer>
       </section>
     </section>
   </mat-sidenav-content>

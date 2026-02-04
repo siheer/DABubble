@@ -13,10 +13,10 @@ import { unverifiedGuard } from './guards/unverified.guard';
 import { ChannelAccessGuard } from './guards/channel-access.guard';
 import { LegalNotice } from './aside-content/legal-notice/legal-notice';
 import { PrivacyPolicy } from './aside-content/privacy-policy/privacy-policy';
-import { Messages } from './main-content/messages/messages';
+import { DirectMessages } from './main-content/direct-messages/direct-messages';
 import { ChannelComponent } from './main-content/channel/channel';
 import { Thread } from './main-content/thread/thread';
-import { NewMessagePanel } from './main-content/messages/new-massage-panel/new-massage-panel';
+import { NewMessagePanel } from './main-content/new-massage-panel/new-massage-panel';
 import { MainHome } from './main-content/main-home';
 
 export const routes: Routes = [
@@ -84,7 +84,7 @@ export const routes: Routes = [
       },
       {
         path: 'dms/:dmId',
-        component: Messages,
+        component: DirectMessages,
       },
       {
         path: 'new-message',

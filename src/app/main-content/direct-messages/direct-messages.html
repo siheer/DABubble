@@ -1,0 +1,136 @@
+<section class="direct-messages lg:rounded-3xl" *ngIf="selectedRecipient$ | async as recipient; else chooseRecipient">
+  <header class="direct-messages__header">
+    <div
+      class="direct-messages__identity"
+      role="button"
+      tabindex="0"
+      (click)="openRecipientProfile(recipient)"
+      (keydown.enter)="openRecipientProfile(recipient)"
+      (keydown.space)="openRecipientProfile(recipient)">
+      <div class="relative inline-flex shrink-0">
+        <img
+          class="direct-messages__avatar rounded-full"
+          [src]="getAvatarUrl(recipient.profilePictureKey)"
+          [alt]="recipient.name" />
+        <span
+          class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white lg:size-4"
+          [ngClass]="recipientOnline ? 'bg-green-500' : 'bg-gray-400'"
+          title="{{ recipientOnline ? 'Online' : 'Offline' }}">
+        </span>
+      </div>
+
+      <div>
+        <div class="direct-messages__name-row">
+          <h1 class="truncate">{{ recipient.name }}</h1>
+        </div>
+        <p class="truncate">{{ recipient.email || 'Direktnachricht' }}</p>
+      </div>
+    </div>
+  </header>
+
+  <ng-container *ngIf="messages$ | async as messages">
+    <app-message-list class="message-list" aria-live="polite" *ngIf="messages.length" #messageStream>
+      <ng-container *ngFor="let message of messages; let i = index">
+        <div class="message-divider" *ngIf="shouldShowDateDivider(messages, i)">
+          <span>{{ formatDateLabel(message.timestamp) }}</span>
+        </div>
+        <app-message-item [message]="message" [avatarUrl]="getAvatarUrl(message.profilePictureKey)">
+          <app-message-actions
+            [message]="message"
+            [currentUserId]="currentUser?.uid ?? null"
+            [includeCheck]="true"
+            [includeThumb]="true"
+            [includePicker]="true"
+            [includeEdit]="true"
+            [isOwn]="message.isOwn"
+            [isVisible]="openEmojiPickerFor === message.id"
+            [isEmojiPickerOpen]="openEmojiPickerFor === message.id"
+            (actionSelected)="handleMessageAction(message, $event)"
+            (emojiSelected)="reactToDmMessage(message.id, $event)"></app-message-actions>
+
+          <app-message-body
+            [message]="message"
+            [segments]="buildSegments(message.text)"
+            [isEditing]="editingMessageId === message.id"
+            [(editText)]="editMessageText"
+            [isSaving]="isSavingEdit"
+            (saveEdit)="message.id && saveEditing(message.id)"
+            (cancelEdit)="cancelEditing()"
+            (memberSelected)="openMentionProfile($event)">
+            <app-message-reactions
+              *ngIf="message.reactions"
+              message-extra
+              [reactions]="message.reactions"
+              [currentUserId]="currentUser?.uid"
+              (react)="reactToDmMessage(message.id, $event)"
+              (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
+              (hideTooltip)="hideReactionTooltip()">
+            </app-message-reactions>
+          </app-message-body>
+        </app-message-item>
+      </ng-container>
+    </app-message-list>
+
+    <div class="direct-messages__intro" *ngIf="!messages.length">
+      <img
+        class="direct-messages__intro-avatar rounded-full"
+        [src]="getAvatarUrl(recipient.profilePictureKey)"
+        [alt]="recipient.name" />
+      <div class="direct-messages__intro-text">
+        <p class="direct-messages__intro-name truncate" [title]="recipient.name">{{ recipient.name | displayName }}</p>
+        <p class="direct-messages__intro-description" *ngIf="currentUser?.uid === recipient.uid; else dmIntro">
+          Hier kannst du private Notizen für dich selbst festhalten. Diese siehst nur du. Erwähnungs-Benachrichtigungen
+          erscheinen hier ebenfalls.
+        </p>
+        <ng-template #dmIntro>
+          <p class="direct-messages__intro-description">
+            Diese Unterhaltung findet nur zwischen {{ recipient.name }} und dir statt.
+          </p>
+        </ng-template>
+      </div>
+    </div>
+  </ng-container>
+
+  <app-message-composer
+    [(text)]="draftMessage"
+    [placeholderPrefix]="currentUser?.uid === recipient.uid ? 'Notiz an mich...' : 'Nachricht an '"
+    [placeholderHighlight]="currentUser?.uid === recipient.uid ? null : recipient.name"
+    [ariaLabel]="'Neue Nachricht verfassen'"
+    [disabled]="isSending"
+    [disableSend]="!draftMessage.trim() || isSending"
+    [isEmojiPickerOpen]="isComposerEmojiPickerOpen"
+    [showMentions]="isMentionListVisible"
+    [mentionType]="mentionType"
+    [userSuggestions]="userMentionSuggestions"
+    [channelSuggestions]="channelMentionSuggestions"
+    [showMemberMentionTrigger]="false"
+    [showChannelMentionTrigger]="true"
+    [avatarUrlResolver]="avatarUrlResolver"
+    (composerInput)="onComposerInput($event)"
+    (composerKeydown)="onComposerKeydown($event)"
+    (submitMessage)="sendMessage()"
+    (toggleEmojiPicker)="toggleComposerEmojiPicker()"
+    (emojiSelected)="addComposerEmoji($event)"
+    (mentionTrigger)="insertComposerMention()"
+    (channelMentionTrigger)="insertComposerChannel()"
+    (userMentionSelected)="insertMention($event)"
+    (channelMentionSelected)="insertChannel($event)"></app-message-composer>
+</section>
+
+<ng-template #chooseRecipient>
+  <section class="direct-messages direct-messages__empty">
+    <header class="direct-messages__header">
+      <div class="direct-messages__identity">
+        <div class="direct-messages__avatar placeholder"></div>
+        <div>
+          <h1>Direktnachricht starten</h1>
+          <p>Wähle links eine Person aus, um den Chat zu öffnen.</p>
+        </div>
+      </div>
+    </header>
+    <p class="direct-messages__subtitle">
+      Du hast noch keine Direktnachricht ausgewählt. Tippe im Workspace auf einen Kontakt, um hier die Unterhaltung zu
+      sehen.
+    </p>
+  </section>
+</ng-template>

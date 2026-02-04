@@ -1,0 +1,72 @@
+<form class="message-composer" (ngSubmit)="submitMessage.emit()">
+  <div class="message-composer__input">
+    <textarea
+      #composerTextarea
+      name="message"
+      [ngModel]="text()"
+      (ngModelChange)="textChange.emit($event)"
+      [placeholder]="placeholderAttribute()"
+      [attr.aria-label]="ariaLabel()"
+      [disabled]="disabled()"
+      (input)="composerInput.emit($event)"
+      (click)="composerInput.emit($event)"
+      (keydown)="composerKeydown.emit($event)"></textarea>
+    @if (hasRichPlaceholder()) {
+      <div class="message-composer__placeholder" aria-hidden="true">
+        <span>{{ placeholderPrefix() }}</span>
+        @if (placeholderHighlight()) {
+          <span class="message-composer__placeholder-highlight">{{ placeholderHighlight() }}</span>
+        }
+      </div>
+    }
+    <app-mention-suggestions
+      [visible]="showMentions()"
+      [mentionType]="mentionType()"
+      [userSuggestions]="userSuggestions()"
+      [channelSuggestions]="channelSuggestions()"
+      [avatarUrlResolver]="avatarUrlResolver()"
+      (userSelected)="userMentionSelected.emit($event)"
+      (channelSelected)="channelMentionSelected.emit($event)"></app-mention-suggestions>
+  </div>
+  @if (isEmojiPickerOpen()) {
+    <div class="message-composer__picker">
+      @for (emoji of emojiChoices; track emoji) {
+        <button type="button" (click)="emojiSelected.emit(emoji)">
+          {{ emoji }}
+        </button>
+      }
+    </div>
+  }
+  <div class="message-composer__actions">
+    <div class="message-composer__start">
+      <button
+        type="button"
+        class="message-composer__button"
+        aria-label="Emoji einfügen"
+        (click)="toggleEmojiPicker.emit()">
+        <mat-icon>sentiment_satisfied</mat-icon>
+      </button>
+      @if (showMemberMentionTrigger()) {
+        <button
+          type="button"
+          class="message-composer__button"
+          aria-label="Benutzer erwähnen"
+          (click)="mentionTrigger.emit()">
+          <mat-icon>alternate_email</mat-icon>
+        </button>
+      }
+      @if (showChannelMentionTrigger()) {
+        <button
+          type="button"
+          class="message-composer__button message-composer__button--text"
+          aria-label="Channel erwähnen"
+          (click)="channelMentionTrigger.emit()">
+          <span class="material-icons -ml-1 italic!">tag</span>
+        </button>
+      }
+    </div>
+    <button type="submit" class="message-composer__send" [disabled]="disableSend() || disabled()">
+      <mat-icon>send</mat-icon>
+    </button>
+  </div>
+</form>

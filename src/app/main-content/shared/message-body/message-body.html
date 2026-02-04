@@ -1,0 +1,55 @@
+<header class="message-body__header">
+  <div class="message-body__meta">
+    <div class="message-body__author-line">
+      <strong>{{ message().authorName }}</strong>
+      <time>{{ message().timeLabel }}</time>
+    </div>
+  </div>
+</header>
+
+@if (!isEditing()) {
+  <p class="message-body__text">
+    @if ((segments()?.length ?? 0) > 0) {
+      @for (segment of segments() ?? []; track $index) {
+        @if (segment.kind === 'text') {
+          <span>{{ segment.text }}</span>
+        } @else if (segment.kind === 'member') {
+          <button
+            type="button"
+            class="message-body__mention message-body__mention--user"
+            (click)="memberSelected.emit(segment.member)">
+            {{ segment.text }}
+          </button>
+        } @else if (segment.kind === 'channel') {
+          <span class="message-body__mention message-body__mention--channel">
+            {{ segment.text }}
+          </span>
+        }
+      }
+    } @else {
+      {{ message().text }}
+    }
+  </p>
+} @else {
+  <div class="message-body__edit">
+    <textarea
+      rows="3"
+      [ngModel]="editText()"
+      (ngModelChange)="editTextChange.emit($event)"
+      aria-label="Nachricht bearbeiten"></textarea>
+    <div class="message-body__edit-actions">
+      <button type="button" class="message-body__edit-cancel" (click)="cancelEdit.emit()">
+        Abbrechen
+      </button>
+      <button
+        type="button"
+        class="message-body__edit-save"
+        [disabled]="!editText().trim() || isSaving()"
+        (click)="saveEdit.emit()">
+        Speichern
+      </button>
+    </div>
+  </div>
+}
+
+<ng-content select="[message-extra]"></ng-content>

@@ -1,9 +1,9 @@
 <div *ngIf="reactions && (reactions | keyvalue).length">
   <button
     type="button"
-    class="channel__reaction"
+    class="message-reaction"
     *ngFor="let r of reactions | keyvalue; trackBy: trackByEmoji"
-    [class.channel__reaction--own]="hasOwnReaction(r.value)"
+    [class.message-reaction--own]="hasOwnReaction(r.value)"
     (mouseenter)="showTooltip.emit({ event: $event, emoji: r.key, userIds: r.value })"
     (mouseleave)="hideTooltip.emit()"
     (mousedown)="hideTooltip.emit()"

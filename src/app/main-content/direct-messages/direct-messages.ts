@@ -18,15 +18,25 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { AppUser, UserService } from '../../services/user.service';
-import type { ChannelMemberView, DirectMessageEntry, MessageBubble, ProfilePictureKey } from '../../types';
+import type {
+  ChannelMemberView,
+  DirectMessageEntry,
+  MessageActionId,
+  MessageBubble,
+  ProfilePictureKey,
+} from '../../types';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MemberDialog } from '../member-dialog/member-dialog';
-import { EMOJI_CHOICES } from '../../texts';
 import { MessageReactions } from '../message-reactions/message-reactions';
+import { MessageActions, executeMessageAction } from '../shared/message-actions/message-actions';
+import { MessageBody } from '../shared/message-body/message-body';
+import { MessageComposer } from '../shared/message-composer/message-composer';
+import { MessageItem } from '../shared/message-item/message-item';
+import { MessageList } from '../shared/message-list/message-list';
 import { MessageReactionsService } from '../../services/message-reactions.service';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ProfilePictureService } from '../../services/profile-picture.service';
-import { formatTimestamp, formatDateLabel, getDateKey, hasMention } from './messages.helper';
+import { formatTimestamp, formatDateLabel, getDateKey, hasMention } from './direct-messages.helper';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 import { MentionState, MentionType, UserMentionSuggestion, ChannelMentionSuggestion } from '../../types';
 import { updateTagSuggestions, buildMessageSegments } from '../channel/channel-mention.helper';
@@ -34,13 +44,24 @@ import { ChannelMembershipService } from '../../services/membership.service';
 
 /** Direct messages component for 1-on-1 conversations. */
 @Component({
-  selector: 'app-messages',
+  selector: 'app-direct-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions, DisplayNamePipe],
-  templateUrl: './messages.html',
-  styleUrl: './messages.scss',
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    MessageReactions,
+    DisplayNamePipe,
+    MessageList,
+    MessageItem,
+    MessageActions,
+    MessageBody,
+    MessageComposer,
+  ],
+  templateUrl: './direct-messages.html',
+  styleUrl: './direct-messages.scss',
 })
-export class Messages {
+export class DirectMessages {
   private static readonly SYSTEM_PROFILE_PICTURE_KEY: ProfilePictureKey = 'default';
   private static readonly SYSTEM_AUTHOR_NAME = 'System';
   private static readonly SYSTEM_USER_ID = DirectMessagesService.SYSTEM_USER_ID;
@@ -91,7 +112,6 @@ export class Messages {
   protected isSending = false;
   protected openEmojiPickerFor: string | null = null;
   protected isComposerEmojiPickerOpen = false;
-  protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
@@ -114,8 +134,8 @@ export class Messages {
   private cachedChannels: { id: string; name: string }[] = [];
 
   private messageStream?: ElementRef<HTMLElement>;
-  @ViewChild('composerTextarea') private composerTextarea?: ElementRef<HTMLTextAreaElement>;
-  @ViewChild('messageStream') set messageStreamRef(ref: ElementRef<HTMLElement> | undefined) {
+  @ViewChild(MessageComposer) private messageComposer?: MessageComposer;
+  @ViewChild('messageStream', { read: ElementRef }) set messageStreamRef(ref: ElementRef<HTMLElement> | undefined) {
     this.messageStream = ref;
     this.scrollToBottom();
   }
@@ -183,6 +203,7 @@ export class Messages {
       this.isSending = false;
       this.draftMessage = '';
       this.isComposerEmojiPickerOpen = false;
+      this.resetMentionState();
       this.scrollToBottom();
     }
   }
@@ -210,12 +231,46 @@ export class Messages {
   /** Inserts @ for mention. */
   protected insertComposerMention(): void {
     this.insertText('@');
+    this.updateMentionState();
+  }
+
+  protected insertComposerChannel(): void {
+    this.insertText('#');
+    this.updateMentionState();
   }
 
   /** Opens recipient profile dialog. */
   protected openRecipientProfile(recipient: AppUser): void {
     if (this.currentUser?.uid === recipient.uid) return;
     this.dialog.open(MemberDialog, { data: { user: recipient } });
+  }
+
+  protected openMentionProfile(member: ChannelMemberView): void {
+    const currentUser = this.currentUser;
+    const recipient = this.selectedRecipient;
+
+    if (currentUser?.uid === member.id) {
+      this.dialog.open(MemberDialog, { data: { user: currentUser } });
+      return;
+    }
+
+    if (recipient?.uid === member.id) {
+      this.dialog.open(MemberDialog, { data: { user: recipient } });
+      return;
+    }
+
+    const fallbackUser: AppUser = {
+      uid: member.id,
+      name: member.name,
+      email: null,
+      profilePictureKey: member.profilePictureKey,
+      onlineStatus: false,
+      lastSeen: undefined,
+      updatedAt: undefined,
+      createdAt: undefined,
+    };
+
+    this.dialog.open(MemberDialog, { data: { user: fallbackUser } });
   }
 
   /** Formats timestamp to time string. */
@@ -239,18 +294,20 @@ export class Messages {
 
   /** Maps DirectMessageEntry to MessageBubble. */
   private mapMessage(message: DirectMessageEntry, currentUser: AppUser, recipient: AppUser): MessageBubble {
-    const isSystem = message.authorId === Messages.SYSTEM_USER_ID;
+    const isSystem = message.authorId === DirectMessages.SYSTEM_USER_ID;
     const isOwn = !isSystem && message.authorId === currentUser.uid;
     const authorUser = isOwn ? currentUser : recipient;
+    const timestamp = message.createdAt.toDate();
     return {
       id: message.id,
       authorId: message.authorId,
-      author: isSystem ? Messages.SYSTEM_AUTHOR_NAME : isOwn ? 'Du' : authorUser.name,
+      authorName: isSystem ? DirectMessages.SYSTEM_AUTHOR_NAME : isOwn ? 'Du' : authorUser.name,
       profilePictureKey: isSystem
-        ? Messages.SYSTEM_PROFILE_PICTURE_KEY
+        ? DirectMessages.SYSTEM_PROFILE_PICTURE_KEY
         : authorUser.profilePictureKey,
       text: message.text,
-      timestamp: message.createdAt.toDate(),
+      timestamp,
+      timeLabel: formatTimestamp(timestamp),
       isOwn,
       reactions: message.reactions,
     };
@@ -300,14 +357,22 @@ export class Messages {
     this.openEmojiPickerFor = this.openEmojiPickerFor === messageId ? null : messageId;
   }
 
+  protected handleMessageAction(message: MessageBubble, actionId: MessageActionId | string): void {
+    executeMessageAction(actionId, {
+      thumb: () => this.reactToDmMessage(message.id, '👍'),
+      check: () => this.reactToDmMessage(message.id, '✅'),
+      picker: () => this.toggleEmojiPicker(message.id),
+      edit: () => this.startEditing(message),
+    });
+  }
   /** Focuses composer. */
   private focusComposer(): void {
-    this.composerTextarea?.nativeElement.focus();
+    this.messageComposer?.focus();
   }
 
   /** Inserts text at cursor. */
   private insertText(text: string): void {
-    const ta = this.composerTextarea?.nativeElement;
+    const ta = this.messageComposer?.textareaElement;
     if (!ta) {
       this.draftMessage = `${this.draftMessage}${text}`;
       return;
@@ -357,6 +422,8 @@ export class Messages {
     return this.profilePictureService.getUrl(key);
   }
 
+  protected readonly avatarUrlResolver = (key?: ProfilePictureKey) => this.getAvatarUrl(key);
+
   private updateDmMentionUsers(): void {
     if (!this.currentUser || !this.selectedRecipient) {
       this.cachedMentionUsers = [];
@@ -384,17 +451,6 @@ export class Messages {
 
   private updateMentionState(): void {
     const caret = this.mentionState.caretIndex ?? this.draftMessage.length;
-
-    const userResult = updateTagSuggestions(this.draftMessage, caret, '@', this.cachedMentionUsers);
-
-    if (userResult.isVisible) {
-      this.mentionState = {
-        ...userResult,
-        caretIndex: this.mentionState.caretIndex,
-        type: 'user',
-      };
-      return;
-    }
 
     const channelResult = updateTagSuggestions(this.draftMessage, caret, '#', this.cachedChannels);
 
@@ -443,7 +499,7 @@ export class Messages {
 
     const newCaret = before.length + text.length;
     queueMicrotask(() => {
-      const ta = this.composerTextarea?.nativeElement;
+      const ta = this.messageComposer?.textareaElement;
       ta?.focus();
       ta?.setSelectionRange(newCaret, newCaret);
     });
@@ -463,7 +519,7 @@ export class Messages {
 
     const newCaret = before.length + text.length;
     queueMicrotask(() => {
-      const ta = this.composerTextarea?.nativeElement;
+      const ta = this.messageComposer?.textareaElement;
       ta?.focus();
       ta?.setSelectionRange(newCaret, newCaret);
     });
@@ -475,3 +531,6 @@ export class Messages {
     return !!this.selectedRecipient?.onlineStatus;
   }
 }
+
+
+

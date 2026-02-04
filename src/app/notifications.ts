@@ -36,7 +36,7 @@ export const NOTIFICATIONS = {
   USER_DOCUMENT_DELETE_FAILED: 'User-Dokument konnte nicht gelöscht werden.',
   CHANNEL_MEMBERSHIPS_REMOVE_FAILED: 'Fehler beim Entfernen der Mitgliedschaften von Channels.',
   LEAVE_CHANNEL_FAILED: 'Fehler beim Verlassen des Channels',
-  DIRECT_MESSAGES_DELETE_FAILED: 'Fehler beim Löschen der Direct Message.',
+  DIRECT_MESSAGES_DELETE_FAILED: 'Fehler beim Löschen der Direktnachrichten.',
 
   GUEST_WRONG_IDENTITY: 'User ist nicht Gast.',
   GUEST_CLEANUP_FAILED: 'Gastdaten konnten nicht gelöscht werden.',

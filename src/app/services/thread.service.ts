@@ -19,12 +19,12 @@ import { UserService } from './user.service';
 import { AuthService } from './auth.service';
 import type {
   ChannelMessage,
+  MessageView,
   ProfilePictureKey,
   ThreadDocument,
   ThreadReply,
   ThreadContext,
   ThreadSource,
-  ThreadMessage,
   ThreadState,
 } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
@@ -90,7 +90,7 @@ export class ThreadService {
     this.setThreadState(source.channelId, {
       id: source.id,
       authorId: source.authorId,
-      timestamp: source.time,
+      timeLabel: source.timeLabel,
       text: source.text,
     });
 
@@ -112,20 +112,20 @@ export class ThreadService {
       id: messageId,
       authorId: '',
       text: '',
-      timestamp: '',
+      timeLabel: '',
     });
   }
 
   private setThreadState(
     channelId: string,
-    root: { id: string; authorId: string; text: string; timestamp: string }
+    root: { id: string; authorId: string; text: string; timeLabel: string }
   ): void {
     this.threadSubject.next({
       channelId,
       root: {
         id: root.id,
         authorId: root.authorId ?? '',
-        timestamp: root.timestamp ?? '',
+        timeLabel: root.timeLabel ?? '',
         text: root.text ?? '',
       },
     });
@@ -321,7 +321,7 @@ export class ThreadService {
     channelMessage: ChannelMessage | null,
     authUserId: string,
     mapUser: (authorId: string) => { authorName: string; profilePictureKey: ProfilePictureKey }
-  ): ThreadMessage {
+  ): MessageView {
     const authorId = channelMessage?.authorId ?? storedThread?.authorId ?? context.root.authorId;
     const text = channelMessage?.text ?? storedThread?.text ?? context.root.text;
     const timestampSource = channelMessage?.createdAt ? channelMessage : null;
@@ -334,7 +334,8 @@ export class ThreadService {
       authorId,
       authorName,
       profilePictureKey,
-      timestamp: hasServerTimestamp ? this.formatTime(createdAt) : context.root.timestamp,
+      timestamp: createdAt,
+      timeLabel: hasServerTimestamp ? this.formatTime(createdAt) : context.root.timeLabel,
       text,
       isOwn: authorId === authUserId,
       reactions: channelMessage?.reactions ?? {},
@@ -345,7 +346,7 @@ export class ThreadService {
     reply: ThreadReply,
     authUserId: string,
     mapUser: (authorId: string) => { authorName: string; profilePictureKey: ProfilePictureKey }
-  ): ThreadMessage {
+  ): MessageView {
     const createdAt = this.resolveTimestamp(reply);
     const { authorName, profilePictureKey } = mapUser(reply.authorId);
     return {
@@ -353,7 +354,8 @@ export class ThreadService {
       authorId: reply.authorId,
       authorName,
       profilePictureKey,
-      timestamp: this.formatTime(createdAt),
+      timestamp: createdAt,
+      timeLabel: this.formatTime(createdAt),
       text: reply.text,
       isOwn: reply.authorId === authUserId,
       reactions: reply.reactions,

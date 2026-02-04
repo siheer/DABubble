@@ -5,246 +5,82 @@
       <h2 class="thread__title"># {{ thread.channelTitle }}</h2>
     </div>
     <div class="thread__header-actions">
-      <span class="thread__badge">{{ thread.replies.length }} Antworten</span>
       <button type="button" class="thread__close hidden lg:flex" aria-label="Thread schließen" (click)="closeThread()">
         <mat-icon>close</mat-icon>
       </button>
     </div>
   </header>
-  <div class="thread__scroll-area" #threadScrollArea>
-    <article class="thread__root" [class.thread__root--own]="thread.root.isOwn">
-      <img class="thread__avatar rounded-full" [src]="getAvatarUrl(thread.root.profilePictureKey)" [alt]="thread.root.authorName" />
-      <div class="thread__body">
-        <div
-          class="thread__bubble-actions"
-          [class.thread__bubble-actions--visible]="openEmojiPickerFor === thread.root.id"
-          [class.thread__bubble-actions--own]="thread.root.isOwn"
-          aria-label="Aktionen für die Ausgangsnachricht">
-          <button
-            type="button"
-            class="thread__bubble-action"
-            aria-label="Emoji-Auswahl öffnen"
-            (click)="toggleEmojiPicker(thread.root.id)">
-            <mat-icon>add_reaction</mat-icon>
-          </button>
-          <button
-            *ngIf="thread.root.isOwn"
-            type="button"
-            class="thread__bubble-action"
-            aria-label="Weitere Aktionen"
-            (click)="startEditingRoot(thread.root)">
-            <mat-icon>more_vert</mat-icon>
-          </button>
+  <app-message-list class="message-list" #threadScrollArea>
+    <ng-container
+      *ngTemplateOutlet="threadMessage; context: { $implicit: thread.root, isRoot: true }"></ng-container>
 
-          <div
-            class="thread__emoji-picker"
-            [class.thread__emoji-picker--own]="thread.root.isOwn"
-            *ngIf="openEmojiPickerFor === thread.root.id">
-            <button
-              type="button"
-              *ngFor="let emoji of emojiChoices"
-              (click)="reactToRootMessage(emoji)"
-              aria-label="Emoji auswählen">
-              {{ emoji }}
-            </button>
-          </div>
-        </div>
-        <div class="thread__meta">
-          <strong>{{ thread.root.authorName }}</strong>
-          <time>{{ thread.root.timestamp }}</time>
-        </div>
-        <ng-container *ngIf="editingMessageId !== thread.root.id; else editRootMessage">
-          <p class="thread__text">
-            <ng-container *ngFor="let segment of buildMessageSegments(thread.root.text)">
-              <ng-container [ngSwitch]="segment.kind">
-                <span *ngSwitchCase="'text'">
-                  {{ segment.text }}
-                </span>
-
-                <button
-                  *ngSwitchCase="'member'"
-                  type="button"
-                  class="thread__mention-link thread__mention-link--user"
-                  (click)="openMemberProfile($any(segment).member)">
-                  {{ segment.text }}
-                </button>
-
-                <a *ngSwitchCase="'channel'" class="thread__mention-link thread__mention-link--channel">
-                  {{ segment.text }}
-                </a>
-              </ng-container>
-            </ng-container>
-          </p>
-        </ng-container>
-        <ng-template #editRootMessage>
-          <div class="thread__edit">
-            <textarea rows="3" [(ngModel)]="editMessageText" aria-label="Nachricht bearbeiten"></textarea>
-            <div class="thread__edit-actions">
-              <button type="button" class="thread__edit-cancel" (click)="cancelEditing()">Abbrechen</button>
-              <button
-                type="button"
-                class="thread__edit-save"
-                [disabled]="!editMessageText.trim() || isSavingEdit"
-                (click)="saveEditing(thread.root, true)">
-                Speichern
-              </button>
-            </div>
-          </div>
-        </ng-template>
-      </div>
-    </article>
-
-    <div class="thread__divider">
-      <span>{{ thread.replies.length }} Antworten</span>
+    <div class="message-divider">
+      <span>{{ thread.replies.length }} {{ thread.replies.length === 1 ? 'Antwort' : 'Antworten' }}</span>
     </div>
 
     <div class="thread__replies">
-      <article *ngFor="let reply of thread.replies" class="thread__reply" [class.thread__reply--own]="reply.isOwn">
-        <img class="thread__avatar rounded-full" [src]="getAvatarUrl(reply.profilePictureKey)" [alt]="reply.authorName" />
-        <div class="thread__body">
-          <div
-            class="thread__bubble-actions"
-            [class.thread__bubble-actions--visible]="openEmojiPickerFor === reply.id"
-            [class.thread__bubble-actions--own]="reply.isOwn"
-            aria-label="Aktionen für die Antwort">
-            <button
-              type="button"
-              class="thread__bubble-action"
-              aria-label="Emoji-Auswahl öffnen"
-              (click)="toggleEmojiPicker(reply.id)">
-              <mat-icon>add_reaction</mat-icon>
-            </button>
-            <button
-              *ngIf="reply.isOwn"
-              type="button"
-              class="thread__bubble-action"
-              aria-label="Weitere Aktionen"
-              (click)="startEditing(reply)">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-
-            <div
-              class="thread__emoji-picker"
-              [class.thread__emoji-picker--own]="reply.isOwn"
-              *ngIf="openEmojiPickerFor === reply.id">
-              <button
-                type="button"
-                *ngFor="let emoji of emojiChoices"
-                (click)="reactToReply(reply.id, emoji)"
-                aria-label="Emoji auswählen">
-                {{ emoji }}
-              </button>
-            </div>
-          </div>
-          <div class="thread__meta">
-            <strong>{{ reply.authorName }}</strong>
-            <time>{{ reply.timestamp }}</time>
-          </div>
-          <ng-container *ngIf="editingMessageId !== reply.id; else editReplyMessage">
-            <p class="thread__text">
-              <ng-container *ngFor="let segment of buildMessageSegments(reply.text)">
-                <ng-container [ngSwitch]="segment.kind">
-                  <span *ngSwitchCase="'text'">
-                    {{ segment.text }}
-                  </span>
-
-                  <button
-                    *ngSwitchCase="'member'"
-                    type="button"
-                    class="thread__mention-link thread__mention-link--user"
-                    (click)="openMemberProfile($any(segment).member)">
-                    {{ segment.text }}
-                  </button>
-
-                  <a *ngSwitchCase="'channel'" class="thread__mention-link thread__mention-link--channel">
-                    {{ segment.text }}
-                  </a>
-                </ng-container>
-              </ng-container>
-            </p>
-          </ng-container>
-          <ng-template #editReplyMessage>
-            <div class="thread__edit">
-              <textarea rows="3" [(ngModel)]="editMessageText" aria-label="Nachricht bearbeiten"></textarea>
-              <div class="thread__edit-actions">
-                <button type="button" class="thread__edit-cancel" (click)="cancelEditing()">Abbrechen</button>
-                <button
-                  type="button"
-                  class="thread__edit-save"
-                  [disabled]="!editMessageText.trim() || isSavingEdit"
-                  (click)="saveEditing(reply)">
-                  Speichern
-                </button>
-              </div>
-            </div>
-          </ng-template>
-          <app-message-reactions
-            *ngIf="reply.reactions"
-            [reactions]="reply.reactions"
-            [currentUserId]="currentUser.uid"
-            (react)="reactToReply(reply.id, $event)"
-            (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
-            (hideTooltip)="hideReactionTooltip()"></app-message-reactions>
-        </div>
-      </article>
+      <ng-container *ngFor="let reply of thread.replies">
+        <ng-container *ngTemplateOutlet="threadMessage; context: { $implicit: reply, isRoot: false }"></ng-container>
+      </ng-container>
     </div>
-  </div>
+  </app-message-list>
 
-  <form class="thread__composer" (ngSubmit)="sendReply()" #replyForm="ngForm">
-    <img class="thread__avatar rounded-full" [src]="getAvatarUrl(currentUser.profilePictureKey)" [alt]="currentUser.name" />
-    <div class="thread__composer-input">
-      <textarea
-        name="reply"
-        required
-        [(ngModel)]="draftReply"
-        #replyTextarea
-        placeholder="Antworten"
-        aria-label="Antwort zum Thread schreiben"
-        (input)="onReplyInput($event)"
-        (click)="onReplyInput($event)"
-        (keydown.enter)="onReplyKeydown($event)"></textarea>
-      <div *ngIf="isMentionListVisible" class="thread__mention-suggestions">
-        <ng-container *ngIf="mentionType === 'user'">
-          <button type="button" *ngFor="let member of userMentionSuggestions as members" (click)="insertMention(member)">
-            <img [src]="getAvatarUrl(member.profilePictureKey)" [alt]="member.name" />
-            <span class="truncate">{{ member.name }}</span>
-          </button>
-        </ng-container>
+  <app-message-composer
+    [(text)]="draftReply"
+    [placeholderPrefix]="'Antworten...'"
+    [ariaLabel]="'Antwort zum Thread schreiben'"
+    [isEmojiPickerOpen]="isComposerEmojiPickerOpen"
+    [showMentions]="isMentionListVisible"
+    [mentionType]="mentionType"
+    [userSuggestions]="userMentionSuggestions"
+    [channelSuggestions]="channelMentionSuggestions"
+    [showMemberMentionTrigger]="true"
+    [showChannelMentionTrigger]="true"
+    [avatarUrlResolver]="avatarUrlResolver"
+    [disableSend]="!draftReply.trim()"
+    (composerInput)="onReplyInput($event)"
+    (composerKeydown)="onReplyKeydown($event)"
+    (submitMessage)="sendReply()"
+    (toggleEmojiPicker)="toggleComposerEmojiPicker()"
+    (emojiSelected)="addComposerEmoji($event)"
+    (mentionTrigger)="insertComposerMention()"
+    (channelMentionTrigger)="insertComposerChannel()"
+    (userMentionSelected)="insertMention($event)"
+    (channelMentionSelected)="insertChannel($event)"></app-message-composer>
 
-        <ng-container *ngIf="mentionType === 'channel'">
-          <button type="button" *ngFor="let channel of channelMentionSuggestions" (click)="insertChannel(channel)">
-            <span class="truncate">#{{ channel.name }}</span>
-          </button>
-        </ng-container>
-      </div>
-    </div>
-    <div class="thread__composer-picker" *ngIf="isComposerEmojiPickerOpen">
-      <button type="button" *ngFor="let emoji of emojiChoices" (click)="addComposerEmoji(emoji)">
-        {{ emoji }}
-      </button>
-    </div>
-    <div class="thread__composer-actions">
-      <div class="thread__composer-start">
-        <button
-          type="button"
-          class="thread__composer-button"
-          aria-label="Emoji einfügen"
-          (click)="toggleComposerEmojiPicker()">
-          <mat-icon>sentiment_satisfied</mat-icon>
-        </button>
-        <button
-          type="button"
-          class="thread__composer-button"
-          aria-label="Benutzer und Mentions"
-          (click)="insertComposerMention()">
-          <mat-icon>alternate_email</mat-icon>
-        </button>
-      </div>
-      <button type="submit" class="thread__composer-send" [disabled]="replyForm.invalid">
-        <mat-icon>send</mat-icon>
-      </button>
-    </div>
-  </form>
+  <ng-template #threadMessage let-message let-isRoot="isRoot">
+    <app-message-item [message]="message" [avatarUrl]="getAvatarUrl(message.profilePictureKey)">
+      <app-message-actions
+        [message]="message"
+        [currentUserId]="currentUser?.uid ?? null"
+        [includePicker]="true"
+        [includeEdit]="true"
+        [isOwn]="message.isOwn"
+        [isVisible]="openEmojiPickerFor === message.id"
+        [isEmojiPickerOpen]="openEmojiPickerFor === message.id"
+        (actionSelected)="handleThreadAction(message, $event, isRoot)"
+        (emojiSelected)="isRoot ? reactToRootMessage($event) : reactToReply(message.id, $event)"></app-message-actions>
+
+      <app-message-body
+        [message]="message"
+        [segments]="buildMessageSegments(message.text)"
+        [isEditing]="editingMessageId === message.id"
+        [(editText)]="editMessageText"
+        [isSaving]="isSavingEdit"
+        (saveEdit)="isRoot ? saveEditing(message, true) : saveEditing(message)"
+        (cancelEdit)="cancelEditing()"
+        (memberSelected)="openMemberProfile($event)">
+        <app-message-reactions
+          *ngIf="message.reactions"
+          message-extra
+          [reactions]="message.reactions"
+          [currentUserId]="currentUser?.uid"
+          (react)="isRoot ? reactToRootMessage($event) : reactToReply(message.id, $event)"
+          (showTooltip)="showReactionTooltip($event.event, $event.emoji, $event.userIds)"
+          (hideTooltip)="hideReactionTooltip()"></app-message-reactions>
+      </app-message-body>
+    </app-message-item>
+  </ng-template>
 </section>
 
 <ng-template #idleThread>

@@ -6,10 +6,14 @@ import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, combineLatest, distinctUntilChanged, filter, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { ThreadService } from '../../services/thread.service';
-import type { ChannelMemberView, ProfilePictureKey, ThreadContext } from '../../types';
+import type { ChannelMemberView, MessageActionId, MessageView, ProfilePictureKey, ThreadContext } from '../../types';
 import { AppUser, UserService } from '../../services/user.service';
-import { EMOJI_CHOICES } from '../../texts';
 import { MessageReactions } from '../message-reactions/message-reactions';
+import { MessageActions, executeMessageAction } from '../shared/message-actions/message-actions';
+import { MessageBody } from '../shared/message-body/message-body';
+import { MessageComposer } from '../shared/message-composer/message-composer';
+import { MessageItem } from '../shared/message-item/message-item';
+import { MessageList } from '../shared/message-list/message-list';
 import { MessageReactionsService } from '../../services/message-reactions.service';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ChannelMembershipService } from '../../services/membership.service';
@@ -29,7 +33,17 @@ import type {
 @Component({
   selector: 'app-thread',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MessageReactions],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    MessageReactions,
+    MessageList,
+    MessageItem,
+    MessageActions,
+    MessageBody,
+    MessageComposer,
+  ],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -88,13 +102,12 @@ export class Thread {
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  @ViewChild('replyTextarea') replyTextarea?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild(MessageComposer) private replyComposer?: MessageComposer;
 
-  @ViewChild('threadScrollArea') private threadScrollArea?: ElementRef<HTMLElement>;
+  @ViewChild('threadScrollArea', { read: ElementRef }) private threadScrollArea?: ElementRef<HTMLElement>;
 
   protected openEmojiPickerFor: string | null = null;
   protected isComposerEmojiPickerOpen = false;
-  protected readonly emojiChoices = EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
@@ -113,7 +126,8 @@ export class Thread {
   private allUsersSnapshot: AppUser[] = [];
 
   protected get currentUser() {
-    const user = this.userService.currentUser()!;
+    const user = this.userService.currentUser();
+    if (!user) return null;
 
     return {
       uid: user.uid,
@@ -125,6 +139,8 @@ export class Thread {
   protected getAvatarUrl(key?: ProfilePictureKey): string {
     return this.profilePictureService.getUrl(key);
   }
+
+  protected readonly avatarUrlResolver = (key?: ProfilePictureKey) => this.getAvatarUrl(key);
 
   protected draftReply = '';
 
@@ -253,6 +269,11 @@ export class Thread {
     this.updateMentionState();
   }
 
+  protected insertComposerChannel(): void {
+    this.insertComposerText('#');
+    this.updateMentionState();
+  }
+
   protected insertMention(member: ChannelMemberView): void {
     if (this.mentionState.triggerIndex === null) return;
 
@@ -265,7 +286,7 @@ export class Thread {
     const newCaret = before.length + mentionText.length;
 
     queueMicrotask(() => {
-      const textarea = this.replyTextarea?.nativeElement;
+      const textarea = this.replyComposer?.textareaElement;
       if (textarea) {
         textarea.focus();
         textarea.setSelectionRange(newCaret, newCaret);
@@ -287,7 +308,7 @@ export class Thread {
 
     const newCaret = before.length + text.length;
     queueMicrotask(() => {
-      const textarea = this.replyTextarea?.nativeElement;
+      const textarea = this.replyComposer?.textareaElement;
       if (textarea) {
         textarea.focus();
         textarea.setSelectionRange(newCaret, newCaret);
@@ -310,8 +331,20 @@ export class Thread {
     this.openEmojiPickerFor = this.openEmojiPickerFor === messageId ? null : messageId;
   }
 
+  protected handleThreadAction(message: MessageView, actionId: MessageActionId | string, isRoot = false): void {
+    executeMessageAction(actionId, {
+      picker: () => this.toggleEmojiPicker(message.id ?? this.threadSnapshot?.root?.id),
+      edit: () => {
+        if (isRoot) {
+          this.startEditingRoot(message);
+        } else {
+          this.startEditing(message);
+        }
+      },
+    });
+  }
   protected focusComposer(): void {
-    this.replyTextarea?.nativeElement.focus();
+    this.replyComposer?.focus();
   }
 
   protected buildMessageSegments(text: string): MentionSegment[] {
@@ -339,7 +372,7 @@ export class Thread {
   }
 
   private insertComposerText(text: string): void {
-    const textarea = this.replyTextarea?.nativeElement;
+    const textarea = this.replyComposer?.textareaElement;
     if (!textarea) {
       this.draftReply = `${this.draftReply}${text}`;
       this.mentionState.caretIndex = this.draftReply.length;
@@ -510,3 +543,6 @@ export class Thread {
     return this.mentionState.type === 'channel' ? (this.mentionState.suggestions as ChannelMentionSuggestion[]) : [];
   }
 }
+
+
+

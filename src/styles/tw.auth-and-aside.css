@@ -176,24 +176,4 @@
     @apply bg-rose-50 text-dab-rosa-error;
   }
 
-  .dab-toast-btn {
-    @apply rounded-full border border-transparent transition hover:bg-white/20 focus-visible:border-2 focus-visible:border-black focus-visible:bg-white/20 focus-visible:outline-none;
-  }
-
-  .dab-fullscreen-overlay {
-    @apply fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm;
-    z-index: 10000;
-  }
-
-  .dab-fullscreen-overlay-panel {
-    @apply flex items-center gap-4 rounded-2xl bg-white/90 px-6 py-4 shadow-lg;
-  }
-
-  .dab-fullscreen-overlay-spinner {
-    @apply h-10 w-10 animate-spin rounded-full border-4 border-dab-purple-1 border-t-transparent;
-  }
-
-  .dab-fullscreen-overlay-text {
-    @apply normal-text font-semibold text-dab-purple-1;
-  }
 }

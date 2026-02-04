@@ -1,0 +1,31 @@
+<div
+  class="message-actions"
+  [class.message-actions--own]="isOwnValue()"
+  [class.message-actions--visible]="isVisible()"
+  aria-label="Nachrichtenaktionen">
+  @for (action of actions(); track action.id) {
+    @if (action.visible !== false) {
+      <button
+        type="button"
+        class="message-actions__action"
+        [attr.aria-label]="action.label"
+        [class.message-actions__action--active]="action.active"
+        (click)="actionSelected.emit(action.id)">
+        @if (action.icon) {
+          <mat-icon>{{ action.icon }}</mat-icon>
+        } @else {
+          {{ action.emoji }}
+        }
+      </button>
+    }
+  }
+  @if (isEmojiPickerOpen()) {
+    <div class="message-actions__picker" [class.message-actions__picker--own]="isOwnValue()">
+      @for (emoji of emojiChoices; track emoji) {
+        <button type="button" (click)="emojiSelected.emit(emoji)" aria-label="Emoji auswählen">
+          {{ emoji }}
+        </button>
+      }
+    </div>
+  }
+</div>

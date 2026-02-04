@@ -1,0 +1,14 @@
+<article
+  class="message-item"
+  [class.message-item--own]="message().isOwn"
+  [ngClass]="extraClass()"
+  [attr.id]="idPrefix() ? idPrefix() + message().id : null">
+  <img
+    class="message-item__avatar rounded-full"
+    [src]="avatarUrl()"
+    [alt]="avatarAlt() || message().authorName" />
+  <div class="message-item__body">
+    <ng-content select="app-message-actions"></ng-content>
+    <ng-content select="app-message-body"></ng-content>
+  </div>
+</article>

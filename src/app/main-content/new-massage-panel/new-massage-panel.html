@@ -46,10 +46,7 @@
         <ul class="new-message-drawer__list">
           <li *ngFor="let user of results.users">
             <button type="button" class="new-message-drawer__item" (click)="startDirectMessage(user)">
-              <img
-                class="new-message-drawer__avatar"
-                [src]="getAvatarUrl(user.profilePictureKey)"
-                [alt]="user.name" />
+              <img class="new-message-drawer__avatar" [src]="getAvatarUrl(user.profilePictureKey)" [alt]="user.name" />
               <div class="new-message-drawer__item-details">
                 <span class="new-message-drawer__item-title">{{ user.displayName }}</span>
                 <span class="new-message-drawer__item-meta">{{ user.email || 'Direktnachricht' }}</span>

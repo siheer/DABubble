@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BehaviorSubject, Observable, combineLatest, map, of, switchMap } from 'rxjs';
-import { ChannelMembershipService } from '../../../services/membership.service';
-import type { Channel, ProfilePictureKey, SearchPanelResult } from '../../../types';
-import { AppUser, UserService } from '../../../services/user.service';
+import { ChannelMembershipService } from '../../services/membership.service';
+import type { Channel, ProfilePictureKey, SearchPanelResult } from '../../types';
+import { AppUser, UserService } from '../../services/user.service';
 import { Router } from '@angular/router';
-import { ProfilePictureService } from '../../../services/profile-picture.service';
+import { ProfilePictureService } from '../../services/profile-picture.service';
 
 @Component({
   selector: 'app-new-message-panel',

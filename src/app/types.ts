@@ -78,7 +78,7 @@ export interface ThreadRootState {
   id: string;
   authorId: string;
   text: string;
-  timestamp: string;
+  timeLabel: string;
 }
 
 export interface ThreadState {
@@ -90,7 +90,7 @@ export interface ThreadSource {
   id: string;
   channelId: string;
   authorId: string;
-  time: string;
+  timeLabel: string;
   text: string;
 }
 
@@ -138,32 +138,52 @@ export interface MessageViewBase {
   reactions: MessageReactions;
 }
 
-export interface ChannelMessageView extends MessageViewBase {
-  author: string;
-  createdAt: Date;
-  time: string;
-  replies: number;
+export interface MessageView extends MessageViewBase {
+  authorName: string;
+  timestamp: Date;
+  timeLabel: string;
+  replies?: number;
   lastReplyAt?: Date;
-  lastReplyTime?: string;
+  lastReplyTimeLabel?: string;
   tag?: string;
 }
 
-export interface ThreadMessage extends MessageViewBase {
-  authorName: string;
-  timestamp: string;
-}
+export type MessageActionId = 'check' | 'thumb' | 'picker' | 'thread' | 'edit';
+
+export type MessageAction = {
+  id: MessageActionId;
+  label: string;
+  icon?: string;
+  emoji?: string;
+  active?: boolean;
+  visible?: boolean;
+};
+
+export type MessageActionConfig = {
+  currentUserId?: string;
+  reactions?: MessageReactions;
+  isOwn?: boolean;
+  includeCheck?: boolean;
+  includeThumb?: boolean;
+  includePicker?: boolean;
+  includeThread?: boolean;
+  includeEdit?: boolean;
+  order?: ReadonlyArray<MessageActionId>;
+};
+
+export type MessageActionHandlers = Partial<Record<MessageActionId, () => void>>;
 
 export interface ThreadContext {
   channelId: string;
   channelTitle: string;
-  root: ThreadMessage;
-  replies: ThreadMessage[];
+  root: MessageView;
+  replies: MessageView[];
 }
 
 export type ChannelDay = {
   label: string;
   sortKey: number;
-  messages: ChannelMessageView[];
+  messages: MessageView[];
 };
 
 export type ChannelMemberView = {
@@ -208,10 +228,7 @@ export type MentionSegment =
     };
 
 // Direct message UI
-export interface MessageBubble extends MessageViewBase {
-  author: string;
-  timestamp: Date;
-}
+export type MessageBubble = MessageView;
 
 // Search
 export type SearchCollection = 'users' | 'channels' | 'messages';

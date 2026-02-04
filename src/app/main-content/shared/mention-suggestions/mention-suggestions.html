@@ -1,0 +1,26 @@
+@if (
+  visible() &&
+  ((mentionType() === 'user' && userSuggestions().length) ||
+    (mentionType() === 'channel' && channelSuggestions().length))
+) {
+  <div class="mention-suggestions">
+    @if (mentionType() === 'user') {
+      @for (member of userSuggestions(); track member.id) {
+        <button type="button" class="mention-suggestions__item" (click)="userSelected.emit(member)">
+          <img
+            class="mention-suggestions__avatar"
+            [src]="avatarUrlResolver()(member.profilePictureKey)"
+            [alt]="member.name" />
+          <span class="mention-suggestions__label truncate">{{ member.name }}</span>
+        </button>
+      }
+    }
+    @if (mentionType() === 'channel') {
+      @for (channel of channelSuggestions(); track channel.id) {
+        <button type="button" class="mention-suggestions__item" (click)="channelSelected.emit(channel)">
+          <span class="mention-suggestions__label truncate">#{{ channel.name }}</span>
+        </button>
+      }
+    }
+  </div>
+}

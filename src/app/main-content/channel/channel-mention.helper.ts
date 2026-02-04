@@ -115,10 +115,6 @@ export function updateTagSuggestions<T extends { name: string }>(
     return { suggestions: [], isVisible: false, triggerIndex: null };
   }
 
-  if (triggerIndex > 0 && !/\s/.test(textUpToCaret[triggerIndex - 1])) {
-    return { suggestions: [], isVisible: false, triggerIndex: null };
-  }
-
   const query = textUpToCaret.slice(triggerIndex + 1);
   if (/\s/.test(query)) {
     return { suggestions: [], isVisible: false, triggerIndex: null };

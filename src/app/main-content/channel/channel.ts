@@ -26,23 +26,28 @@ import type {
   ChannelMember,
   ChannelMemberView,
   ChannelDay,
-  ChannelMessageView,
+  MessageActionId,
+  MessageView,
   ProfilePictureKey,
 } from '../../types';
 import { OverlayService } from '../../services/overlay.service';
-import { ChannelDescription } from '../messages/channel-description/channel-description';
+import { ChannelDescription } from './channel-description/channel-description';
 import { AppUser, UserService } from '../../services/user.service';
 import { ChannelMembers } from './channel-members/channel-members';
 import { AddToChannel } from './add-to-channel/add-to-channel';
 import { ThreadService } from '../../services/thread.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CHANNEL_EMOJI_CHOICES, EMOJI_CHOICES } from '../../texts';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from '../tooltip/tooltip';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { MessageReactions } from '../message-reactions/message-reactions';
+import { MessageActions, executeMessageAction } from '../shared/message-actions/message-actions';
+import { MessageBody } from '../shared/message-body/message-body';
+import { MessageComposer } from '../shared/message-composer/message-composer';
+import { MessageItem } from '../shared/message-item/message-item';
+import { MessageList } from '../shared/message-list/message-list';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { DirectMessagesService } from '../../services/direct-messages.service';
@@ -59,7 +64,19 @@ import { ProfilePictureService } from '../../services/profile-picture.service';
 @Component({
   selector: 'app-channel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatSidenavModule, RouterOutlet, MessageReactions],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    MatSidenavModule,
+    RouterOutlet,
+    MessageReactions,
+    MessageList,
+    MessageItem,
+    MessageActions,
+    MessageBody,
+    MessageComposer,
+  ],
 
   templateUrl: './channel.html',
   styleUrls: ['./channel.scss'],
@@ -86,8 +103,8 @@ export class ChannelComponent {
 
   protected readonly isTabletScreen = this.screenService.isTabletScreen;
 
-  @ViewChild('messageTextarea')
-  private messageTextarea?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild(MessageComposer)
+  private messageComposer?: MessageComposer;
   protected readonly channelDefaults = {
     name: 'Entwicklerteam',
     summary: 'Gruppe zum Austausch über technische Fragen und das laufende Redesign des Devspace.',
@@ -145,10 +162,10 @@ export class ChannelComponent {
     return this.profilePictureService.getUrl(key);
   }
 
+  protected readonly avatarUrlResolver = (key?: ProfilePictureKey) => this.getAvatarUrl(key);
+
   protected openEmojiPickerFor: string | null = null;
   protected isComposerEmojiPickerOpen = false;
-  protected readonly emojiChoices = EMOJI_CHOICES;
-  protected readonly channelEmojiChoices = CHANNEL_EMOJI_CHOICES;
   protected editingMessageId: string | null = null;
   protected editMessageText = '';
   protected isSavingEdit = false;
@@ -157,7 +174,7 @@ export class ChannelComponent {
   private channelMessages?: ElementRef<HTMLElement>;
   private threadSidenav?: MatSidenav;
 
-  @ViewChild('channelMessages')
+  @ViewChild('channelMessages', { read: ElementRef })
   set channelMessagesRef(ref: ElementRef<HTMLElement> | undefined) {
     this.channelMessages = ref;
   }
@@ -367,9 +384,9 @@ export class ChannelComponent {
 
     messages
       .map((message) => this.toViewMessage(message))
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       .forEach((message) => {
-        const label = this.buildDayLabel(message.createdAt);
+        const label = this.buildDayLabel(message.timestamp);
         const existingGroup = grouped.get(label);
 
         if (existingGroup) {
@@ -377,7 +394,7 @@ export class ChannelComponent {
         } else {
           grouped.set(label, {
             label,
-            sortKey: message.createdAt.getTime(),
+            sortKey: message.timestamp.getTime(),
             messages: [message],
           });
         }
@@ -408,6 +425,11 @@ export class ChannelComponent {
     this.updateMentionState();
   }
 
+  protected insertComposerChannel(): void {
+    this.insertComposerText('#');
+    this.updateMentionState();
+  }
+
   protected insertMention(member: ChannelMemberView): void {
     if (this.mentionState.triggerIndex === null) return;
 
@@ -420,7 +442,7 @@ export class ChannelComponent {
     const newCaret = before.length + mentionText.length;
 
     queueMicrotask(() => {
-      const textarea = this.messageTextarea?.nativeElement;
+      const textarea = this.messageComposer?.textareaElement;
       if (textarea) {
         textarea.focus();
         textarea.setSelectionRange(newCaret, newCaret);
@@ -442,7 +464,7 @@ export class ChannelComponent {
 
     const newCaret = before.length + text.length;
     queueMicrotask(() => {
-      const textarea = this.messageTextarea?.nativeElement;
+      const textarea = this.messageComposer?.textareaElement;
       if (textarea) {
         textarea.focus();
         textarea.setSelectionRange(newCaret, newCaret);
@@ -452,7 +474,7 @@ export class ChannelComponent {
     this.resetMentionState();
   }
 
-  protected buildMessageSegments(message: ChannelMessageView): MentionSegment[] {
+  protected buildMessageSegments(message: MessageView): MentionSegment[] {
     const cached = this.messageSegmentsCache.get(message.id);
     if (cached && cached.text === message.text) {
       return cached.segments;
@@ -487,12 +509,12 @@ export class ChannelComponent {
 
   private focusComposer(): void {
     this.ngZone.runOutsideAngular(() => {
-      requestAnimationFrame(() => this.messageTextarea?.nativeElement.focus());
+      requestAnimationFrame(() => this.messageComposer?.focus());
     });
   }
 
   private insertComposerText(text: string): void {
-    const textarea = this.messageTextarea?.nativeElement;
+    const textarea = this.messageComposer?.textareaElement;
     if (!textarea) {
       this.messageText = `${this.messageText}${text}`;
       this.mentionState.caretIndex = this.messageText.length;
@@ -618,7 +640,7 @@ export class ChannelComponent {
       });
   }
 
-  private toViewMessage(message: ChannelMessage & { author?: AppUser }): ChannelMessageView {
+  private toViewMessage(message: ChannelMessage & { author?: AppUser }): MessageView {
     const createdAt = this.timestampToDate(message.createdAt) as Date;
     const lastReplyAt = this.timestampToDate(message.lastReplyAt);
     const currentUserId = this.userService.currentUser()?.uid;
@@ -626,17 +648,17 @@ export class ChannelComponent {
     return {
       id: message.id,
       authorId: message.authorId,
-      author: message.author!.name,
+      authorName: message.author!.name,
       profilePictureKey: message.author!.profilePictureKey,
 
-      createdAt,
-      time: this.formatTime(createdAt),
+      timestamp: createdAt,
+      timeLabel: this.formatTime(createdAt),
 
       text: message.text,
       replies: message.replies,
 
       lastReplyAt,
-      lastReplyTime: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
+      lastReplyTimeLabel: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
 
       tag: message.tag,
 
@@ -727,7 +749,7 @@ export class ChannelComponent {
       });
     });
   }
-  protected openThread(message: ChannelMessageView): void {
+  protected openThread(message: MessageView): void {
     this.channel$.pipe(take(1)).subscribe((channel) => {
       if (!channel?.id || !message.id) return;
 
@@ -736,13 +758,23 @@ export class ChannelComponent {
         id: message.id,
         channelId: channel.id,
         authorId: message.authorId,
-        time: message.time,
+        timeLabel: message.timeLabel,
         text: message.text,
       });
     });
   }
 
-  protected startEditingMessage(message: ChannelMessageView): void {
+  protected handleMessageAction(message: MessageView, actionId: MessageActionId | string): void {
+    executeMessageAction(actionId, {
+      check: () => this.react(message, '✅'),
+      thumb: () => this.react(message, '👍'),
+      picker: () => this.toggleEmojiPicker(message.id),
+      thread: () => this.openThread(message),
+      edit: () => this.startEditingMessage(message),
+    });
+  }
+
+  protected startEditingMessage(message: MessageView): void {
     if (!message.id || !message.isOwn) return;
     this.editingMessageId = message.id;
     this.editMessageText = message.text;
@@ -822,7 +854,7 @@ export class ChannelComponent {
       });
   }
 
-  react(message: ChannelMessageView, emoji: string): void {
+  react(message: MessageView, emoji: string): void {
     if (!this.currentUser || !this.channelId || !message.id) return;
 
     const reactions = message.reactions;
@@ -913,7 +945,7 @@ export class ChannelComponent {
     tryScroll();
   }
 
-  protected trackByMessageId(_: number, msg: ChannelMessageView): string | undefined {
+  protected trackByMessageId(_: number, msg: MessageView): string | undefined {
     return msg.id;
   }
 
