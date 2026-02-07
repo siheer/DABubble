@@ -1,14 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { OverlayService } from '../../../services/overlay.service';
 
 @Component({
   selector: 'app-message-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './message-editor.html',
   styleUrl: './message-editor.scss',
   animations: [

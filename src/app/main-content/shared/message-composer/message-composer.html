@@ -44,7 +44,7 @@
         class="message-composer__button"
         aria-label="Emoji einfügen"
         (click)="toggleEmojiPicker.emit()">
-        <mat-icon>sentiment_satisfied</mat-icon>
+        <span class="material-icons">sentiment_satisfied</span>
       </button>
       @if (showMemberMentionTrigger()) {
         <button
@@ -52,21 +52,21 @@
           class="message-composer__button"
           aria-label="Benutzer erwähnen"
           (click)="mentionTrigger.emit()">
-          <mat-icon>alternate_email</mat-icon>
+          <span class="material-icons">alternate_email</span>
         </button>
       }
       @if (showChannelMentionTrigger()) {
         <button
           type="button"
-          class="message-composer__button message-composer__button--text"
+          class="message-composer__button"
           aria-label="Channel erwähnen"
           (click)="channelMentionTrigger.emit()">
-          <span class="material-icons -ml-1 italic!">tag</span>
+          <span class="material-icons -ml-1.5 italic!">tag</span>
         </button>
       }
     </div>
-    <button type="submit" class="message-composer__send" [disabled]="disableSend() || disabled()">
-      <mat-icon>send</mat-icon>
+    <button type="submit" class="message-composer__button text-dab-purple-1" [disabled]="disableSend() || disabled()">
+      <span class="material-icons">send</span>
     </button>
   </div>
 </form>

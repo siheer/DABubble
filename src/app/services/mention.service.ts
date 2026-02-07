@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ChannelMentionSuggestion, MentionState, MentionType, UserMentionSuggestion } from '../types';
-import { updateTagSuggestions } from '../main-content/channel/channel-mention.helper';
+import { updateTagSuggestions } from '../shared/chat-tag.helper';
 
 @Injectable({ providedIn: 'root' })
 export class MentionsService {

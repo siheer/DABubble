@@ -1,7 +1,6 @@
 import { Component, DestroyRef, ElementRef, NgZone, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import {
@@ -39,6 +38,7 @@ import { ThreadService } from '../../services/thread.service';
 import { ScreenService } from '../../services/screen.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { formatDateLabel, formatTimeLabel } from '../../shared/message-date-time.helper';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ReactionTooltipComponent } from '../tooltip/tooltip';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
@@ -51,7 +51,7 @@ import { MessageList } from '../shared/message-list/message-list';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { DirectMessagesService } from '../../services/direct-messages.service';
-import { buildMessageSegments, getMentionedMembers, updateTagSuggestions } from './channel-mention.helper';
+import { buildMessageSegments, getMentionedMembers, updateTagSuggestions } from '../../shared/chat-tag.helper';
 import type {
   ChannelMentionSuggestion,
   MentionSegment,
@@ -67,7 +67,6 @@ import { ProfilePictureService } from '../../services/profile-picture.service';
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MatSidenavModule,
     RouterOutlet,
     MessageReactions,
@@ -132,6 +131,7 @@ export class ChannelComponent {
     return this.mentionState.type;
   }
   private cachedMembers: ChannelMemberView[] = [];
+  private cachedMentionUsers: ChannelMemberView[] = [];
   private cachedChannels: ChannelMentionSuggestion[] = [];
   private messageSegmentsCache = new Map<string, { text: string; segments: MentionSegment[] }>();
   private lastMessageCount = 0;
@@ -248,7 +248,16 @@ export class ChannelComponent {
 
     this.publicChannelMemberSync();
 
-    this.allUsers$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((users) => (this.allUsersSnapshot = users));
+    this.allUsers$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((users) => {
+      this.allUsersSnapshot = users;
+      this.cachedMentionUsers = users.map((user) => ({
+        id: user.uid,
+        name: user.name,
+        profilePictureKey: user.profilePictureKey,
+      }));
+      this.messageSegmentsCache.clear();
+      this.updateMentionState();
+    });
 
     this.members$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((members) => {
       this.cachedMembers = members;
@@ -480,7 +489,7 @@ export class ChannelComponent {
       return cached.segments;
     }
 
-    const segments = buildMessageSegments(message.text, this.cachedMembers, this.cachedChannels);
+    const segments = buildMessageSegments(message.text, this.cachedMentionUsers, this.cachedChannels);
     this.messageSegmentsCache.set(message.id, { text: message.text, segments });
     return segments;
   }
@@ -538,7 +547,7 @@ export class ChannelComponent {
   private updateMentionState(): void {
     const caret = this.mentionState.caretIndex ?? this.messageText.length;
 
-    const userResult = updateTagSuggestions(this.messageText, caret, '@', this.cachedMembers);
+    const userResult = updateTagSuggestions(this.messageText, caret, '@', this.cachedMentionUsers);
 
     if (userResult.isVisible) {
       this.mentionState = {
@@ -581,7 +590,7 @@ export class ChannelComponent {
       timeStyle: 'short',
     }).format(new Date());
 
-    const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle} erwähnt.`;
+    const messageText = `Du wurdest von @${currentUser.name} am ${formattedTime} in #${channelTitle} erwähnt.`;
 
     await Promise.all(
       mentionedMembers.map((member) => this.directMessagesService.sendSystemMessage(member.id, messageText))
@@ -652,13 +661,13 @@ export class ChannelComponent {
       profilePictureKey: message.author!.profilePictureKey,
 
       timestamp: createdAt,
-      timeLabel: this.formatTime(createdAt),
+      timeLabel: formatTimeLabel(createdAt),
 
       text: message.text,
       replies: message.replies,
 
       lastReplyAt,
-      lastReplyTimeLabel: lastReplyAt ? this.formatTime(lastReplyAt) : undefined,
+      lastReplyTimeLabel: lastReplyAt ? formatTimeLabel(lastReplyAt) : undefined,
 
       tag: message.tag,
 
@@ -683,33 +692,9 @@ export class ChannelComponent {
     return undefined;
   }
   private buildDayLabel(date: Date): string {
-    const today = new Date();
-    const isToday =
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-
-    if (isToday) {
-      return 'Heute';
-    }
-
-    const formatter = new Intl.DateTimeFormat('de-DE', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
-
-    return formatter.format(date);
+    return formatDateLabel(date);
   }
 
-  private formatTime(date: Date): string {
-    const formatter = new Intl.DateTimeFormat('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    return `${formatter.format(date)} Uhr`;
-  }
   private shouldAutoScroll(days: ChannelDay[]): { shouldScroll: boolean; newCount: number; newLastId?: string } {
     const snapshot = this.getMessageSnapshot(days);
     const shouldScroll =
@@ -837,6 +822,10 @@ export class ChannelComponent {
           },
         });
       });
+  }
+
+  protected openChannelFromTag(channel: ChannelMentionSuggestion): void {
+    void this.router.navigate(['/main/channels', channel.id]);
   }
 
   protected openAddToChannel(event: Event): void {

@@ -5,7 +5,7 @@
   class="pointer-events-auto flex h-120 w-[290px] flex-col items-center justify-center gap-6 rounded-2xl bg-white shadow-xl sm:w-[360px] sm:gap-4 lg:w-[440px] lg:rounded-tl-2xl lg:rounded-tr-none lg:rounded-br-2xl lg:rounded-bl-2xl">
   <div class="flex w-full items-center justify-between px-6">
     <h2>Profil</h2>
-    <button (click)="closeOverlay()"><mat-icon class="close">close</mat-icon></button>
+    <button (click)="closeOverlay()"><span class="material-icons close">close</span></button>
   </div>
   <img class="mb-10 size-40 rounded-full sm:mb-5" [src]="getAvatarUrl(currentUser()?.profilePictureKey)" />
   <div class="flex w-full flex-col gap-2 px-6">
@@ -29,7 +29,7 @@
     </div>
   </div>
   <div class="flex w-full gap-4 px-6">
-    <mat-icon>mail_outline</mat-icon>
+    <span class="material-icons">mail_outline</span>
     <div class="flex flex-col gap-4">
       <h4>E-Mail-Adresse</h4>
       <p class="mail">{{ currentUser()?.email }}</p>

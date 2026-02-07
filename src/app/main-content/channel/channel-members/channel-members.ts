@@ -1,6 +1,5 @@
 import { Component, DestroyRef, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
 import { OverlayService } from '../../../services/overlay.service';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AddToChannel } from '../add-to-channel/add-to-channel';
@@ -14,7 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
   selector: 'app-channel-members',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule],
   templateUrl: './channel-members.html',
   styleUrls: ['./channel-members.scss'], // <-- plural
   animations: [

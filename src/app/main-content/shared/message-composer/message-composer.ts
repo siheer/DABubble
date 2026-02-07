@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, ViewChild, ViewEncapsulation, computed, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import type { ChannelMentionSuggestion, MentionType, ProfilePictureKey, UserMentionSuggestion } from '../../../types';
 import { EMOJI_CHOICES } from '../../../texts';
 import { MentionSuggestions } from '../mention-suggestions/mention-suggestions';
@@ -9,7 +8,7 @@ import { MentionSuggestions } from '../mention-suggestions/mention-suggestions';
 @Component({
   selector: 'app-message-composer',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MentionSuggestions],
+  imports: [CommonModule, FormsModule, MentionSuggestions],
   templateUrl: './message-composer.html',
   styleUrl: './message-composer.scss',
   encapsulation: ViewEncapsulation.None,

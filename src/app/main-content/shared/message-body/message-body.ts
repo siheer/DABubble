@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ViewEncapsulation, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { ChannelMemberView, MentionSegment, MessageView } from '../../../types';
+import type { ChannelMemberView, ChannelMentionSuggestion, MentionSegment, MessageView } from '../../../types';
 
 @Component({
   selector: 'app-message-body',
@@ -22,4 +22,5 @@ export class MessageBody {
   cancelEdit = output<void>();
   saveEdit = output<void>();
   memberSelected = output<ChannelMemberView>();
+  channelSelected = output<ChannelMentionSuggestion>();
 }

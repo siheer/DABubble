@@ -1,12 +1,22 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, ElementRef, NgZone, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, combineLatest, distinctUntilChanged, filter, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { ThreadService } from '../../services/thread.service';
-import type { ChannelMemberView, MessageActionId, MessageView, ProfilePictureKey, ThreadContext } from '../../types';
+import type {
+  ChannelMemberView,
+  ChannelMentionSuggestion,
+  MentionSegment,
+  MentionState,
+  MentionType,
+  MessageActionId,
+  MessageView,
+  ProfilePictureKey,
+  ThreadContext,
+  UserMentionSuggestion,
+} from '../../types';
 import { AppUser, UserService } from '../../services/user.service';
 import { MessageReactions } from '../message-reactions/message-reactions';
 import { MessageActions, executeMessageAction } from '../shared/message-actions/message-actions';
@@ -21,14 +31,7 @@ import { DirectMessagesService } from '../../services/direct-messages.service';
 import { MatDialog } from '@angular/material/dialog';
 import { MemberDialog } from '../member-dialog/member-dialog';
 import { ProfilePictureService } from '../../services/profile-picture.service';
-import { buildMessageSegments, getMentionedMembers, updateTagSuggestions } from '../channel/channel-mention.helper';
-import type {
-  ChannelMentionSuggestion,
-  MentionSegment,
-  MentionState,
-  MentionType,
-  UserMentionSuggestion,
-} from '../../types';
+import { buildMessageSegments, getMentionedMembers, updateTagSuggestions } from '../../shared/chat-tag.helper';
 
 @Component({
   selector: 'app-thread',
@@ -36,7 +39,6 @@ import type {
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MessageReactions,
     MessageList,
     MessageItem,
@@ -56,6 +58,7 @@ export class Thread {
   private readonly destroyRef = inject(DestroyRef);
   private readonly ngZone = inject(NgZone);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly messageReactionsService = inject(MessageReactionsService);
   private readonly reactionTooltipService = inject(ReactionTooltipService);
   private readonly profilePictureService = inject(ProfilePictureService);
@@ -119,6 +122,7 @@ export class Thread {
     return this.mentionState.type;
   }
   private cachedMembers: ChannelMemberView[] = [];
+  private cachedMentionUsers: ChannelMemberView[] = [];
   private cachedChannels: ChannelMentionSuggestion[] = [];
   private threadSnapshot: ThreadContext | null = null;
   private isThreadPanelOpen = false;
@@ -163,7 +167,15 @@ export class Thread {
     this.userService
       .getAllUsers()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((users) => (this.allUsersSnapshot = users));
+      .subscribe((users) => {
+        this.allUsersSnapshot = users;
+        this.cachedMentionUsers = users.map((user) => ({
+          id: user.uid,
+          name: user.name,
+          profilePictureKey: user.profilePictureKey,
+        }));
+        this.updateMentionState();
+      });
 
     this.userService.currentUser$
       .pipe(
@@ -171,11 +183,10 @@ export class Thread {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((channels) => {
-        this.cachedChannels = channels
-          .map((channel) => ({
-            id: channel.id,
-            name: channel.title,
-          }));
+        this.cachedChannels = channels.map((channel) => ({
+          id: channel.id,
+          name: channel.title,
+        }));
         this.updateMentionState();
       });
 
@@ -348,7 +359,7 @@ export class Thread {
   }
 
   protected buildMessageSegments(text: string): MentionSegment[] {
-    return buildMessageSegments(text, this.cachedMembers, this.cachedChannels);
+    return buildMessageSegments(text, this.cachedMentionUsers, this.cachedChannels);
   }
 
   protected openMemberProfile(member?: ChannelMemberView): void {
@@ -369,6 +380,10 @@ export class Thread {
     this.dialog.open(MemberDialog, {
       data: { user: fallbackUser },
     });
+  }
+
+  protected openChannelFromTag(channel: ChannelMentionSuggestion): void {
+    void this.router.navigate(['/main/channels', channel.id]);
   }
 
   private insertComposerText(text: string): void {
@@ -396,7 +411,7 @@ export class Thread {
   private updateMentionState(): void {
     const caret = this.mentionState.caretIndex ?? this.draftReply.length;
 
-    const userResult = updateTagSuggestions(this.draftReply, caret, '@', this.cachedMembers);
+    const userResult = updateTagSuggestions(this.draftReply, caret, '@', this.cachedMentionUsers);
 
     if (userResult.isVisible) {
       this.mentionState = {
@@ -444,7 +459,7 @@ export class Thread {
       ? ` im Thread „${this.threadSnapshot.root.text.slice(0, 80)}${this.threadSnapshot.root.text.length > 80 ? '…' : ''}“`
       : '';
 
-    const messageText = `Du wurdest von ${currentUser.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
+    const messageText = `Du wurdest von @${currentUser.name} am ${formattedTime} in #${channelTitle}${threadLabel} erwähnt.`;
 
     await Promise.all(
       mentionedMembers.map((member) => this.directMessagesService.sendSystemMessage(member.id, messageText))
@@ -543,6 +558,3 @@ export class Thread {
     return this.mentionState.type === 'channel' ? (this.mentionState.suggestions as ChannelMentionSuggestion[]) : [];
   }
 }
-
-
-

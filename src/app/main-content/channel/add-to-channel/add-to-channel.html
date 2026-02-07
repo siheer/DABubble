@@ -10,7 +10,7 @@
   <header class="add-to-channel__header">
     <span class="add-to-channel__title">Leute hinzufügen</span>
     <button type="button" class="add-to-channel__close" aria-label="Overlay schließen" (click)="closeOverlay()">
-      <mat-icon>close</mat-icon>
+      <span class="material-icons">close</span>
     </button>
   </header>
 
@@ -37,7 +37,7 @@
         <img [src]="member.avatar" [alt]="member.name" />
         <span class="truncate">{{ member.name }}</span>
         <button type="button" aria-label="{{ member.name }} entfernen" (click)="removeSelectedMember(member.id)">
-          <mat-icon>close</mat-icon>
+          <span class="material-icons">close</span>
         </button>
       </div>
     </div>

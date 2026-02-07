@@ -12,10 +12,9 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DirectMessagesService } from '../../services/direct-messages.service';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { AppUser, UserService } from '../../services/user.service';
 import type {
@@ -36,10 +35,10 @@ import { MessageList } from '../shared/message-list/message-list';
 import { MessageReactionsService } from '../../services/message-reactions.service';
 import { ReactionTooltipService } from '../../services/reaction-tooltip.service';
 import { ProfilePictureService } from '../../services/profile-picture.service';
-import { formatTimestamp, formatDateLabel, getDateKey, hasMention } from './direct-messages.helper';
+import { formatTimeLabel, formatDateLabel, getDateKey } from '../../shared/message-date-time.helper';
 import { DisplayNamePipe } from '../../pipes/display-name.pipe';
 import { MentionState, MentionType, UserMentionSuggestion, ChannelMentionSuggestion } from '../../types';
-import { updateTagSuggestions, buildMessageSegments } from '../channel/channel-mention.helper';
+import { updateTagSuggestions, buildMessageSegments } from '../../shared/chat-tag.helper';
 import { ChannelMembershipService } from '../../services/membership.service';
 
 /** Direct messages component for 1-on-1 conversations. */
@@ -49,7 +48,6 @@ import { ChannelMembershipService } from '../../services/membership.service';
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MessageReactions,
     DisplayNamePipe,
     MessageList,
@@ -69,6 +67,7 @@ export class DirectMessages {
   private readonly userService = inject(UserService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly messageReactionsService = inject(MessageReactionsService);
   private readonly reactionTooltipService = inject(ReactionTooltipService);
@@ -76,6 +75,7 @@ export class DirectMessages {
   private readonly membershipService = inject(ChannelMembershipService);
 
   private readonly currentUser$ = this.userService.currentUser$;
+  private readonly allUsers$ = this.userService.getAllUsers();
   private readonly dmUserId$ = this.route.paramMap.pipe(
     map((p) => p.get('dmId')),
     distinctUntilChanged(),
@@ -83,6 +83,7 @@ export class DirectMessages {
   );
   private readonly recipientSignal = signal<AppUser | null>(null);
   private readonly recipientCache = new Map<string, AppUser | null>();
+  private allUsersSnapshot: AppUser[] = [];
   private mentionState: MentionState = {
     suggestions: [],
     isVisible: false,
@@ -177,6 +178,12 @@ export class DirectMessages {
       this.updateMentionState();
     });
 
+    this.allUsers$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((users) => {
+      this.allUsersSnapshot = users;
+      this.updateDmMentionUsers();
+      this.updateMentionState();
+    });
+
     this.selectedRecipient$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((r) => {
       this.selectedRecipient = r;
       this.updateDmMentionUsers();
@@ -198,7 +205,6 @@ export class DirectMessages {
         },
         this.selectedRecipient.uid
       );
-      await this.notifyMentionedRecipient(trimmed);
     } finally {
       this.isSending = false;
       this.draftMessage = '';
@@ -248,14 +254,14 @@ export class DirectMessages {
   protected openMentionProfile(member: ChannelMemberView): void {
     const currentUser = this.currentUser;
     const recipient = this.selectedRecipient;
+    const resolvedUser =
+      this.allUsersSnapshot.find((user) => user.uid === member.id) ??
+      (currentUser?.uid === member.id ? currentUser : recipient?.uid === member.id ? recipient : null);
 
-    if (currentUser?.uid === member.id) {
-      this.dialog.open(MemberDialog, { data: { user: currentUser } });
-      return;
-    }
-
-    if (recipient?.uid === member.id) {
-      this.dialog.open(MemberDialog, { data: { user: recipient } });
+    if (resolvedUser) {
+      this.dialog.open(MemberDialog, {
+        data: { user: resolvedUser },
+      });
       return;
     }
 
@@ -270,12 +276,14 @@ export class DirectMessages {
       createdAt: undefined,
     };
 
-    this.dialog.open(MemberDialog, { data: { user: fallbackUser } });
+    this.dialog.open(MemberDialog, {
+      data: { user: fallbackUser },
+    });
   }
 
   /** Formats timestamp to time string. */
   protected formatTimestamp(timestamp?: Date): string {
-    return formatTimestamp(timestamp);
+    return formatTimeLabel(timestamp);
   }
 
   /** Formats timestamp to date label. */
@@ -302,27 +310,13 @@ export class DirectMessages {
       id: message.id,
       authorId: message.authorId,
       authorName: isSystem ? DirectMessages.SYSTEM_AUTHOR_NAME : isOwn ? 'Du' : authorUser.name,
-      profilePictureKey: isSystem
-        ? DirectMessages.SYSTEM_PROFILE_PICTURE_KEY
-        : authorUser.profilePictureKey,
+      profilePictureKey: isSystem ? DirectMessages.SYSTEM_PROFILE_PICTURE_KEY : authorUser.profilePictureKey,
       text: message.text,
       timestamp,
-      timeLabel: formatTimestamp(timestamp),
+      timeLabel: formatTimeLabel(timestamp),
       isOwn,
       reactions: message.reactions,
     };
-  }
-
-  /** Sends mention notification if recipient mentioned. */
-  private async notifyMentionedRecipient(text: string): Promise<void> {
-    if (!this.currentUser || !this.selectedRecipient) return;
-    if (!hasMention(text, this.selectedRecipient.name)) return;
-    if (this.currentUser.uid === this.selectedRecipient.uid) return;
-    const formattedTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(
-      new Date()
-    );
-    const messageText = `Du wurdest von ${this.currentUser.name} am ${formattedTime} im privaten Chat mit ${this.currentUser.name} erwähnt.`;
-    await this.directMessagesService.sendSystemMessage(this.selectedRecipient.uid, messageText);
   }
 
   /** Starts editing message. */
@@ -425,20 +419,25 @@ export class DirectMessages {
   protected readonly avatarUrlResolver = (key?: ProfilePictureKey) => this.getAvatarUrl(key);
 
   private updateDmMentionUsers(): void {
-    if (!this.currentUser || !this.selectedRecipient) {
-      this.cachedMentionUsers = [];
-      return;
-    }
-
     const map = new Map<string, ChannelMemberView>();
 
-    map.set(this.currentUser.uid, {
-      id: this.currentUser.uid,
-      name: this.currentUser.name,
-      profilePictureKey: this.currentUser.profilePictureKey,
+    this.allUsersSnapshot.forEach((user) => {
+      map.set(user.uid, {
+        id: user.uid,
+        name: user.name,
+        profilePictureKey: user.profilePictureKey,
+      });
     });
 
-    if (this.selectedRecipient.uid !== this.currentUser.uid) {
+    if (this.currentUser) {
+      map.set(this.currentUser.uid, {
+        id: this.currentUser.uid,
+        name: this.currentUser.name,
+        profilePictureKey: this.currentUser.profilePictureKey,
+      });
+    }
+
+    if (this.selectedRecipient) {
       map.set(this.selectedRecipient.uid, {
         id: this.selectedRecipient.uid,
         name: this.selectedRecipient.name,
@@ -451,6 +450,17 @@ export class DirectMessages {
 
   private updateMentionState(): void {
     const caret = this.mentionState.caretIndex ?? this.draftMessage.length;
+
+    const userResult = updateTagSuggestions(this.draftMessage, caret, '@', this.cachedMentionUsers);
+
+    if (userResult.isVisible) {
+      this.mentionState = {
+        ...userResult,
+        caretIndex: this.mentionState.caretIndex,
+        type: 'user',
+      };
+      return;
+    }
 
     const channelResult = updateTagSuggestions(this.draftMessage, caret, '#', this.cachedChannels);
 
@@ -527,10 +537,11 @@ export class DirectMessages {
     this.resetMentionState();
   }
 
+  protected openChannelFromTag(channel: ChannelMentionSuggestion): void {
+    void this.router.navigate(['/main/channels', channel.id]);
+  }
+
   protected get recipientOnline(): boolean {
     return !!this.selectedRecipient?.onlineStatus;
   }
 }
-
-
-

@@ -28,6 +28,7 @@ import type {
   ThreadState,
 } from '../types';
 import { AuthenticatedFirestoreStreamService } from './authenticated-firestore-stream';
+import { formatTimeLabel } from '../shared/message-date-time.helper';
 
 @Injectable({ providedIn: 'root' })
 export class ThreadService {
@@ -335,7 +336,7 @@ export class ThreadService {
       authorName,
       profilePictureKey,
       timestamp: createdAt,
-      timeLabel: hasServerTimestamp ? this.formatTime(createdAt) : context.root.timeLabel,
+      timeLabel: hasServerTimestamp ? formatTimeLabel(createdAt) : context.root.timeLabel,
       text,
       isOwn: authorId === authUserId,
       reactions: channelMessage?.reactions ?? {},
@@ -355,7 +356,7 @@ export class ThreadService {
       authorName,
       profilePictureKey,
       timestamp: createdAt,
-      timeLabel: this.formatTime(createdAt),
+      timeLabel: formatTimeLabel(createdAt),
       text: reply.text,
       isOwn: reply.authorId === authUserId,
       reactions: reply.reactions,
@@ -373,17 +374,7 @@ export class ThreadService {
     return new Date();
   }
 
-  private formatTime(date: Date): string {
-    const formatter = new Intl.DateTimeFormat('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    return formatter.format(date);
-  }
-
   threadSnapshot(): ThreadState | null {
     return this.threadSubject.value;
   }
-
 }

@@ -1,6 +1,5 @@
 import { Component, Input, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
 import { OverlayService } from '../../../services/overlay.service';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { FormsModule } from '@angular/forms';
@@ -27,7 +26,7 @@ type SuggestedMember = {
 @Component({
   selector: 'app-add-to-channel',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './add-to-channel.html',
   styleUrl: './add-to-channel.scss',
   animations: [

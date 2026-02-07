@@ -1,6 +1,5 @@
 import { Component, inject, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatIcon } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AppUser } from '../../services/user.service';
@@ -14,7 +13,7 @@ export interface MemberDialogData {
 
 @Component({
   selector: 'app-member-dialog',
-  imports: [MatIcon, CommonModule],
+  imports: [CommonModule],
   templateUrl: './member-dialog.html',
   styleUrl: './member-dialog.scss',
   animations: [
@@ -40,10 +39,6 @@ export class MemberDialog {
 
   protected getAvatarUrl(key?: ProfilePictureKey): string {
     return this.profilePictureService.getUrl(key);
-  }
-
-  protected get isInDirectMessage(): boolean {
-    return this.router.url.startsWith('/main/dms');
   }
 
   close() {

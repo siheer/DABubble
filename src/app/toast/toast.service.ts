@@ -90,8 +90,8 @@ export class ToastService {
   }
 
   getDefaultIcon(variant: ToastVariant): string {
-    if (variant === 'success') return 'check_circle_outlined';
-    if (variant === 'error') return 'error_outlined';
-    return 'info_outlined';
+    if (variant === 'success') return 'check_circle';
+    if (variant === 'error') return 'error';
+    return 'info';
   }
 }

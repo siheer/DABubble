@@ -21,9 +21,12 @@
             {{ segment.text }}
           </button>
         } @else if (segment.kind === 'channel') {
-          <span class="message-body__mention message-body__mention--channel">
+          <button
+            type="button"
+            class="message-body__mention message-body__mention--channel"
+            (click)="channelSelected.emit(segment.channel)">
             {{ segment.text }}
-          </span>
+          </button>
         }
       }
     } @else {

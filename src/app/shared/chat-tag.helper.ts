@@ -1,8 +1,27 @@
-import type { ChannelMemberView } from '../../types';
-import type { ChannelMentionSuggestion, MentionSegment } from '../../types';
+import type { ChannelMemberView } from '../types';
+import type { ChannelMentionSuggestion, MentionSegment } from '../types';
 
 export function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Checks if a name mention exists in text.
+ * @param text The text to search
+ * @param name The name to find
+ * @returns True if mention found
+ */
+export function hasMemberTag(text: string, name: string): boolean {
+  if (!name) return false;
+  const escapedName = escapeRegex(name);
+  const mentionRegex = new RegExp(`@${escapedName}\\b`, 'i');
+  return mentionRegex.test(text);
+}
+
+export function hasChannelTag(text: string, channels: ChannelMentionSuggestion[]): boolean {
+  const regex = buildChannelRegex(channels);
+  if (!regex) return false;
+  return regex.test(text);
 }
 
 export function buildMentionRegex(cachedMembers: ChannelMemberView[]): RegExp | null {

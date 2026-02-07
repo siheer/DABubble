@@ -56,7 +56,8 @@
             [isSaving]="isSavingEdit"
             (saveEdit)="message.id && saveEditing(message.id)"
             (cancelEdit)="cancelEditing()"
-            (memberSelected)="openMentionProfile($event)">
+            (memberSelected)="openMentionProfile($event)"
+            (channelSelected)="openChannelFromTag($event)">
             <app-message-reactions
               *ngIf="message.reactions"
               message-extra
@@ -103,7 +104,7 @@
     [mentionType]="mentionType"
     [userSuggestions]="userMentionSuggestions"
     [channelSuggestions]="channelMentionSuggestions"
-    [showMemberMentionTrigger]="false"
+    [showMemberMentionTrigger]="true"
     [showChannelMentionTrigger]="true"
     [avatarUrlResolver]="avatarUrlResolver"
     (composerInput)="onComposerInput($event)"

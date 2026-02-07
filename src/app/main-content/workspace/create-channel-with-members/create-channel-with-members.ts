@@ -2,7 +2,6 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
 import { ChannelService } from '../../../services/channel.service';
 import { ChannelMembershipService } from '../../../services/membership.service';
 import { UserService } from '../../../services/user.service';
@@ -23,7 +22,7 @@ type SuggestedMember = {
 @Component({
   selector: 'app-create-channel-with-members',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './create-channel-with-members.html',
   styleUrl: './create-channel-with-members.scss',
 })

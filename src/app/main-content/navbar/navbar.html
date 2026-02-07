@@ -6,7 +6,7 @@
       class="flex items-center gap-1 text-2xl font-bold md:text-3xl"
       (click)="onBackClick()"
       aria-label="Zur vorherigen Ansicht">
-      <mat-icon>keyboard_arrow_left</mat-icon>
+      <span class="material-icons">keyboard_arrow_left</span>
       <img class="size-12 rounded-full" src="imgs/workspace/Workspace logo.png" />
       Devspace
     </button>
@@ -26,7 +26,7 @@
       (blur)="onBlur()"
       (input)="onSearchInput($event)"
       class="h-12 w-full rounded-full bg-white py-2 pr-10 pl-3 text-gray-500 focus:outline-none lg:pl-12" />
-    <mat-icon class="absolute top-1/2 right-4 -translate-y-1/2 lg:right-4"> search </mat-icon>
+    <span class="material-icons absolute top-1/2 right-4 -translate-y-1/2 lg:right-4">search</span>
     <app-filter-box
       *ngIf="dropdownOpen"
       [isFocused]="true"
@@ -48,7 +48,7 @@
       </span>
     </div>
     <button #menuBtn class="hidden size-6 lg:block" matIconButton>
-      <mat-icon>keyboard_arrow_down</mat-icon>
+      <span class="material-icons">keyboard_arrow_down</span>
     </button>
   </div>
 </section>

@@ -1,5 +1,4 @@
 import { Component, EventEmitter, inject, Output } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
 import { OverlayService } from '../../../services/overlay.service';
 import { ProfileMenuEdit } from '../profile-menu-edit/profile-menu-edit';
 import { trigger, transition, style, animate } from '@angular/animations';
@@ -11,7 +10,7 @@ import { ProfilePictureService } from '../../../services/profile-picture.service
 @Component({
   selector: 'app-profile-menu',
   standalone: true,
-  imports: [MatIcon, CommonModule],
+  imports: [CommonModule],
   templateUrl: './profile-menu.html',
   styleUrl: './profile-menu.scss',
   animations: [

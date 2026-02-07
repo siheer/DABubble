@@ -3,7 +3,7 @@
   class="flex h-140 w-[280px] flex-col items-center justify-center gap-8 rounded-tl-2xl rounded-br-2xl rounded-bl-2xl bg-white p-6 shadow-xl min-[420px]:w-[360px] lg:w-[440px]">
   <div class="flex w-full items-center justify-between">
     <h2>Profil</h2>
-    <mat-icon class="close cursor-pointer" (click)="close()">close</mat-icon>
+    <span class="material-icons close cursor-pointer" (click)="close()">close</span>
   </div>
 
   <img class="size-40 rounded-full" [src]="getAvatarUrl(data.user.profilePictureKey)" />
@@ -23,14 +23,14 @@
   </div>
 
   <div class="mt-2 flex w-full gap-4" *ngIf="data.user.email">
-    <mat-icon>mail_outline</mat-icon>
+    <span class="material-icons">mail_outline</span>
     <div class="flex flex-col gap-1">
       <h4>E-Mail-Adresse</h4>
       <p class="mail truncate">{{ data.user.email }}</p>
     </div>
   </div>
 
-  <div class="mt-4 flex w-full justify-center" *ngIf="!isInDirectMessage">
+  <div class="mt-4 flex w-full justify-center">
     <button class="message-button" (click)="openDirectMessage()">
       <img src="imgs/member dialog/message_icon.png" />Nachricht
     </button>

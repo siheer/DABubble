@@ -35,9 +35,8 @@
     }
 
     p,
-    span:not(.material-icons) {
+    span:not(.material-icons, .material-icons-outlined) {
       @apply px-2;
     }
   }
-
 }

@@ -1,4 +1,4 @@
-<section class="thread lg:rounded-3xl xl:ml-4" *ngIf="thread$ | async as thread; else idleThread">
+<section class="thread lg:ml-4 lg:rounded-3xl" *ngIf="thread$ | async as thread; else idleThread">
   <header class="thread__header">
     <div>
       <p class="thread__eyebrow">Thread</p>
@@ -6,15 +6,14 @@
     </div>
     <div class="thread__header-actions">
       <button type="button" class="thread__close hidden lg:flex" aria-label="Thread schließen" (click)="closeThread()">
-        <mat-icon>close</mat-icon>
+        <span class="material-icons">close</span>
       </button>
     </div>
   </header>
   <app-message-list class="message-list" #threadScrollArea>
-    <ng-container
-      *ngTemplateOutlet="threadMessage; context: { $implicit: thread.root, isRoot: true }"></ng-container>
+    <ng-container *ngTemplateOutlet="threadMessage; context: { $implicit: thread.root, isRoot: true }"></ng-container>
 
-    <div class="message-divider">
+    <div class="message-divider message-divider-thread">
       <span>{{ thread.replies.length }} {{ thread.replies.length === 1 ? 'Antwort' : 'Antworten' }}</span>
     </div>
 
@@ -69,7 +68,8 @@
         [isSaving]="isSavingEdit"
         (saveEdit)="isRoot ? saveEditing(message, true) : saveEditing(message)"
         (cancelEdit)="cancelEditing()"
-        (memberSelected)="openMemberProfile($event)">
+        (memberSelected)="openMemberProfile($event)"
+        (channelSelected)="openChannelFromTag($event)">
         <app-message-reactions
           *ngIf="message.reactions"
           message-extra

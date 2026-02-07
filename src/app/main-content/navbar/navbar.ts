@@ -1,6 +1,5 @@
 import { Component, computed, ElementRef, inject, input, output, ViewChild } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { OverlayService } from '../../services/overlay.service';
 import { NavbarDialog } from './navbar-dialog/navbar-dialog';
@@ -18,7 +17,6 @@ import { ScreenService } from '../../services/screen.service';
   imports: [
     MatFormFieldModule,
     MatInputModule,
-    MatIconModule,
     CommonModule,
     FilterBox,
     FormsModule,

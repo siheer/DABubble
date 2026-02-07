@@ -17,8 +17,9 @@
 
 @layer base {
   body,
-  input {
-    @apply text-base sm:text-lg;
+  input,
+  textarea {
+    @apply normal-text;
   }
 }
 

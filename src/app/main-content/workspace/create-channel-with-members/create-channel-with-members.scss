@@ -31,12 +31,12 @@
     &:hover {
       background-color: #f5f5f5;
     }
+  }
 
-    mat-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-    }
+  &__icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 
   &__title {
@@ -118,15 +118,15 @@
     cursor: pointer;
     transition: transform 0.1s ease;
 
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
     &:active {
       transform: scale(0.96);
     }
+  }
+
+  &__icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
 
   &__field {
@@ -280,12 +280,6 @@
     cursor: pointer;
     transition: transform 0.1s ease;
 
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
     &:active {
       transform: scale(0.96);
     }
@@ -306,12 +300,6 @@
       background 0.2s ease,
       transform 0.1s ease;
 
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
     &:hover {
       background: transparent;
     }
@@ -319,6 +307,12 @@
     &:active {
       transform: scale(0.96);
     }
+  }
+
+  &__icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
 
   &__options {
@@ -577,17 +571,17 @@
     background: transparent;
     cursor: pointer;
     padding: 0;
+  }
 
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #666;
-    }
+  &__icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #666;
+  }
 
-    &:hover mat-icon {
-      color: #333;
-    }
+  button:hover .member-chip__icon {
+    color: #333;
   }
 }
 

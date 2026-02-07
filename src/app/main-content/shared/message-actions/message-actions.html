@@ -12,7 +12,7 @@
         [class.message-actions__action--active]="action.active"
         (click)="actionSelected.emit(action.id)">
         @if (action.icon) {
-          <mat-icon>{{ action.icon }}</mat-icon>
+          <span class="material-icons-outlined message-actions__icon">{{ action.icon }}</span>
         } @else {
           {{ action.emoji }}
         }

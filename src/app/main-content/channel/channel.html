@@ -79,7 +79,8 @@
                     [isSaving]="isSavingEdit"
                     (saveEdit)="message.id && saveEditingMessage(message.id)"
                     (cancelEdit)="cancelEditingMessage()"
-                    (memberSelected)="openMemberProfile($event)">
+                    (memberSelected)="openMemberProfile($event)"
+                    (channelSelected)="openChannelFromTag($event)">
                     <app-message-reactions
                       *ngIf="message.reactions"
                       message-extra

@@ -1,4 +1,4 @@
-<div *ngIf="reactions && (reactions | keyvalue).length">
+<div *ngIf="reactions && (reactions | keyvalue).length" class="py-1">
   <button
     type="button"
     class="message-reaction"
@@ -7,8 +7,7 @@
     (mouseenter)="showTooltip.emit({ event: $event, emoji: r.key, userIds: r.value })"
     (mouseleave)="hideTooltip.emit()"
     (mousedown)="hideTooltip.emit()"
-    (click)="react.emit(r.key)"
-  >
+    (click)="react.emit(r.key)">
     {{ r.key }} {{ r.value.length }}
   </button>
 </div>

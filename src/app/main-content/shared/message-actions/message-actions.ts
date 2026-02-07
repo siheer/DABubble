@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, ViewEncapsulation, computed, input, output } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import type {
   MessageAction,
   MessageActionConfig,
@@ -41,7 +40,7 @@ export function createMessageActions(config: MessageActionConfig): MessageAction
     thread: {
       id: 'thread',
       label: 'Thread öffnen',
-      icon: 'chat_bubble',
+      icon: 'chat',
     },
     edit: {
       id: 'edit',
@@ -86,7 +85,7 @@ export function executeMessageAction(actionId: MessageActionId | string, handler
 @Component({
   selector: 'app-message-actions',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule],
   templateUrl: './message-actions.html',
   styleUrl: './message-actions.scss',
   encapsulation: ViewEncapsulation.None,

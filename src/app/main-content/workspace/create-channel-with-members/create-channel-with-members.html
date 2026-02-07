@@ -14,7 +14,7 @@
         </p>
       </div>
       <button type="button" class="create-channel-modal__close" (click)="cancel()" aria-label="Schließen">
-        <mat-icon>close</mat-icon>
+        <span class="material-icons create-channel-modal__icon">close</span>
       </button>
     </header>
 
@@ -74,11 +74,11 @@
     </div>
     <header class="member-selection-modal__header">
       <button type="button" class="member-selection-modal__back" (click)="goBackToStep1()" aria-label="Zurück">
-        <mat-icon>arrow_back</mat-icon>
+        <span class="material-icons member-selection-modal__icon">arrow_back</span>
       </button>
       <h2>Leute hinzufügen</h2>
       <button type="button" class="member-selection-modal__close" (click)="cancel()" aria-label="Schließen">
-        <mat-icon>close</mat-icon>
+        <span class="material-icons member-selection-modal__icon">close</span>
       </button>
     </header>
 
@@ -119,7 +119,7 @@
           <img [src]="member.avatar" [alt]="member.name" />
           <span>{{ member.name }}</span>
           <button type="button" (click)="removeSelectedMember(member.id)" aria-label="{{ member.name }} entfernen">
-            <mat-icon>close</mat-icon>
+            <span class="material-icons member-chip__icon">close</span>
           </button>
         </div>
       </div>
